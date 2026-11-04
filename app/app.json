@@ -1,0 +1,56 @@
+{
+  "expo": {
+    "name": "STT-TTS 시험",
+    "slug": "stt-tts-test",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.uptive.stttts",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true
+        }
+      }
+    },
+    "android": {
+      "package": "com.uptive.stttts",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "음성으로 질문하려면 마이크가 필요해요."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "음성으로 질문하려면 마이크가 필요해요.",
+          "speechRecognitionPermission": "말한 내용을 글로 바꾸려면 음성 인식 권한이 필요해요."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "expo-asset"
+    ]
+  }
+}

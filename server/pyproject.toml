@@ -1,0 +1,32 @@
+[project]
+name = "stt-tts-server"
+version = "0.1.0"
+description = "가족비서 음성 시험 서버: STT → 답 찾기 → TTS"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "python-multipart>=0.0.18",
+]
+
+[project.optional-dependencies]
+# 실제 모델 엔진. 기본 설치(uv sync)에는 들어가지 않는다.
+# qwen-asr 와 qwen-tts 가 서로 다른 transformers 버전을 고정하므로 한 환경에 함께 설치할 수 없다.
+# → STT 서버는 `uv run --extra asr ...`, TTS 서버는 `uv run --extra tts ...` 로 따로 띄운다.
+asr = ["qwen-asr==0.0.6"]
+tts = ["qwen-tts==0.1.1"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "httpx>=0.28",
+]
+
+[tool.uv]
+conflicts = [
+    [{ extra = "asr" }, { extra = "tts" }],
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

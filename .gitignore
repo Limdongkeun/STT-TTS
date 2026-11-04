@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+server/.venv/
+server/.pytest_cache/
+**/__pycache__/
+results/*
+!results/.gitkeep
+.idea/workspace.xml
+.idea/shelf/
