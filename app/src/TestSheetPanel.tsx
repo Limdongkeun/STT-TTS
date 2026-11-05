@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
+  accuracyText,
+  charErrorRate,
   CHECKS,
   describeAttempt,
   describeChanges,
@@ -35,16 +37,19 @@ type Props = {
   liveText: string;
   /** 지금 시험에 쓰는 STT 이름. 말로 한 턴마다 결과에 같이 적힌다. */
   sttLabel: string;
+  /** 답·TTS 서버의 TTS 가 mock('삐' 소리)이면 '들린 답'은 판단할 수 없어 빼고 센다. */
+  ttsIsMock: boolean;
   onChoose: (testCase: TestCase) => void;
   /** [저장하기]: 저장한 뒤 시험표와 서버 시험 데이터를 함께 비운다(App 이 맡음). */
   onSave: () => void;
 };
 
-export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onSave }: Props) {
+export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, onChoose, onSave }: Props) {
+  const requireHeard = !ttsIsMock;
   const [filter, setFilter] = useState<SheetFilter>("all");
   const [deviceDraft, setDeviceDraft] = useState<string | null>(null);
   const [showAllAttempts, setShowAllAttempts] = useState(false);
-  const { done, bad, total } = summarize(sheet.cases, sheet.results);
+  const { done, bad, total, avgCer } = summarize(sheet.cases, sheet.results, requireHeard);
 
   const toggle = (caseId: string, key: CheckKey, value: Mark) => {
     const current = resultOf(sheet.results, caseId)[key];
@@ -104,6 +109,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
       </View>
       <Text style={styles.meta}>
         끝낸 문장 {done}/{total} · × 있는 문장 {bad}
+        {avgCer !== null ? ` · 평균 인식 정확도 ${accuracyText(avgCer)}` : ""}
+        {ttsIsMock ? " · TTS가 mock이라 '들린 답'은 세지 않아요" : ""}
       </Text>
       <View style={styles.row}>
         {FILTERS.map(([value, label]) => (
@@ -127,7 +134,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
 
       {sheet.cases.map((testCase) => {
         const result = resultOf(sheet.results, testCase.id);
-        if (!isVisible(result, filter)) return null;
+        if (!isVisible(result, filter, requireHeard)) return null;
+        const cer = charErrorRate(testCase.say, result.recognized);
         const active = sheet.activeId === testCase.id;
         const listening = active && stage === "listening";
         const disabled = stage === "busy" || (stage === "listening" && !active);
@@ -139,8 +147,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
             <View
               style={[
                 styles.card,
-                isDone(result) && !hasBad(result) && styles.cardDone,
-                hasBad(result) && styles.cardBad,
+                isDone(result, requireHeard) && !hasBad(result, requireHeard) && styles.cardDone,
+                hasBad(result, requireHeard) && styles.cardBad,
                 active && styles.cardActive,
               ]}
             >
@@ -173,6 +181,11 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
                 style={styles.input}
                 accessibilityLabel={`${testCase.id} 인식한 말`}
               />
+              {cer !== null ? (
+                <Text style={[styles.accuracy, cer > 0 && styles.answerDiff]}>
+                  인식 정확도 {accuracyText(cer)} (말한 문장과 글자 비교, 띄어쓰기 빼고)
+                </Text>
+              ) : null}
               {result.answer ? (
                 <Text style={[styles.answer, result.answer.trim() !== testCase.expect.trim() && styles.answerDiff]}>
                   화면 답: {result.answer}
@@ -180,9 +193,15 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
               ) : null}
 
               <View style={styles.checks}>
-                {CHECKS.map(([key, label]) => (
-                  <View key={key} style={styles.check}>
-                    <Text style={styles.label}>{label}</Text>
+                {CHECKS.map(([key, label]) => {
+                  const mockSkipped = key === "heard" && !requireHeard;
+                  const noRecording = key === "heard" && result.heard === "-";
+                  const skipped = mockSkipped || noRecording;
+                  return (
+                  <View key={key} style={[styles.check, skipped && styles.dim]}>
+                    <Text style={styles.label}>
+                      {mockSkipped ? `${label} (mock 생략)` : noRecording ? `${label} (녹음 없음)` : label}
+                    </Text>
                     <View style={styles.pair}>
                       {(["o", "x"] as const).map((value) => {
                         const on = result[key] === value;
@@ -190,7 +209,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
                           <Pressable
                             key={value}
                             accessibilityRole="button"
-                            accessibilityState={{ selected: on }}
+                            accessibilityState={{ selected: on, disabled: skipped }}
+                            disabled={skipped}
                             accessibilityLabel={`${testCase.id} ${label} ${value === "o" ? "맞음" : "틀림"}`}
                             onPress={() => toggle(testCase.id, key, value)}
                             style={[styles.mark, on && (value === "o" ? styles.markOk : styles.markBad)]}
@@ -203,7 +223,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, onChoose, onS
                       })}
                     </View>
                   </View>
-                ))}
+                  );
+                })}
               </View>
 
               <Text style={styles.label}>메모 (틀린 낱말 → 보정 후보)</Text>
@@ -293,6 +314,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: "#CCD", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: "#FAFBFC", fontSize: 14 },
   answer: { fontSize: 13, color: "#1D7A46" },
   answerDiff: { color: "#B3261E" },
+  accuracy: { fontSize: 13, color: "#1D7A46" },
   checks: { flexDirection: "row", gap: 8 },
   check: { flex: 1, gap: 4 },
   pair: { flexDirection: "row", gap: 4 },

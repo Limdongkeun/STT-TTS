@@ -3,7 +3,17 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { getHealth, postAsk, postStt, postTts, resetDemo, sttServerUrl, ttsServerUrl, type AskContext } from "./src/api";
+import {
+  getHealth,
+  NoRecordingError,
+  postAsk,
+  postStt,
+  postTts,
+  resetDemo,
+  sttServerUrl,
+  ttsServerUrl,
+  type AskContext,
+} from "./src/api";
 import { describeServerInfo, PHONE_STT_LABEL, sttLabelFor, type HealthResponse, type ServerInfo } from "./src/serverInfo";
 import {
   decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
@@ -48,6 +58,8 @@ export default function App() {
   const testSheet = useTestSheet();
   const recordTurnRef = useRef(testSheet.recordTurn);
   recordTurnRef.current = testSheet.recordTurn;
+  const markNoRecordingRef = useRef(testSheet.markNoRecording);
+  markNoRecordingRef.current = testSheet.markNoRecording;
   // 시험표에 적을 STT 이름(폰 기본 STT, 또는 서버 STT 모델 이름). 서버 STT 를 고르면 STT 서버에 모델을 묻는다.
   const [sttServerHealth, setSttServerHealth] = useState<HealthResponse | null>(null);
   const sttLabelRef = useRef(PHONE_STT_LABEL);
@@ -103,7 +115,19 @@ export default function App() {
 
         setStage("speaking");
         const ttsStarted = Date.now();
-        const speech = await postTts(answer.speechText);
+        let speech;
+        try {
+          speech = await postTts(answer.speechText);
+        } catch (error) {
+          if (!(error instanceof NoRecordingError)) throw error;
+          // 사전 녹음 TTS 에 이 답의 소리가 없다: 오류 대신 화면 답만 보여 주고 시험표에 '녹음 없음'을 적는다.
+          if (wasStopped()) return "stopped";
+          if (fromVoice) markNoRecordingRef.current();
+          setNotice("이 답은 녹음이 없어 화면 답만 보여 줘요.");
+          setTimings({ sttMs, askMs, totalMs: Date.now() - startedAt });
+          finishConversation();
+          return "answered";
+        }
         if (wasStopped()) return "stopped";
         const ttsMs = Date.now() - ttsStarted;
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
@@ -125,7 +149,7 @@ export default function App() {
         return "error";
       }
     },
-    [fail, player],
+    [fail, finishConversation, player],
   );
 
   /** 시험표의 '이 문장 말하기': 그 문장의 '나'로 바꾸고 바로 듣기 시작한다. 듣는 중에 다시 누르면 말하기 끝. */
@@ -445,6 +469,7 @@ export default function App() {
           stage={stage === "listening" ? "listening" : stage === "idle" && !conversationActive ? "idle" : "busy"}
           liveText={liveText}
           sttLabel={sttLabel}
+          ttsIsMock={serverInfo.kind === "ok" && serverInfo.health.ttsEngine === "mock"}
           onChoose={chooseTestCase}
           onSave={() => void saveAndReset()}
         />

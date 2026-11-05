@@ -9,3 +9,6 @@ results/*
 !results/.gitkeep
 .idea/workspace.xml
 .idea/shelf/
+
+# 사전 음성 묶음(zip)은 폴더 안 WAV·MP3와 같은 내용이라 올리지 않는다
+output/audio/*.zip

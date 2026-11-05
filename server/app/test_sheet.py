@@ -20,6 +20,8 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.family_demo import compact_question
 from pydantic.alias_generators import to_camel
 
 KST = ZoneInfo("Asia/Seoul")
@@ -30,6 +32,8 @@ MAX_ATTEMPTS_LISTED = 20
 DEFAULT_RESULTS_DIR = Path(__file__).resolve().parents[2] / "results" / "test-runs"
 
 Mark = Literal["", "o", "x"]
+# 들린 답에만 '-'(녹음 없음: 이 답의 소리가 없어 판단하지 않음)가 더 있다.
+HeardMark = Literal["", "o", "x", "-"]
 
 
 def _case(group: str, case_id: str, say: str, expect: str, *, date_dependent: bool = False, chain: str = "") -> dict:
@@ -88,7 +92,7 @@ TEST_CASES: list[dict] = [
     _case("반려동물", "D25", "콩이 예방접종 언제야?", "콩이 종합백신은 2027년 1월 15일 예정이에요."),
 ]
 CASES_BY_ID = {case["id"]: case for case in TEST_CASES}
-MARK_LABELS = {"o": "○", "x": "×", "": ""}
+MARK_LABELS = {"o": "○", "x": "×", "-": "녹음 없음", "": ""}
 
 
 class SheetResult(BaseModel):
@@ -100,7 +104,7 @@ class SheetResult(BaseModel):
     answer: str = Field(default="", max_length=1000)
     key: Mark = ""
     screen: Mark = ""
-    heard: Mark = ""
+    heard: HeardMark = ""
     note: str = Field(default="", max_length=500)
     speaker: Literal["", "wife", "husband"] = ""
     # 이 턴을 받아 적은 STT (예: "폰 기본 STT", "Qwen3-ASR-1.7B"). 앱이 적는다.
@@ -110,6 +114,8 @@ class SheetResult(BaseModel):
 
 def tts_label_for(engine: str, model_id: str) -> str:
     """'mock' 또는 'Qwen3-TTS-12Hz-1.7B-CustomVoice' (조직 이름은 뺀다)."""
+    if engine == "prerecorded":
+        return "JISOO 사전 녹음 (D1~D25)"
     return model_id.rsplit("/", 1)[-1] if engine != "mock" and model_id else engine
 
 
@@ -147,47 +153,87 @@ def _cell(value: str) -> str:
     return value.replace("|", "\\|").replace("\n", " ").strip()
 
 
-def _has_bad(result: dict) -> bool:
-    return any(result.get(key) == "x" for key in ("key", "screen", "heard"))
+def _check_keys(require_heard: bool) -> tuple[str, ...]:
+    """TTS 가 mock('삐' 소리)이면 '들린 답'은 판단할 수 없어 뺀다."""
+    return ("key", "screen", "heard") if require_heard else ("key", "screen")
 
 
-def _is_done(result: dict) -> bool:
-    return bool(str(result.get("recognized", "")).strip()) and all(result.get(key) in ("o", "x") for key in ("key", "screen", "heard"))
+def _has_bad(result: dict, require_heard: bool = True) -> bool:
+    return any(result.get(key) == "x" for key in _check_keys(require_heard))
 
 
-def case_state(result: dict | None) -> str:
+def _is_done(result: dict, require_heard: bool = True) -> bool:
+    recognized = bool(str(result.get("recognized", "")).strip())
+    return recognized and all(result.get(key) in ("o", "x", "-") for key in _check_keys(require_heard))
+
+
+def case_state(result: dict | None, require_heard: bool = True) -> str:
     """'bad'(× 하나라도) · 'good'(다 끝났고 × 없음) · ''(아직)."""
     if not result:
         return ""
-    if _has_bad(result):
+    if _has_bad(result, require_heard):
         return "bad"
-    return "good" if _is_done(result) else ""
+    return "good" if _is_done(result, require_heard) else ""
 
 
-def summarize(results: dict[str, dict], previous: dict[str, dict] | None) -> dict:
+def _edit_distance(left: str, right: str) -> int:
+    previous = list(range(len(right) + 1))
+    for i, left_char in enumerate(left, start=1):
+        current = [i]
+        for j, right_char in enumerate(right, start=1):
+            current.append(min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (left_char != right_char)))
+        previous = current
+    return previous[-1]
+
+
+def char_error_rate(reference: str, hypothesis: str) -> float | None:
+    """글자 오류율(CER) = 고쳐야 할 글자 수 ÷ 말한 문장 글자 수. 띄어쓰기·문장부호는 빼고 센다.
+    인식한 말이 없으면 None. 숫자와 한글 수('1시간' vs '한 시간')는 다른 글자로 센다."""
+    ref = compact_question(reference)
+    hyp = compact_question(hypothesis)
+    if not ref or not hyp:
+        return None
+    return _edit_distance(ref, hyp) / len(ref)
+
+
+def summarize(results: dict[str, dict], previous: dict[str, dict] | None, require_heard: bool = True) -> dict:
     ordered = [case["id"] for case in TEST_CASES]
-    states = {case_id: case_state(results.get(case_id)) for case_id in ordered}
+    keys = _check_keys(require_heard)
+    states = {case_id: case_state(results.get(case_id), require_heard) for case_id in ordered}
+    cers = [
+        cer
+        for case in TEST_CASES
+        if (cer := char_error_rate(case["say"], str(results.get(case["id"], {}).get("recognized", "")))) is not None
+    ]
     summary = {
-        "done": sum(1 for case_id in ordered if _is_done(results.get(case_id, {}))),
+        "done": sum(1 for case_id in ordered if _is_done(results.get(case_id, {}), require_heard)),
         "total": len(ordered),
-        "ok_marks": sum(1 for case_id in ordered for key in ("key", "screen", "heard") if results.get(case_id, {}).get(key) == "o"),
+        "ok_marks": sum(1 for case_id in ordered for key in keys if results.get(case_id, {}).get(key) == "o"),
         "bad_cases": [case_id for case_id in ordered if states[case_id] == "bad"],
         "improved": [],
         "worsened": [],
+        "cer": round(sum(cers) / len(cers), 3) if cers else None,
+        "cer_cases": len(cers),
+        "heard_checked": require_heard,
     }
     if previous is not None:
-        before = {case_id: case_state(previous.get(case_id)) for case_id in ordered}
+        before = {case_id: case_state(previous.get(case_id), require_heard) for case_id in ordered}
         summary["improved"] = [c for c in ordered if before[c] == "bad" and states[c] == "good"]
         summary["worsened"] = [c for c in ordered if before[c] == "good" and states[c] == "bad"]
     return summary
+
+
+def _percent(cer: float | None) -> str:
+    """CER 0.06 → '인식 94%' (정확도 = 1 − CER, 0 아래는 0)."""
+    return "-" if cer is None else f"{round(max(0.0, 1 - cer) * 100)}%"
 
 
 def render_markdown(title: str, results: dict[str, dict]) -> str:
     lines = [
         f"# 음성 시험 결과 — {title}",
         "",
-        "| # | 말한 문장 | 인식한 말 | 화면 답 | 핵심 | 화면 | 들림 | 메모 |",
-        "|---|---|---|---|---|---|---|---|",
+        "| # | 말한 문장 | 인식한 말 | 인식 정확도 | 화면 답 | 핵심 | 화면 | 들림 | 메모 |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for case in TEST_CASES:
         result = results.get(case["id"], {})
@@ -195,6 +241,7 @@ def render_markdown(title: str, results: dict[str, dict]) -> str:
             case["id"],
             _cell(case["say"]),
             _cell(result.get("recognized", "")),
+            _percent(char_error_rate(case["say"], str(result.get("recognized", "")))),
             _cell(result.get("answer", "")),
             MARK_LABELS.get(result.get("key", ""), ""),
             MARK_LABELS.get(result.get("screen", ""), ""),
@@ -215,8 +262,8 @@ def _changes_text(summary: dict) -> str:
 
 
 HISTORY_HEADER = (
-    "| 저장 시각 | STT | TTS | 코드 버전 | 끝낸 문장 | ○ | × 있는 문장 | 같은 STT 지난번보다 |\n"
-    "|---|---|---|---|---|---|---|---|\n"
+    "| 저장 시각 | STT | TTS | 코드 버전 | 인식 정확도(평균) | 끝낸 문장 | ○ | × 있는 문장 | 같은 STT 지난번보다 |\n"
+    "|---|---|---|---|---|---|---|---|---|\n"
 )
 
 
@@ -298,7 +345,8 @@ class SheetStore:
                 # '_02' 는 이름순 정렬에서 원래 이름 뒤에 온다('-' 는 '.' 보다 앞이라 안 됨)
                 stem = f"{moment.strftime('%Y-%m-%d_%H%M%S')}_{suffix:02d}"
             version = self._code_version()
-            summary = summarize(draft, previous)
+            # TTS 가 mock 이면 '들린 답'은 판단할 수 없으니 끝낸 문장·비교에서 뺀다.
+            summary = summarize(draft, previous, require_heard=tts_label != "mock")
             record = {
                 "device": device,
                 "saved_at": moment.isoformat(timespec="seconds"),
@@ -317,10 +365,16 @@ class SheetStore:
             history = folder / "history.md"
             row = (
                 f"| {moment.strftime('%Y-%m-%d %H:%M')} | {stt_text} | {tts_label or '-'} | {version or '-'} | "
-                f"{summary['done']}/{summary['total']} | {summary['ok_marks']} | {', '.join(summary['bad_cases']) or '-'} | "
+                f"{_percent(summary['cer'])} | {summary['done']}/{summary['total']} | {summary['ok_marks']} | {', '.join(summary['bad_cases']) or '-'} | "
                 f"{_changes_text(summary) if previous_record else '같은 STT 첫 저장본'} |\n"
             )
-            existing = history.read_text(encoding="utf-8") if history.exists() else f"# 시험 저장본 — {device}\n\n{HISTORY_HEADER}"
+            if history.exists():
+                existing = history.read_text(encoding="utf-8")
+                if HISTORY_HEADER.splitlines()[0] not in existing:
+                    # 칸이 바뀐 예전 표 아래에 새 표를 시작한다(예전 줄은 그대로 둔다).
+                    existing = existing.rstrip("\n") + "\n\n" + HISTORY_HEADER
+            else:
+                existing = f"# 시험 저장본 — {device}\n\n{HISTORY_HEADER}"
             self._write(history, existing + row)
         return self._attempt_view(record)
 
@@ -341,6 +395,9 @@ class SheetStore:
             "done": summary.get("done", 0),
             "total": summary.get("total", 0),
             "okMarks": summary.get("ok_marks", 0),
+            "avgCer": summary.get("cer"),
+            "cerCases": summary.get("cer_cases", 0),
+            "heardChecked": summary.get("heard_checked", True),
             "badCases": summary.get("bad_cases", []),
             "improved": summary.get("improved", []),
             "worsened": summary.get("worsened", []),

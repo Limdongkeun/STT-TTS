@@ -35,6 +35,8 @@ export function useTestSheet() {
   const resultsRef = useRef(results);
   const casesRef = useRef(cases);
   const activeIdRef = useRef(activeId);
+  /** 마지막으로 말한 턴을 적은 문장(녹음 없음 표시용) */
+  const lastRecordedRef = useRef<string | null>(null);
   const deviceRef = useRef(device);
   const timers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const writes = useRef<Record<string, Promise<unknown>>>({});
@@ -120,6 +122,8 @@ export function useTestSheet() {
     (recognized: string, answer: string, stt: string): TestCase | null => {
       const caseId = activeIdRef.current;
       const testCase = casesRef.current.find((item) => item.id === caseId);
+      // 시험 중인 문장이 없던 턴이면 지난 문장에 '녹음 없음'이 잘못 적히지 않게 비운다.
+      lastRecordedRef.current = caseId && testCase ? caseId : null;
       if (!caseId || !testCase) return null;
       update(caseId, buildRecord(resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt));
       const following = nextCase(casesRef.current, caseId);
@@ -128,6 +132,12 @@ export function useTestSheet() {
     },
     [setActiveId, update],
   );
+
+  /** 방금 적은 문장의 답에 녹음이 없을 때: 들린 답을 '녹음 없음'으로 적는다(판단할 소리가 없음). */
+  const markNoRecording = useCallback(() => {
+    const caseId = lastRecordedRef.current;
+    if (caseId) update(caseId, { heard: "-" });
+  }, [update]);
 
   /** 지금 시험표를 저장본으로 남긴다. 남긴 저장본을 돌려주고, 실패하면 null. */
   const save = useCallback(async (): Promise<Attempt | null> => {
@@ -187,6 +197,7 @@ export function useTestSheet() {
     setActiveId,
     update,
     recordTurn,
+    markNoRecording,
     save,
     clearSheet,
     changeDevice,

@@ -15,6 +15,7 @@ from app.test_sheet import (
     is_valid_device,
     read_code_version,
     render_markdown,
+    char_error_rate,
     stt_labels,
     summarize,
     tts_label_for,
@@ -210,8 +211,9 @@ def test_attempts_compare_only_with_same_stt(tmp_path):
     assert second_phone["improved"] == ["D1"]
 
     history = (tmp_path / DEVICE / "history.md").read_text(encoding="utf-8")
-    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | 1/32 | 3 | - | 같은 STT 첫 저장본 |" in history
-    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | 1/32 | 3 | - | ×→○ D1 |" in history
+    # TTS 가 mock 이라 '들린 답'은 세지 않는다: ○ 는 핵심·화면 2개
+    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | 0% | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
+    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | 0% | 1/32 | 2 | - | ×→○ D1 |" in history
 
 
 def test_stt_labels_and_tts_label():
@@ -229,3 +231,63 @@ def test_api_attempt_records_server_tts(tmp_path):
     attempt = client.post(f"/test-sheet/{DEVICE}/attempts").json()
     assert (attempt["sttLabels"], attempt["tts"]) == (["폰 기본 STT"], "mock")
     assert client.put(f"/test-sheet/{DEVICE}/draft/C1", json={"stt": "가" * 121}).status_code == 422
+
+
+# ── 인식 정확도(CER) · mock TTS 의 '들린 답' ─────────────────────
+
+
+@pytest.mark.parametrize(
+    ("reference", "hypothesis", "cer"),
+    [
+        ("소윤이 이번 주 학교 학원 일정 뭐야?", "소윤이 이번 주 학교 학원 일정 뭐야", 0.0),  # 띄어쓰기·문장부호 무시
+        ("소윤이 이번 주 학교 학원 일정 뭐야?", "수연이 이번 주 학교 일정 뭐야?", 4 / 14),  # 14글자 중 바꿈 2 + 빠짐 2
+        ("가스비 내가 냈어", "코스피 대가 됐어", 4 / 7),
+        ("장보기 목록 뭐 남았어?", "", None),  # 인식한 말이 없으면 계산 안 함
+        ("", "아무 말", None),
+    ],
+)
+def test_char_error_rate(reference, hypothesis, cer):
+    result = char_error_rate(reference, hypothesis)
+    assert result == pytest.approx(cer) if cer is not None else result is None
+
+
+def test_summary_average_cer_and_mock_tts_skips_heard():
+    say_c1 = TEST_CASES[0]["say"]
+    results = {
+        "C1": {"recognized": say_c1, "key": "o", "screen": "o", "heard": ""},
+        "C2": {"recognized": "수연이 이번 주 학교 일정 뭐야?", "key": "x", "screen": "x", "heard": ""},
+    }
+    with_heard = summarize(results, None, require_heard=True)
+    without_heard = summarize(results, None, require_heard=False)
+    assert with_heard["done"] == 0  # 들린 답이 비어 끝나지 않음
+    assert without_heard["done"] == 2
+    assert without_heard["cer"] == pytest.approx(round((0 + 4 / 14) / 2, 3))
+    assert without_heard["cer_cases"] == 2
+    assert summarize({}, None)["cer"] is None
+
+
+def test_history_starts_new_table_when_columns_change(tmp_path):
+    folder = tmp_path / DEVICE
+    folder.mkdir()
+    old = "# 시험 저장본 — ios-27-0-1\n\n| 저장 시각 | STT | TTS | 코드 버전 | 끝낸 문장 |\n|---|---|---|---|---|\n| 옛 줄 |\n"
+    (folder / "history.md").write_text(old, encoding="utf-8")
+    store = SheetStore(tmp_path, code_version=lambda: "v2")
+    store.save_draft_case(DEVICE, "C1", SheetResult(recognized=TEST_CASES[0]["say"], key="o", screen="o"))
+    store.save_attempt(DEVICE, now=LATER, tts_label="mock")
+    history = (folder / "history.md").read_text(encoding="utf-8")
+    assert history.startswith(old.rstrip("\n"))  # 예전 줄은 그대로
+    assert "| 인식 정확도(평균) |" in history
+    assert "| 2026-11-05 14:00 | STT 모름 | mock | v2 | 100% | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
+    markdown = (folder / "2026-11-05_140000.md").read_text(encoding="utf-8")
+    assert "| C1 | 다음 주 우리 집 일정 뭐야? | 다음 주 우리 집 일정 뭐야? | 100% |" in markdown
+
+
+def test_no_recording_heard_counts_as_done_and_shows_label():
+    say_d1 = next(case["say"] for case in TEST_CASES if case["id"] == "D1")
+    result = {"recognized": say_d1, "key": "o", "screen": "o", "heard": "-"}
+    assert summarize({"D1": result}, None)["done"] == 1
+    assert summarize({"D1": result}, None)["bad_cases"] == []
+    assert "| 녹음 없음 |" in render_markdown("t", {"D1": result})
+    assert SheetResult(heard="-").heard == "-"
+    with pytest.raises(ValueError):
+        SheetResult(key="-")

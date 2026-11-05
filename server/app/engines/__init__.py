@@ -15,6 +15,10 @@ def create_stt_engine(settings: Settings) -> SttEngine:
 
 
 def create_tts_engine(settings: Settings) -> TtsEngine:
+    if settings.tts_engine == "prerecorded":
+        from app.engines.prerecorded import PrerecordedTtsEngine
+
+        return PrerecordedTtsEngine()
     if settings.tts_engine == "qwen3-tts":
         from app.engines.qwen3_tts import Qwen3TtsEngine
 

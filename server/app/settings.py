@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 
 STT_ENGINES = ("mock", "qwen3-asr")
-TTS_ENGINES = ("mock", "qwen3-tts")
+TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded")
 ANSWER_PROVIDERS = ("fixed", "family-demo")
 DTYPES = ("bfloat16", "float16", "float32")
 
@@ -46,7 +46,7 @@ class Settings:
 def load_settings() -> Settings:
     return Settings(
         stt_engine=_choice("STT_ENGINE", "mock", STT_ENGINES),
-        tts_engine=_choice("TTS_ENGINE", "mock", TTS_ENGINES),
+        tts_engine=_choice("TTS_ENGINE", "prerecorded", TTS_ENGINES),
         # 기본은 가족 돌봄 시험 답. 인식과 답을 한 번에 확인한다. fixed 는 예전 고정 답(설정할 때만).
         answer_provider=_choice("ANSWER_PROVIDER", "family-demo", ANSWER_PROVIDERS),
         asr_model_id=os.environ.get("ASR_MODEL_ID", "Qwen/Qwen3-ASR-1.7B"),

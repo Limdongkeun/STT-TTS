@@ -22,6 +22,7 @@ from pydantic.alias_generators import to_camel
 
 from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
+from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
 from app.family_demo import FamilyDemoAnswerProvider, FamilyDemoContext
 from app.normalize import normalize_for_speech
@@ -135,7 +136,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "sttEngine": stt_engine.name,
             "sttModel": settings.asr_model_id if settings.stt_engine == "qwen3-asr" else "",
             "ttsEngine": tts_engine.name,
-            "ttsModel": settings.tts_model_id if settings.tts_engine == "qwen3-tts" else "",
+            "ttsModel": VOICE_LABEL if settings.tts_engine == "prerecorded" else (
+                settings.tts_model_id if settings.tts_engine == "qwen3-tts" else ""
+            ),
             "answerProvider": answer_provider.name,
         }
 
@@ -187,7 +190,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         text = normalize_for_speech(request.text) if request.normalize else request.text.strip()
         if not text:
             raise HTTPException(status_code=400, detail="읽을 글이 없습니다.")
-        result = tts_engine.synthesize(text)
+        try:
+            result = tts_engine.synthesize(text)
+        except RecordingUnavailableError as exc:
+            # 404: 이 답의 녹음이 없다(앱은 오류 대신 화면 답만 보여 준다). 422 는 요청 모양 오류로 남겨 둔다.
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
         audio_id = audio_store.save(result.wav_bytes)
         return TtsResponse(
             audio_url=f"/audio/{audio_id}",

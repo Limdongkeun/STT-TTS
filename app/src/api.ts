@@ -30,6 +30,19 @@ export type TtsResponse = {
 
 type ReactNativeFile = { uri: string; name: string; type: string };
 
+/** 서버가 오류로 답했을 때. status 로 오류 종류를 가른다. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
+/** 사전 녹음 TTS 에 이 답의 녹음이 없을 때(서버 /tts 404). 화면 답만 보여 주면 된다. */
+export class NoRecordingError extends Error {}
+
 function requireUrl(url: string | null, name: string): string {
   if (!url) {
     throw new Error(`${name} 주소가 없거나 잘못됐어요. app/.env 를 확인하세요.`);
@@ -45,7 +58,7 @@ async function request<T>(url: string, init: RequestInit, timeoutMs: number = RE
     const body: unknown = await response.json().catch(() => null);
     if (!response.ok) {
       const detail = typeof body === "object" && body !== null && "detail" in body ? String(body.detail) : "";
-      throw new Error(`서버 오류 ${response.status} ${detail}`.trim());
+      throw new ApiError(`서버 오류 ${response.status} ${detail}`.trim(), response.status);
     }
     return body as T;
   } finally {
@@ -133,10 +146,16 @@ export async function resetDemo(): Promise<void> {
 
 export async function postTts(text: string): Promise<TtsResponse & { fullAudioUrl: string }> {
   const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
-  const result = await request<TtsResponse>(joinUrl(baseUrl, "/tts"), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-  });
+  let result: TtsResponse;
+  try {
+    result = await request<TtsResponse>(joinUrl(baseUrl, "/tts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) throw new NoRecordingError(error.message);
+    throw error;
+  }
   return { ...result, fullAudioUrl: joinUrl(baseUrl, result.audioUrl) };
 }

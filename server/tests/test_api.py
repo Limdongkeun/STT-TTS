@@ -186,3 +186,39 @@ def test_family_demo_carries_dose_across_turns_and_corrects_it(monkeypatch):
     assert "수정했어요" in corrected["answerText"]
     assert corrected["context"]["dose_at"] == "2026-11-04T15:00:00+09:00"
     assert "context" not in ask("아버지 병원 예약 언제였지", corrected["context"])
+
+
+def test_prerecorded_answer_is_downloadable_and_labeled():
+    from app.family_demo import FamilyDemoAnswerProvider
+    from app.normalize import normalize_for_speech
+
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
+    text, _ = FamilyDemoAnswerProvider().answer("장보기 목록 뭐 남았어?")
+    response = client.post("/tts", json={"text": normalize_for_speech(text)})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["engine"] == "prerecorded"
+    assert body["durationSec"] > 1
+    assert client.get(body["audioUrl"]).content[:4] == b"RIFF"
+    assert "JISOO" in client.get("/health").json()["ttsModel"]
+
+
+def test_prerecorded_rejects_a_different_answer():
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
+    response = client.post("/tts", json={"text": "장보기 목록은 사과예요."})
+    assert response.status_code == 404
+    assert "일치하는 사전 음성" in response.json()["detail"]
+
+
+def test_all_25_recordings_match_their_manifest():
+    import json
+
+    from app.engines.prerecorded import DEFAULT_RECORDINGS_DIR, PrerecordedTtsEngine
+
+    manifest = json.loads((DEFAULT_RECORDINGS_DIR / "manifest.json").read_text())
+    engine = PrerecordedTtsEngine()
+    assert len(manifest["recordings"]) == 25
+    for item in manifest["recordings"]:
+        result = engine.synthesize(item["speechText"])
+        assert result.sample_rate == 24000
+        assert abs(result.duration_sec - item["durationSec"]) < 0.01

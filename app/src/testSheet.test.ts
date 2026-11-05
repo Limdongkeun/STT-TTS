@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
+  accuracyText,
   autoScreenMark,
+  charErrorRate,
   defaultDevice,
   describeAttempt,
   describeChanges,
@@ -86,9 +88,12 @@ test("isDone / hasBad / isVisible", () => {
   assert.equal(isVisible(EMPTY_RESULT, "all"), true);
 });
 
-test("summarize: 끝낸 문장과 × 있는 문장 수", () => {
+test("summarize: 끝낸 문장과 × 있는 문장 수, 평균 CER", () => {
   const results = { D1: done, D9: { ...EMPTY_RESULT, key: "x" as const } };
-  assert.deepEqual(summarize([CASE_A, CASE_B], results), { done: 1, bad: 1, total: 2 });
+  const summary = summarize([CASE_A, CASE_B], results);
+  assert.deepEqual({ ...summary, avgCer: null }, { done: 1, bad: 1, total: 2, avgCer: null });
+  assert.equal(summary.avgCer, 0); // D1 만 인식한 말이 있고, 문장과 같음
+  assert.equal(summarize([CASE_A], {}).avgCer, null);
   assert.deepEqual(resultOf({}, "D1"), EMPTY_RESULT);
 });
 
@@ -115,4 +120,39 @@ test("nextCase: 다음 문장, 마지막이거나 없으면 null", () => {
   assert.equal(nextCase([CASE_A, CASE_B], "D1")?.id, "D9");
   assert.equal(nextCase([CASE_A, CASE_B], "D9"), null);
   assert.equal(nextCase([CASE_A, CASE_B], "C1"), null);
+});
+
+test("charErrorRate: 띄어쓰기·문장부호 무시, 바꿈·빠짐을 센다", () => {
+  assert.equal(charErrorRate("소윤이 이번 주 학교 학원 일정 뭐야?", "소윤이 이번주 학교 학원 일정 뭐야"), 0);
+  assert.equal(charErrorRate("소윤이 이번 주 학교 학원 일정 뭐야?", "수연이 이번 주 학교 일정 뭐야?"), 4 / 14);
+  assert.equal(charErrorRate("가스비 내가 냈어", "코스피 대가 됐어"), 4 / 7);
+  assert.equal(charErrorRate("장보기 목록 뭐 남았어?", ""), null);
+  assert.equal(charErrorRate("", "아무 말"), null);
+});
+
+test("accuracyText: 정확도 %, 0% 아래로 안 내려감", () => {
+  assert.equal(accuracyText(0), "100%");
+  assert.equal(accuracyText(4 / 14), "71%");
+  assert.equal(accuracyText(1.5), "0%");
+});
+
+test("mock TTS: 들린 답 없이도 끝난 문장, × 판단에서도 뺀다", () => {
+  const noHeard: SheetResult = { ...done, heard: "" };
+  assert.equal(isDone(noHeard), false);
+  assert.equal(isDone(noHeard, false), true);
+  assert.equal(hasBad({ ...done, heard: "x" }, false), false);
+  assert.equal(isVisible(noHeard, "todo", false), false);
+  assert.equal(summarize([CASE_A], { D1: noHeard }, false).done, 1);
+});
+
+test("describeAttempt: 평균 인식 정확도를 함께 보여 준다", () => {
+  assert.equal(describeAttempt({ ...ATTEMPT, avgCer: 0.06 }), "[폰 기본 STT] · 11/5 13:40 · 9a49c4f (수정 중) · 인식 94% · 끝낸 30/32 · × 3");
+});
+
+test("녹음 없음('-'): 들린 답을 판단하지 않아도 끝난 문장, 다음 턴에는 비움", () => {
+  const noRecording = { ...done, heard: "-" as const };
+  assert.equal(isDone(noRecording), true);
+  assert.equal(hasBad(noRecording), false);
+  assert.equal(recordTurn(noRecording, CASE_A, "q", "답", "폰 기본 STT").heard, "");
+  assert.equal(recordTurn({ ...done, heard: "x" }, CASE_A, "q", "답", "폰 기본 STT").heard, "x");
 });

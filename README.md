@@ -89,3 +89,9 @@ npm run android:device   # 안드로이드 폰 USB 디버깅 켠 상태
 ## 3. 시험 순서
 
 `docs/test-plan.md`를 본다. 시험 문장은 `docs/test-sentences.md`에 있다.
+
+## 이번 주 임시 음성 (D1~D25)
+
+서버 기본 TTS는 `prerecorded`다. `output/audio/d1-d25`의 지수 사전 음성을 답변과 일치할 때 재생한다. ElevenLabs API 호출이나 키가 필요하지 않다.
+
+D1부터 순서대로 시험하면 녹음과 같은 답변을 받을 수 있다. 생성일(2026-11-05) 이후 날짜나 기록이 바뀌어 녹음과 달라지면 화면 답변과 “일치하는 사전 음성이 없습니다” 안내가 나온다. C1~C7과 녹음 밖 답변도 같은 안내가 나온다. 예전 삐 소리는 `TTS_ENGINE=mock`으로 선택한다.

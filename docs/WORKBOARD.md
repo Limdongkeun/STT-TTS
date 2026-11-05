@@ -39,6 +39,8 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 ## 정한 것
 
+- 임시 TTS 기본은 prerecorded(지수 D1~D25 로컬 WAV)다. 문장이 일치할 때만 재생하고 불일치하면 422 안내를 보낸다. ElevenLabs 추가 API 사용은 금지한다.
+
 - 실제 STT 서버는 8001(`--extra asr`), 답+TTS 서버는 8002(`--extra tts`)로 나눈다. qwen-asr와 qwen-tts가 서로 다른 transformers 버전을 쓰기 때문이다. mock만 쓸 때는 8002 하나로 된다.
 - 코딩 규칙은 Teddy Core Policy(`/Users/teddy/Desktop/UPTIVE/LLM-코딩/core_instructions.md` + `packs/`)를 따른다.
 - 커밋은 사용자가 요청할 때만 한다.
@@ -50,14 +52,20 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 항목 | 결과 | 확인 |
 |---|---|---|
-| server pytest | 248개 통과 | 2026-11-05 Claude |
-| app `npm test` / `npm run typecheck` | 29개 통과 / 통과 | 2026-11-05 Claude |
+| server pytest | 258개 통과 | 2026-11-05 Codex |
+| app `npm test` / `npm run typecheck` | 36개 통과 / 통과 | 2026-11-05 Claude |
 | app 린트 | ESLint 설정 없음, 못 돌림 | 2026-11-04 Claude |
 
 ## 작업 기록 (최신이 위)
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-05 15:55 | Claude | 사전 녹음에 없는 답: /tts 404 → 앱은 오류 대신 화면 답만, 시험표 들린 답 '녹음 없음'(-) 표시·끝낸 문장으로 셈. zip을 git 대상에서 빼고 .gitignore 추가(파일은 남김) | 서버 259개, 앱 37개, tsc 통과. 서버 재시작 필요 |
+| 2026-11-05 14:58 | Codex | D1~D25 로컬 사전 음성 연결, 기본 TTS prerecorded 및 실행 서버 재시작. ElevenLabs 추가 호출 없음 | 서버 258개 통과, 실제 /ask→/tts→WAV 다운로드 확인, 폰 청취 확인 대기 |
+| 2026-11-05 14:55 | Codex | D1~D25 답변만 ElevenLabs 지수로 사전 생성. 추가 API 사용 금지(사용자 지시) | 25개 WAV·MP3, 총 135.44초, 파일·무음 검사 통과. 앱 연결 및 청취 검수 전 |
+| 2026-11-05 14:46 | Codex | 임시 음성 교체 보류. 원본 샘플과 생성 설정 확인 후 사용자 요청으로 이번 추가 코드·대본 철회 | 기존 mock TTS 유지 |
+| 2026-11-05 14:55 | Claude | A 폰 STT 힌트 단어(contextualStrings) 4개 → 45개: 가족 이름·시험 낱말, '학원' 홀로 빼고 '어린이집 하원'. B 인식 정확도(CER) 카드·요약·저장본·history.md 자동 계산(앱 testSheet.ts, 서버 test_sheet.py). C TTS mock이면 '들린 답' 흐리게·끝낸 문장/비교에서 뺌. history.md 칸 바뀌면 예전 표 아래 새 표 | server 255개 · app 36개 · tsc 통과, 실기기 확인 대기 |
+| 2026-11-05 14:40 | Claude | 오늘 변경 전부 커밋 dab8543(푸시 안 함) | server 248 · app 29 · tsc 통과 |
 | 2026-11-05 14:35 | Claude | '나' 역할 없앰: 앱의 나: 아내/남편 버튼·카드 표시 삭제, `/ask`에 speaker 안 보냄. 서버는 문장 속 남편·아내로 누가 했는지 판단("가스비 아내가 냈어", "남편한테 온 부탁", "남편이 약국 부탁 다 했어"), 물음표로 끝나면 묻는 말. 시험 문장 D3·D6·D12·D14~D16·D19를 사람 이름 문장으로 바꿈 | server 248개 · app 29개 · tsc 통과 |
 | 2026-11-05 14:25 | Claude | 14:10 실기기 시험 반영: [저장하기] = 저장 후 시험표·서버 시험 데이터 전부 초기화(실패하면 안 지움). 보정 추가(수연→소윤, 어린이집+학원→하원, 7년·칠년+용돈→친정, 공기+심장사상충·약·백신→콩이), 받는 사람 없는 '…해 달라고 부탁해 줘'는 배우자에게 | server 240개 · app 29개 · tsc 통과 |
 | 2026-11-05 14:05 | Claude | 저장본에 STT·TTS 기록: 말로 한 턴마다 STT 이름(폰 기본 STT / 서버 모델 이름) 저장, `/health`에 sttModel·ttsModel, 저장본 비교는 같은 STT의 바로 앞 저장본과만, history.md에 STT·TTS 칸. 시험표 위에 '지금 STT' 표시 | server 224개 · app 29개 · tsc 통과 |

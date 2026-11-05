@@ -1,6 +1,8 @@
 /** 앱 시험표 규칙 (순수 함수, 테스트 대상). 서버 /test-cases · /test-runs 와 같은 모양. */
 
 export type Mark = "" | "o" | "x";
+/** 들린 답에만 "-"(녹음 없음: 이 답의 소리가 없어 판단하지 않음)가 더 있다. */
+export type HeardMark = Mark | "-";
 
 export type TestCase = {
   group: string;
@@ -16,7 +18,7 @@ export type SheetResult = {
   answer: string;
   key: Mark;
   screen: Mark;
-  heard: Mark;
+  heard: HeardMark;
   note: string;
   /** 예전 저장본 호환용(지금은 쓰지 않음): '나' 역할 */
   speaker: "" | "wife" | "husband";
@@ -80,6 +82,10 @@ export type Attempt = {
   badCases: string[];
   improved: string[];
   worsened: string[];
+  /** 평균 글자 오류율(CER). 인식한 말이 하나도 없으면 null */
+  avgCer?: number | null;
+  /** false 면 TTS 가 mock 이라 '들린 답'을 세지 않은 저장본 */
+  heardChecked?: boolean;
 };
 
 /** "11/5 13:40 · 9a49c4f · 끝낸 30/32 · × 3" */
@@ -87,7 +93,10 @@ export function describeAttempt(attempt: Attempt): string {
   const match = /^\d{4}-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(attempt.savedAt);
   const when = match ? `${Number(match[1])}/${Number(match[2])} ${match[3]}:${match[4]}` : attempt.savedAt;
   const stt = attempt.sttLabels.length ? attempt.sttLabels.join(" + ") : "STT 모름";
-  return [`[${stt}]`, when, attempt.version || "버전 모름", `끝낸 ${attempt.done}/${attempt.total}`, `× ${attempt.badCases.length}`].join(" · ");
+  const parts = [`[${stt}]`, when, attempt.version || "버전 모름"];
+  if (attempt.avgCer !== undefined && attempt.avgCer !== null) parts.push(`인식 ${accuracyText(attempt.avgCer)}`);
+  parts.push(`끝낸 ${attempt.done}/${attempt.total}`, `× ${attempt.badCases.length}`);
+  return parts.join(" · ");
 }
 
 /** "×→○ D1 / ○→× D8" — 같은 STT 의 바로 앞 저장본과 비교. 비교할 게 없거나 변화가 없으면 그렇게 말한다. */
@@ -111,29 +120,70 @@ export function resultOf(results: Record<string, SheetResult>, caseId: string): 
 }
 
 /** 인식한 말이 있고 ○/× 세 개를 다 눌렀으면 끝난 문장. */
-export function isDone(result: SheetResult): boolean {
-  return result.recognized.trim() !== "" && CHECKS.every(([key]) => result[key] !== "");
+/** TTS 가 mock('삐' 소리)이면 '들린 답'은 판단할 수 없어 세지 않는다. */
+export function checkKeys(requireHeard: boolean): CheckKey[] {
+  return CHECKS.map(([key]) => key).filter((key) => requireHeard || key !== "heard");
 }
 
-export function hasBad(result: SheetResult): boolean {
-  return CHECKS.some(([key]) => result[key] === "x");
+export function isDone(result: SheetResult, requireHeard = true): boolean {
+  return result.recognized.trim() !== "" && checkKeys(requireHeard).every((key) => result[key] !== "");
 }
 
-export function isVisible(result: SheetResult, filter: SheetFilter): boolean {
-  if (filter === "todo") return !isDone(result);
-  if (filter === "bad") return hasBad(result);
+export function hasBad(result: SheetResult, requireHeard = true): boolean {
+  return checkKeys(requireHeard).some((key) => result[key] === "x");
+}
+
+export function isVisible(result: SheetResult, filter: SheetFilter, requireHeard = true): boolean {
+  if (filter === "todo") return !isDone(result, requireHeard);
+  if (filter === "bad") return hasBad(result, requireHeard);
   return true;
 }
 
-export function summarize(cases: TestCase[], results: Record<string, SheetResult>) {
+/** 비교용 글: 한글 표준형(NFC)으로 맞추고 글자·숫자만 남긴다(서버 compact_question 과 같은 규칙). */
+function compact(text: string): string {
+  return Array.from(text.normalize("NFC"))
+    .filter((char) => /[\p{L}\p{N}]/u.test(char))
+    .join("");
+}
+
+function editDistance(left: string[], right: string[]): number {
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= left.length; i += 1) {
+    const current = [i];
+    for (let j = 1; j <= right.length; j += 1) {
+      current.push(Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (left[i - 1] === right[j - 1] ? 0 : 1)));
+    }
+    previous = current;
+  }
+  return previous[right.length];
+}
+
+/** 글자 오류율(CER) = 고쳐야 할 글자 수 ÷ 말한 문장 글자 수. 띄어쓰기·문장부호는 빼고 센다. 인식한 말이 없으면 null. */
+export function charErrorRate(reference: string, hypothesis: string): number | null {
+  const ref = Array.from(compact(reference));
+  const hyp = Array.from(compact(hypothesis));
+  if (!ref.length || !hyp.length) return null;
+  return editDistance(ref, hyp) / ref.length;
+}
+
+/** CER 0.06 → "94%" (정확도 = 1 − CER, 0% 아래로는 안 내려감) */
+export function accuracyText(cer: number): string {
+  return `${Math.round(Math.max(0, 1 - cer) * 100)}%`;
+}
+
+export function summarize(cases: TestCase[], results: Record<string, SheetResult>, requireHeard = true) {
   let done = 0;
   let bad = 0;
+  const cers: number[] = [];
   for (const testCase of cases) {
     const result = resultOf(results, testCase.id);
-    if (isDone(result)) done += 1;
-    if (hasBad(result)) bad += 1;
+    if (isDone(result, requireHeard)) done += 1;
+    if (hasBad(result, requireHeard)) bad += 1;
+    const cer = charErrorRate(testCase.say, result.recognized);
+    if (cer !== null) cers.push(cer);
   }
-  return { done, bad, total: cases.length };
+  const avgCer = cers.length ? cers.reduce((sum, value) => sum + value, 0) / cers.length : null;
+  return { done, bad, total: cases.length, avgCer };
 }
 
 /** 날짜에 따라 바뀌지 않는 문장은 화면 답이 기대 답과 글자까지 같으면 ○ 를 미리 채운다. 아니면 비워 둔다. */
@@ -142,7 +192,8 @@ export function autoScreenMark(testCase: TestCase, answer: string): Mark {
   return answer.trim() === testCase.expect.trim() ? "o" : "";
 }
 
-/** 말한 문장을 기록할 때의 결과. 사람이 이미 누른 화면 답(○/×)은 덮지 않는다. */
+/** 말한 문장을 기록할 때의 결과. 사람이 이미 누른 화면 답(○/×)은 덮지 않는다.
+ * 지난 턴의 '녹음 없음'은 이번 턴 소리에 따라 다시 정하므로 비운다. */
 export function recordTurn(
   previous: SheetResult,
   testCase: TestCase,
@@ -157,6 +208,7 @@ export function recordTurn(
     answer,
     stt,
     screen: auto === "o" ? "o" : previous.screen,
+    heard: previous.heard === "-" ? "" : previous.heard,
   };
 }
 

@@ -8,7 +8,7 @@ def test_defaults(monkeypatch):
         monkeypatch.delenv(name, raising=False)
     settings = load_settings()
     assert settings.stt_engine == "mock"
-    assert settings.tts_engine == "mock"
+    assert settings.tts_engine == "prerecorded"
     assert settings.answer_provider == "family-demo"
     assert settings.tts_speaker == "Sohee"
     assert settings.max_upload_bytes == 20 * 1024 * 1024
