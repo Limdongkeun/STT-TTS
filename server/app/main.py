@@ -21,6 +21,7 @@ from pydantic.alias_generators import to_camel
 from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines import create_stt_engine, create_tts_engine
+from app.family_demo import FamilyDemoAnswerProvider, FamilyDemoContext
 from app.normalize import normalize_for_speech
 from app.settings import Settings, load_settings
 
@@ -42,6 +43,7 @@ class SttResponse(ApiModel):
 
 class AskRequest(ApiModel):
     text: str = Field(min_length=1, max_length=500)
+    context: FamilyDemoContext | None = None
 
 
 class AskResponse(ApiModel):
@@ -49,6 +51,7 @@ class AskResponse(ApiModel):
     speech_text: str
     provider: str
     elapsed_ms: int
+    context: FamilyDemoContext | None = None
 
 
 class TtsRequest(ApiModel):
@@ -107,7 +110,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     stt_engine = create_stt_engine(settings)
     tts_engine = create_tts_engine(settings)
-    answer_provider = create_answer_provider(settings)
+    answer_provider = (
+        FamilyDemoAnswerProvider() if settings.answer_provider == "family-demo" else create_answer_provider(settings)
+    )
     work_dir = Path(tempfile.mkdtemp(prefix="stt-tts-"))
     audio_store = AudioStore(work_dir)
 
@@ -145,14 +150,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             elapsed_ms=_elapsed_ms(started),
         )
 
-    @app.post("/ask", response_model=AskResponse)
+    @app.post("/ask", response_model=AskResponse, response_model_exclude_none=True)
     def ask(request: AskRequest) -> AskResponse:
         started = time.perf_counter()
-        answer_text = answer_provider.answer(request.text.strip())
+        text = request.text.strip()
+        context = None
+        if isinstance(answer_provider, FamilyDemoAnswerProvider):
+            answer_text, context = answer_provider.answer(text, request.context)
+        else:
+            answer_text = answer_provider.answer(text)
         return AskResponse(
             answer_text=answer_text,
             speech_text=normalize_for_speech(answer_text),
             provider=answer_provider.name,
+            context=context,
             elapsed_ms=_elapsed_ms(started),
         )
 

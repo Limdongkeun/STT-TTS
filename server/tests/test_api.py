@@ -119,3 +119,52 @@ def test_audio_store_drops_oldest(tmp_path):
     store.save(b"3")
     assert store.get(first) is None
     assert len(list(tmp_path.iterdir())) == 2
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("다음주 우리집 일정 뭐야?", "화요일에 가족 식사"),
+        ("소윤이 이번주 학교 학원 일정 뭐야", "수요일에 학교 체험학습"),
+        ("아버지 병원 예약 언제였지", "11월 12일 목요일 오전 10시"),
+        ("소윤이 다음 주 학교 학원 일정 뭐야", "이번 주 학교와 학원 일정만"),
+    ],
+)
+def test_family_demo_routes_questions(question, expected):
+    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+    answer = client.post("/ask", json={"text": question}).json()
+    assert answer["provider"] == "family-demo"
+    assert expected in answer["answerText"]
+    assert answer["speechText"]
+
+
+def test_family_demo_carries_dose_across_turns_and_corrects_it(monkeypatch):
+    from datetime import datetime
+
+    from app import family_demo
+
+    class FixedClock(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 11, 4, 16, 0, tzinfo=tz)
+
+    monkeypatch.setattr(family_demo, "datetime", FixedClock)
+    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+
+    def ask(text, context=None):
+        response = client.post("/ask", json={"text": text, "context": context})
+        assert response.status_code == 200
+        return response.json()
+
+    first = ask("애기 해열제 부르펜 계열 먹었는데 시간 체크해줘")
+    assert first["answerText"] == "몇 시에 먹였나요?"
+    assert "dose_at" not in first["context"]
+    assert "context" not in ask("30분 전에 먹였어")
+    second = ask("30분전에 먹였어", first["context"])
+    assert "오후 3시 30분" in second["answerText"]
+    assert "가상 일정에 등록된 다음 복용 예정 시각은 오후 9시" in second["answerText"]
+    corrected = ask("아니, 30분 전이 아니라 한 시간 전이야", second["context"])
+    assert "오후 3시" in corrected["answerText"]
+    assert "수정했어요" in corrected["answerText"]
+    assert corrected["context"]["dose_at"] == "2026-11-04T15:00:00+09:00"
+    assert "context" not in ask("아버지 병원 예약 언제였지", corrected["context"])

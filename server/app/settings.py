@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 STT_ENGINES = ("mock", "qwen3-asr")
 TTS_ENGINES = ("mock", "qwen3-tts")
-ANSWER_PROVIDERS = ("fixed",)
+ANSWER_PROVIDERS = ("fixed", "family-demo")
 DTYPES = ("bfloat16", "float16", "float32")
 
 
