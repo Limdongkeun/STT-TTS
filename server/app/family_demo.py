@@ -1,14 +1,34 @@
-"""가족 돌봄 대화 시험용 가상 일정과 복용 기록."""
+"""가족 돌봄 대화 시험 답(family-demo)의 입구.
 
+주제별 가족 기록 답은 family_topics.py, 시험 데이터는 family_records.py 에 있다.
+여기서는 질문 정리와, 앱이 상태(context)를 들고 다니는 해열제 복용 시각 대화(C3~C5)를 맡는다.
+"""
+
+import logging
 import re
+import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
+from app.family_topics import FamilyTopics
+from app.stt_correction import correct_transcript
+
 KST = ZoneInfo("Asia/Seoul")
+# uvicorn 이 이미 출력하는 로거: 보정 전후를 서버 터미널에서 바로 본다.
+logger = logging.getLogger("uvicorn.error")
 RELATIVE_TIME = re.compile(r"(?<![0-9])(?:(?P<hours>[0-9]{1,2})시간|(?P<minutes>[0-9]{1,3})분)전")
 KOREAN_NUMBERS = {"한시간": "1시간", "두시간": "2시간", "삼십분": "30분"}
+
+
+def compact_question(question: str) -> str:
+    """비교용 글: 한글 표준형(NFC)으로 맞추고 글자·숫자만 남긴다.
+
+    폰 STT 글에는 일반 공백 대신 폭 없는 공백 같은 보이지 않는 문자나 문장부호가 섞일 수 있다.
+    """
+    normalized = unicodedata.normalize("NFC", question)
+    return "".join(char for char in normalized if unicodedata.category(char)[0] in "LN")
 
 
 class FamilyDemoContext(BaseModel):
@@ -19,25 +39,36 @@ class FamilyDemoContext(BaseModel):
 class FamilyDemoAnswerProvider:
     name = "family-demo"
 
+    def __init__(self) -> None:
+        # 가족 기록(일정·장보기·부탁·당번 등). 서버가 떠 있는 동안 모든 폰이 같이 본다.
+        self._topics = FamilyTopics()
+
+    def reset(self) -> None:
+        self._topics.reset()
+
     def answer(
-        self, question: str, context: FamilyDemoContext | None = None, *, now: datetime | None = None
+        self,
+        question: str,
+        context: FamilyDemoContext | None = None,
+        *,
+        speaker: str = "wife",
+        now: datetime | None = None,
     ) -> tuple[str, FamilyDemoContext | None]:
-        text = re.sub(r"\s+", "", question)
-        if ("아버지" in text or "아빠" in text) and "병원" in text and "예약" in text:
-            return "11월 2일에 등록한 아버지 병원 예약은 11월 12일 목요일 오전 10시로 확인돼요.", None
-        if "소윤" in text and "일정" in text:
-            if "이번주" in text and "학교" in text and "학원" in text:
-                return "소윤이는 수요일에 학교 체험학습, 금요일에 피아노 학원이 있어요.", None
-            return "시험 일정은 소윤이의 이번 주 학교와 학원 일정만 준비돼 있어요.", None
-        if "다음주" in text and ("우리집" in text or "가족" in text) and "일정" in text:
-            return "다음 주 가족 일정은 두 건이에요. 화요일에 가족 식사, 토요일에 장보기가 있어요.", None
+        compact = compact_question(question)
+        text = correct_transcript(compact)
+        if text != compact:
+            logger.info("ask corrected %r -> %r", compact, text)
+        current = (now if now is not None else datetime.now(KST)).astimezone(KST)
+        topic_reply = self._topics.answer(question, text, speaker, current)
+        if topic_reply:
+            return topic_reply, None
 
         if "해열제" in text and ("부르펜" in text or "브루펜" in text) and any(
             word in text for word in ("애기", "아기", "아이")
         ):
             context = FamilyDemoContext(awaiting_dose_time=True)
         if context:
-            return self._answer_dose(text, context, now if now is not None else datetime.now(KST))
+            return self._answer_dose(text, context, current)
         return "이 질문에 맞는 시험 답변이 준비돼 있지 않아요.", None
 
     def _answer_dose(

@@ -46,7 +46,25 @@ def client() -> TestClient:
 
 def test_health(client):
     body = client.get("/health").json()
-    assert body == {"status": "ok", "sttEngine": "mock", "ttsEngine": "mock", "answerProvider": "fixed"}
+    assert body == {
+        "status": "ok",
+        "sttEngine": "mock",
+        "sttModel": "",
+        "ttsEngine": "mock",
+        "ttsModel": "",
+        "answerProvider": "fixed",
+    }
+
+
+def test_health_names_real_models_without_loading_them():
+    settings = make_settings(stt_engine="qwen3-asr", tts_engine="qwen3-tts", asr_model_id="Qwen/Qwen3-ASR-0.6B")
+    body = TestClient(create_app(settings)).get("/health").json()
+    assert (body["sttModel"], body["ttsModel"]) == ("Qwen/Qwen3-ASR-0.6B", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+
+
+def test_health_shows_family_demo_provider():
+    body = TestClient(create_app(make_settings(answer_provider="family-demo"))).get("/health").json()
+    assert body["answerProvider"] == "family-demo"
 
 
 @ffmpeg_required

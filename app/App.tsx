@@ -1,15 +1,19 @@
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { postAsk, postStt, postTts, sttServerUrl, ttsServerUrl, type AskContext } from "./src/api";
+import { getHealth, postAsk, postStt, postTts, resetDemo, sttServerUrl, ttsServerUrl, type AskContext } from "./src/api";
+import { describeServerInfo, PHONE_STT_LABEL, sttLabelFor, type HealthResponse, type ServerInfo } from "./src/serverInfo";
 import {
   decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
 } from "./src/conversation";
 import { STT_MODE_LABELS, type SttMode } from "./src/sttModes";
 import { usePhoneStt } from "./src/usePhoneStt";
 import { useServerRecorder } from "./src/useServerRecorder";
+import { TestSheetPanel } from "./src/TestSheetPanel";
+import { describeAttempt, type TestCase } from "./src/testSheet";
+import { useTestSheet } from "./src/useTestSheet";
 
 type Stage = "idle" | "listening" | "transcribing" | "asking" | "speaking";
 
@@ -38,6 +42,28 @@ export default function App() {
   const [silenceMs, setSilenceMs] = useState(DEFAULT_SILENCE_MS);
   const [conversationActive, setConversationActive] = useState(false);
   const [canReplay, setCanReplay] = useState(false);
+  const [serverInfo, setServerInfo] = useState<ServerInfo>({ kind: "checking" });
+  const [notice, setNotice] = useState("");
+  // 맨 아래 시험표: 시험 중인 문장이 있으면 이번 턴을 자동으로 적는다.
+  const testSheet = useTestSheet();
+  const recordTurnRef = useRef(testSheet.recordTurn);
+  recordTurnRef.current = testSheet.recordTurn;
+  // 시험표에 적을 STT 이름(폰 기본 STT, 또는 서버 STT 모델 이름). 서버 STT 를 고르면 STT 서버에 모델을 묻는다.
+  const [sttServerHealth, setSttServerHealth] = useState<HealthResponse | null>(null);
+  const sttLabelRef = useRef(PHONE_STT_LABEL);
+  const sttLabel = sttLabelFor(sttMode, sttServerHealth);
+  sttLabelRef.current = sttLabel;
+  useEffect(() => {
+    if (sttMode !== "server") return;
+    let cancelled = false;
+    getHealth("stt").then(
+      (health) => !cancelled && setSttServerHealth(health),
+      () => !cancelled && setSttServerHealth(null),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [sttMode]);
   const askContext = useRef<AskContext | undefined>(undefined);
   const conversationRef = useRef<Conversation | null>(null);
   const player = useAudioPlayer();
@@ -56,7 +82,7 @@ export default function App() {
   }, [finishConversation]);
 
   const answerAndSpeak = useCallback(
-    async (text: string, startedAt: number, sttMs?: number): Promise<TurnOutcome> => {
+    async (text: string, startedAt: number, sttMs?: number, fromVoice = false): Promise<TurnOutcome> => {
       if (!text) return "empty";
       const conversation = conversationRef.current;
       const wasStopped = () => conversation !== null && conversationRef.current !== conversation;
@@ -65,12 +91,15 @@ export default function App() {
       try {
         setStage("asking");
         const askStarted = Date.now();
+        // '나'(역할)는 보내지 않는다: 누가 했는지는 문장 속 남편·아내로 서버가 알아듣는다.
         const answer = await postAsk(text, askContext.current);
         if (wasStopped()) return "stopped";
         askContext.current = answer.context;
         const askMs = Date.now() - askStarted;
         setAnswerText(answer.answerText);
         setSpeechText(answer.speechText);
+        // 시험표에는 말로 한 턴만 적는다(글로 묻기는 인식 시험이 아니다).
+        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current);
 
         setStage("speaking");
         const ttsStarted = Date.now();
@@ -99,7 +128,53 @@ export default function App() {
     [fail, player],
   );
 
+  /** 시험표의 '이 문장 말하기': 그 문장의 '나'로 바꾸고 바로 듣기 시작한다. 듣는 중에 다시 누르면 말하기 끝. */
+  const chooseTestCase = (testCase: TestCase) => {
+    if (stage === "listening" && testSheet.activeId === testCase.id) {
+      void onMicPress();
+      return;
+    }
+    if (stage !== "idle" || conversationRef.current) return;
+    testSheet.setActiveId(testCase.id);
+    void onMicPress();
+  };
+
+  /** 서버 시험 데이터와 시험표(○/×·인식한 말)를 함께 처음으로 되돌린다. 저장본은 그대로 남는다. */
+  const resetEverything = async (message = "시험 데이터와 시험표를 처음으로 되돌렸어요.") => {
+    setNotice("");
+    try {
+      await resetDemo();
+      await testSheet.clearSheet(message);
+      askContext.current = undefined;
+      resetResult();
+      setNotice(message);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : String(error));
+    }
+  };
+
+  /** [저장하기]: 저장본을 남긴 뒤 바로 전부 초기화한다. 저장이 실패하면 아무것도 지우지 않는다. */
+  const saveAndReset = async () => {
+    const attempt = await testSheet.save();
+    if (!attempt) return;
+    await resetEverything(`저장했어요: ${describeAttempt(attempt)} — 처음부터 다시 시험하면 돼요.`);
+  };
+
+  const onResetDemo = () => {
+    if (!testSheet.dirty) {
+      void resetEverything();
+      return;
+    }
+    Alert.alert("저장하지 않은 시험표가 있어요", "지금 시험표를 저장본으로 남기지 않고 지울까요?", [
+      { text: "취소", style: "cancel" },
+      // 저장이 실패하면 지우지 않는다(시험표가 날아가지 않게).
+      { text: "저장하고 초기화", onPress: () => void saveAndReset() },
+      { text: "저장하지 않고 초기화", style: "destructive", onPress: () => void resetEverything() },
+    ]);
+  };
+
   const resetResult = () => {
+    setNotice("");
     setErrorMessage("");
     setQuestion("");
     setAnswerText("");
@@ -110,7 +185,7 @@ export default function App() {
 
   const onPhoneFinished = async (transcript: string) => {
     const conversation = conversationRef.current;
-    const outcome = await answerAndSpeak(transcript, Date.now());
+    const outcome = await answerAndSpeak(transcript, Date.now(), undefined, true);
     if (outcome !== "empty") return;
     if (!conversation) {
       fail("인식된 말이 없어요. 다시 말해 주세요.");
@@ -160,6 +235,24 @@ export default function App() {
     return () => subscription.remove();
   }, [stopConversation]);
 
+  // 서버가 어떤 답 모드로 떠 있는지 보여 준다. 앱을 열 때·앱으로 돌아올 때·글자를 누를 때 다시 묻는다.
+  const refreshServerInfo = useCallback(async () => {
+    setServerInfo({ kind: "checking" });
+    try {
+      setServerInfo({ kind: "ok", health: await getHealth() });
+    } catch (error) {
+      setServerInfo({ kind: "error", message: error instanceof Error ? error.message : String(error) });
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshServerInfo();
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") void refreshServerInfo();
+    });
+    return () => subscription.remove();
+  }, [refreshServerInfo]);
+
   const onMicPress = async () => {
     try {
       if (stage === "idle" && !conversationRef.current) {
@@ -192,7 +285,7 @@ export default function App() {
       setStage("transcribing");
       const sttStarted = Date.now();
       const recognized = await postStt(uri);
-      if (await answerAndSpeak(recognized.text, stoppedAt, Date.now() - sttStarted) === "empty") {
+      if (await answerAndSpeak(recognized.text, stoppedAt, Date.now() - sttStarted, true) === "empty") {
         fail("인식된 말이 없어요. 다시 말해 주세요.");
       }
     } catch (error) {
@@ -215,6 +308,23 @@ export default function App() {
         <Text style={styles.title}>STT-TTS 시험</Text>
         <Text style={styles.meta}>STT 서버: {sttServerUrl ?? "설정 안 됨"}</Text>
         <Text style={styles.meta}>답·TTS 서버: {ttsServerUrl ?? "설정 안 됨"}</Text>
+        <Pressable accessibilityRole="button" accessibilityHint="눌러서 서버 상태를 다시 확인" onPress={() => void refreshServerInfo()}>
+          <Text style={[styles.serverInfo, serverInfo.kind === "error" && styles.error]}>
+            {describeServerInfo(serverInfo)} ↻
+          </Text>
+        </Pressable>
+
+        <View style={styles.modeRow}>
+          <Pressable
+            accessibilityRole="button"
+            disabled={stage !== "idle"}
+            onPress={onResetDemo}
+            style={[styles.modeButton, stage !== "idle" && styles.disabled]}
+          >
+            <Text style={styles.modeText}>시험 데이터 초기화</Text>
+          </Pressable>
+        </View>
+        {notice ? <Text style={styles.meta}>{notice}</Text> : null}
 
         <View style={styles.modeRow}>
           {(Object.keys(STT_MODE_LABELS) as SttMode[]).map((mode) => (
@@ -259,6 +369,17 @@ export default function App() {
                 </Pressable>
               ))}
             </View>
+          </View>
+        ) : null}
+
+        {testSheet.activeCase ? (
+          <View style={styles.testBanner}>
+            <Text style={styles.testBannerText}>
+              시험 중 {testSheet.activeCase.id} — “{testSheet.activeCase.say}”
+            </Text>
+            <Pressable accessibilityRole="button" onPress={() => testSheet.setActiveId(null)} style={styles.testBannerStop}>
+              <Text style={styles.testBannerStopText}>그만</Text>
+            </Pressable>
           </View>
         ) : null}
 
@@ -318,6 +439,15 @@ export default function App() {
             <Text style={styles.askText}>▶ 다시 듣기</Text>
           </Pressable>
         ) : null}
+
+        <TestSheetPanel
+          sheet={testSheet}
+          stage={stage === "listening" ? "listening" : stage === "idle" && !conversationActive ? "idle" : "busy"}
+          liveText={liveText}
+          sttLabel={sttLabel}
+          onChoose={chooseTestCase}
+          onSave={() => void saveAndReset()}
+        />
       </ScrollView>
     </SafeAreaView>
   );
@@ -340,6 +470,11 @@ const styles = StyleSheet.create({
   content: { padding: 20, gap: 12 },
   title: { fontSize: 24, fontWeight: "700", color: "#111" },
   meta: { fontSize: 12, color: "#666" },
+  serverInfo: { fontSize: 13, fontWeight: "600", color: "#1F4FD8" },
+  testBanner: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, backgroundColor: "#E6EDFB" },
+  testBannerText: { flex: 1, fontSize: 14, color: "#1F4FD8", fontWeight: "600" },
+  testBannerStop: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 8, borderWidth: 1, borderColor: "#1F4FD8" },
+  testBannerStopText: { fontSize: 13, color: "#1F4FD8" },
   modeRow: { flexDirection: "row", gap: 8, marginTop: 8 },
   modeButton: { flex: 1, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: "#CCD", alignItems: "center" },
   modeButtonActive: { backgroundColor: "#1F4FD8", borderColor: "#1F4FD8" },

@@ -39,13 +39,16 @@ class Settings:
     model_device: str
     model_dtype: str
     max_upload_bytes: int
+    # 시험표 결과 폴더. 비우면 <레포>/results/test-runs
+    test_results_dir: str = ""
 
 
 def load_settings() -> Settings:
     return Settings(
         stt_engine=_choice("STT_ENGINE", "mock", STT_ENGINES),
         tts_engine=_choice("TTS_ENGINE", "mock", TTS_ENGINES),
-        answer_provider=_choice("ANSWER_PROVIDER", "fixed", ANSWER_PROVIDERS),
+        # 기본은 가족 돌봄 시험 답. 인식과 답을 한 번에 확인한다. fixed 는 예전 고정 답(설정할 때만).
+        answer_provider=_choice("ANSWER_PROVIDER", "family-demo", ANSWER_PROVIDERS),
         asr_model_id=os.environ.get("ASR_MODEL_ID", "Qwen/Qwen3-ASR-1.7B"),
         tts_model_id=os.environ.get("TTS_MODEL_ID", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"),
         tts_speaker=os.environ.get("TTS_SPEAKER", "Sohee"),
@@ -53,4 +56,5 @@ def load_settings() -> Settings:
         model_device=os.environ.get("MODEL_DEVICE", "auto"),
         model_dtype=_choice("MODEL_DTYPE", "bfloat16", DTYPES),
         max_upload_bytes=_positive_int("MAX_UPLOAD_MB", 20) * 1024 * 1024,
+        test_results_dir=os.environ.get("TEST_RESULTS_DIR", "").strip(),
     )

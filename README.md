@@ -35,6 +35,7 @@ uv run pytest    # 테스트
 | ② 실제 TTS (Qwen3-TTS Sohee) | `TTS_ENGINE=qwen3-tts uv run --extra tts uvicorn app.main:app --host 0.0.0.0 --port 8002` |
 | ③ 실제 STT (Qwen3-ASR) | `STT_ENGINE=qwen3-asr uv run --extra asr uvicorn app.main:app --host 0.0.0.0 --port 8001` |
 
+- 답 찾기는 기본으로 **가족 돌봄 시험 답(`family-demo`)** 이다. 따로 설정하지 않아도 `docs/test-plan.md`의 C1~C7 질문에 답한다. 예전 고정 답이 필요하면 앞에 `ANSWER_PROVIDER=fixed`를 붙인다. 지금 서버의 답 모드는 앱 맨 위 파란 글자(또는 `GET /health`)로 확인한다.
 - **②③을 하나로 합칠 수 없다.** `qwen-asr`와 `qwen-tts`가 서로 다른 `transformers` 버전을 고정하기 때문이다. 그래서 STT 서버(8001)와 TTS 서버(8002)를 따로 띄운다. 코드는 같고 환경변수와 `--extra`만 다르다.
 - `--extra asr`나 `--extra tts`로 처음 실행하면 torch 같은 큰 패키지를 설치한다. 첫 요청 때는 모델(1.7B 기준 약 3~4GB)을 받는다.
 - 0.6B로 바꿀 때: `ASR_MODEL_ID=Qwen/Qwen3-ASR-0.6B`, `TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
@@ -45,13 +46,17 @@ uv run pytest    # 테스트
 
 | 주소 | 하는 일 |
 |---|---|
-| `GET /health` | 지금 쓰는 엔진 확인 |
+| `GET /health` | 지금 쓰는 엔진 확인. 실제 모델이면 `sttModel`·`ttsModel`에 모델 이름 |
 | `POST /stt` (multipart `audio`) | 음성 → 글 (ffmpeg로 16kHz 모노 변환 후 STT) |
-| `POST /ask` `{ "text" }` | 질문 → 답(화면용) + 읽기용 글 |
+| `POST /ask` `{ "text", "speaker"?, "context"? }` | 질문 → 답(화면용) + 읽기용 글. `speaker`는 `wife`(기본)/`husband`, `context`는 여러 턴 대화 상태 |
+| `POST /demo/reset` | 부부 공유 업무 시험 기록을 처음 시험 데이터로 되돌림(family-demo 모드에서만) |
+| `GET /test-cases` | 시험표 문장(C1~C7, D1~D25)과 기대 답 |
+| `GET`·`PUT`·`DELETE /test-sheet/{기기}/draft[/{번호}]` | 작성 중인 시험표 읽기·한 문장 저장·비우기 |
+| `POST`·`GET /test-sheet/{기기}/attempts` | 시험표를 저장본으로 남기기 / 저장본 목록(지난번과 비교 포함) |
 | `POST /tts` `{ "text", "normalize"? }` | 글 → 음성. `audioUrl`을 돌려준다 |
 | `GET /audio/{id}` | 만든 음성(wav) 받기 |
 
-- 기존 LLM·DB 연결 자리는 `server/app/answers.py`에 있다. 지금은 고정 답을 돌려준다.
+- 기존 LLM·DB 연결 자리는 `server/app/answers.py`에 있다. 아직 연결 전이라, 지금은 가족 돌봄 시험 답(`server/app/family_demo.py`)을 돌려준다.
 - 읽기용 변환(시간·날짜·금액·전화번호·약어)은 `server/app/normalize.py`에 있다.
 
 ## 2. 앱

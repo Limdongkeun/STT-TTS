@@ -18,7 +18,7 @@ NATIVE_MAX = 99
 
 # 고유어 수로 읽는 단위 (한 개, 두 명, 세 살 …)
 # '번'은 '두 번(횟수)'과 '3번 버스(번호)'가 갈려서 넣지 않았다.
-NATIVE_COUNTERS = ("시간", "개", "명", "살", "마리", "잔", "권", "곳", "가지")
+NATIVE_COUNTERS = ("시간", "개", "명", "살", "마리", "잔", "권", "곳", "가지", "건")
 
 ABBREVIATIONS = {
     "AI": "에이아이",
@@ -123,7 +123,8 @@ def normalize_for_speech(text: str) -> str:
     result = text
     # \b 는 한글을 글자로 보아 "4567이에요" 에서 끊지 못하므로 숫자 경계로 판단한다.
     result = re.sub(r"(?<!\d)0\d{1,2}-\d{3,4}-\d{4}(?!\d)", _read_phone, result)
-    result = re.sub(r"(\d+(?:\.\d+)?)\s*(억|만)\s*(원)?", _read_money, result)
+    # '원'이 없으면 뒤 공백을 남긴다: "4만 2천 원" → "사만 이천 원"
+    result = re.sub(r"(\d+(?:\.\d+)?)\s*(억|만)(?:\s*(원))?", _read_money, result)
     result = re.sub(r"(\d{1,2})\s*시(?!간)(?:\s*(\d{1,2})\s*분)?", _read_time, result)
     result = re.sub(r"(\d{1,2})\s*월", _read_month, result)
     result = re.sub(r"(\d{1,2})\s*일", lambda m: sino_korean(int(m.group(1))) + "일", result)

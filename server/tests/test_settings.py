@@ -4,11 +4,12 @@ from app.settings import load_settings
 
 
 def test_defaults(monkeypatch):
-    for name in ("STT_ENGINE", "TTS_ENGINE", "MAX_UPLOAD_MB", "MODEL_DTYPE"):
+    for name in ("STT_ENGINE", "TTS_ENGINE", "ANSWER_PROVIDER", "MAX_UPLOAD_MB", "MODEL_DTYPE"):
         monkeypatch.delenv(name, raising=False)
     settings = load_settings()
     assert settings.stt_engine == "mock"
     assert settings.tts_engine == "mock"
+    assert settings.answer_provider == "family-demo"
     assert settings.tts_speaker == "Sohee"
     assert settings.max_upload_bytes == 20 * 1024 * 1024
 
@@ -20,9 +21,14 @@ def test_real_engines_selectable(monkeypatch):
     assert (settings.stt_engine, settings.tts_engine) == ("qwen3-asr", "qwen3-tts")
 
 
+def test_fixed_answer_still_selectable(monkeypatch):
+    monkeypatch.setenv("ANSWER_PROVIDER", "fixed")
+    assert load_settings().answer_provider == "fixed"
+
+
 @pytest.mark.parametrize(
     ("name", "value"),
-    [("STT_ENGINE", "whisper"), ("TTS_ENGINE", "unknown"), ("MAX_UPLOAD_MB", "abc"), ("MAX_UPLOAD_MB", "0"), ("MODEL_DTYPE", "int4")],
+    [("ANSWER_PROVIDER", "llm"), ("STT_ENGINE", "whisper"), ("TTS_ENGINE", "unknown"), ("MAX_UPLOAD_MB", "abc"), ("MAX_UPLOAD_MB", "0"), ("MODEL_DTYPE", "int4")],
 )
 def test_invalid_values(monkeypatch, name, value):
     monkeypatch.setenv(name, value)

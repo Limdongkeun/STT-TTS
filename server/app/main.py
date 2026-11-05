@@ -6,12 +6,14 @@
 STT 서버와 TTS 서버를 따로 띄울 수 있다(같은 코드, 다른 환경변수·extra).
 """
 
+import logging
 import re
 import tempfile
 import time
 import uuid
 from collections import OrderedDict
 from pathlib import Path
+from typing import Literal
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
@@ -24,6 +26,11 @@ from app.engines import create_stt_engine, create_tts_engine
 from app.family_demo import FamilyDemoAnswerProvider, FamilyDemoContext
 from app.normalize import normalize_for_speech
 from app.settings import Settings, load_settings
+from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
+
+# uvicorn 이 이미 출력하는 로거를 써서 서버 터미널에 바로 보이게 한다.
+logger = logging.getLogger("uvicorn.error")
+LOGGED_QUESTION_CHARS = 200
 
 AUDIO_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 MAX_STORED_AUDIO = 50
@@ -44,6 +51,8 @@ class SttResponse(ApiModel):
 class AskRequest(ApiModel):
     text: str = Field(min_length=1, max_length=500)
     context: FamilyDemoContext | None = None
+    # 말하는 사람(부부 공유 업무 시험). "내가", "나한테", "여보"를 이 사람 기준으로 푼다.
+    speaker: Literal["wife", "husband"] = "wife"
 
 
 class AskResponse(ApiModel):
@@ -114,6 +123,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         FamilyDemoAnswerProvider() if settings.answer_provider == "family-demo" else create_answer_provider(settings)
     )
     work_dir = Path(tempfile.mkdtemp(prefix="stt-tts-"))
+    sheet_store = SheetStore(Path(settings.test_results_dir) if settings.test_results_dir else DEFAULT_RESULTS_DIR)
     audio_store = AudioStore(work_dir)
 
     app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0")
@@ -123,7 +133,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {
             "status": "ok",
             "sttEngine": stt_engine.name,
+            "sttModel": settings.asr_model_id if settings.stt_engine == "qwen3-asr" else "",
             "ttsEngine": tts_engine.name,
+            "ttsModel": settings.tts_model_id if settings.tts_engine == "qwen3-tts" else "",
             "answerProvider": answer_provider.name,
         }
 
@@ -154,9 +166,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def ask(request: AskRequest) -> AskResponse:
         started = time.perf_counter()
         text = request.text.strip()
+        # 시험용: 폰 STT 가 보낸 글을 repr 로 남겨 보이지 않는 문자(예: ​)도 확인한다.
+        logger.info("ask question=%r", text[:LOGGED_QUESTION_CHARS])
         context = None
         if isinstance(answer_provider, FamilyDemoAnswerProvider):
-            answer_text, context = answer_provider.answer(text, request.context)
+            answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker)
         else:
             answer_text = answer_provider.answer(text)
         return AskResponse(
@@ -182,6 +196,61 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             engine=tts_engine.name,
             elapsed_ms=_elapsed_ms(started),
         )
+
+    # ── 실기기 시험표 (앱 맨 아래) ─────────────────────────
+    def _check_device(device: str) -> None:
+        if not is_valid_device(device):
+            raise HTTPException(status_code=422, detail="기기 이름은 영문 소문자·숫자·- 만 쓸 수 있어요(예: ios-27-0-1).")
+
+    @app.get("/test-cases")
+    def test_cases() -> dict[str, list[dict]]:
+        return {"cases": TEST_CASES}
+
+    @app.get("/test-sheet/{device}/draft")
+    def get_draft(device: str) -> dict:
+        _check_device(device)
+        results = {
+            case_id: SheetResult.model_validate(body).model_dump(by_alias=True)
+            for case_id, body in sheet_store.load_draft(device).items()
+            if case_id in CASES_BY_ID
+        }
+        return {"device": device, "results": results}
+
+    @app.put("/test-sheet/{device}/draft/{case_id}")
+    def save_draft_case(device: str, case_id: str, result: SheetResult) -> dict:
+        _check_device(device)
+        if case_id not in CASES_BY_ID:
+            raise HTTPException(status_code=404, detail="없는 시험 문장 번호예요.")
+        saved = sheet_store.save_draft_case(device, case_id, result)
+        return SheetResult.model_validate(saved).model_dump(by_alias=True)
+
+    @app.delete("/test-sheet/{device}/draft")
+    def clear_draft(device: str) -> dict[str, str]:
+        _check_device(device)
+        sheet_store.clear_draft(device)
+        return {"status": "cleared"}
+
+    @app.post("/test-sheet/{device}/attempts")
+    def save_attempt(device: str) -> dict:
+        _check_device(device)
+        tts_label = tts_label_for(settings.tts_engine, settings.tts_model_id)
+        try:
+            return sheet_store.save_attempt(device, tts_label=tts_label)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.get("/test-sheet/{device}/attempts")
+    def list_attempts(device: str) -> dict[str, list[dict]]:
+        _check_device(device)
+        return {"attempts": sheet_store.list_attempts(device)}
+
+    @app.post("/demo/reset")
+    def reset_demo() -> dict[str, str]:
+        """시험 기록(장보기·부탁·당번 등)을 처음 시험 데이터로 되돌린다."""
+        if not isinstance(answer_provider, FamilyDemoAnswerProvider):
+            raise HTTPException(status_code=404, detail="지금 답 모드에는 시험 기록이 없어요.")
+        answer_provider.reset()
+        return {"status": "reset"}
 
     @app.get("/audio/{audio_id}")
     def get_audio(audio_id: str) -> FileResponse:
