@@ -52,6 +52,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-05 10:14 | Claude | ba2e256에서 빠진 앱 변경(대화 모드, `/ask` context 주고받기, package.json 스크립트)을 커밋함 | server 73개 · app 14개 · tsc 통과 |
 | 2026-11-04 17:55 | Codex | ProjectWatch 제공 원문과 공개 자료를 대조해 가족 AI 사업성·전략·시장 동향 정리 | PPTX 2종·DOCX 1종 렌더링 확인 |
 | 2026-11-04 17:43 | Codex | Q4 확정 반영 및 가족 비서 시작 흐름 PDF 제작 | PDF 2쪽 한글·표 렌더링 확인 |
 | 2026-11-04 17:40 | Codex | B안에 제한된 일반 질문과 첫 일정에서 초대로 이어지는 흐름 추가 | 검토 초안 |

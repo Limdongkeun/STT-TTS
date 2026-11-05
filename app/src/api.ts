@@ -8,7 +8,14 @@ export const sttServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_STT_SERVER_
 export const ttsServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_TTS_SERVER_URL);
 
 export type SttResponse = { text: string; language: string | null; engine: string; elapsedMs: number };
-export type AskResponse = { answerText: string; speechText: string; provider: string; elapsedMs: number };
+export type AskContext = { awaiting_dose_time: boolean; dose_at?: string };
+export type AskResponse = {
+  answerText: string;
+  speechText: string;
+  provider: string;
+  elapsedMs: number;
+  context?: AskContext;
+};
 export type TtsResponse = {
   audioUrl: string;
   durationSec: number;
@@ -52,12 +59,12 @@ export function postStt(recordingUri: string): Promise<SttResponse> {
   return request<SttResponse>(joinUrl(baseUrl, "/stt"), { method: "POST", body: form });
 }
 
-export function postAsk(text: string): Promise<AskResponse> {
+export function postAsk(text: string, context?: AskContext): Promise<AskResponse> {
   const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
   return request<AskResponse>(joinUrl(baseUrl, "/ask"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, context }),
   });
 }
 

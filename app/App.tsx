@@ -1,14 +1,19 @@
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { StatusBar } from "expo-status-bar";
-import { useCallback, useState } from "react";
-import { Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { postAsk, postStt, postTts, sttServerUrl, ttsServerUrl } from "./src/api";
+import { postAsk, postStt, postTts, sttServerUrl, ttsServerUrl, type AskContext } from "./src/api";
+import {
+  decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
+} from "./src/conversation";
 import { STT_MODE_LABELS, type SttMode } from "./src/sttModes";
 import { usePhoneStt } from "./src/usePhoneStt";
 import { useServerRecorder } from "./src/useServerRecorder";
 
 type Stage = "idle" | "listening" | "transcribing" | "asking" | "speaking";
+
+type Conversation = { emptyTurns: number; awaitingPlayback: boolean };
 
 type Timings = { sttMs?: number; askMs?: number; ttsMs?: number; totalMs?: number };
 
@@ -29,25 +34,40 @@ export default function App() {
   const [typedQuestion, setTypedQuestion] = useState("");
   const [timings, setTimings] = useState<Timings>({});
   const [errorMessage, setErrorMessage] = useState("");
+  const [conversationMode, setConversationMode] = useState(false);
+  const [silenceMs, setSilenceMs] = useState(DEFAULT_SILENCE_MS);
+  const [conversationActive, setConversationActive] = useState(false);
+  const [canReplay, setCanReplay] = useState(false);
+  const askContext = useRef<AskContext | undefined>(undefined);
+  const conversationRef = useRef<Conversation | null>(null);
   const player = useAudioPlayer();
+  const playback = useAudioPlayerStatus(player);
   const serverRecorder = useServerRecorder();
 
-  const fail = useCallback((message: string) => {
-    setErrorMessage(message);
+  const finishConversation = useCallback(() => {
+    conversationRef.current = null;
+    setConversationActive(false);
     setStage("idle");
   }, []);
 
+  const fail = useCallback((message: string) => {
+    setErrorMessage(message);
+    finishConversation();
+  }, [finishConversation]);
+
   const answerAndSpeak = useCallback(
-    async (text: string, startedAt: number, sttMs?: number) => {
-      if (!text) {
-        fail("인식된 말이 없어요. 다시 말해 주세요.");
-        return;
-      }
+    async (text: string, startedAt: number, sttMs?: number): Promise<TurnOutcome> => {
+      if (!text) return "empty";
+      const conversation = conversationRef.current;
+      const wasStopped = () => conversation !== null && conversationRef.current !== conversation;
+      setCanReplay(false);
       setQuestion(text);
       try {
         setStage("asking");
         const askStarted = Date.now();
-        const answer = await postAsk(text);
+        const answer = await postAsk(text, askContext.current);
+        if (wasStopped()) return "stopped";
+        askContext.current = answer.context;
         const askMs = Date.now() - askStarted;
         setAnswerText(answer.answerText);
         setSpeechText(answer.speechText);
@@ -55,24 +75,29 @@ export default function App() {
         setStage("speaking");
         const ttsStarted = Date.now();
         const speech = await postTts(answer.speechText);
+        if (wasStopped()) return "stopped";
         const ttsMs = Date.now() - ttsStarted;
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        if (wasStopped()) return "stopped";
         player.replace({ uri: speech.fullAudioUrl });
+        if (conversation) {
+          const next = decideNextTurn(true, conversation.emptyTurns, "answered");
+          conversation.emptyTurns = next.emptyTurns;
+          conversation.awaitingPlayback = next.continueListening;
+        }
         player.play();
         setTimings({ sttMs, askMs, ttsMs, totalMs: Date.now() - startedAt });
-        setStage("idle");
+        setCanReplay(true);
+        if (!conversation) setStage("idle");
+        return "answered";
       } catch (error) {
+        if (wasStopped()) return "stopped";
         fail(error instanceof Error ? error.message : String(error));
+        return "error";
       }
     },
     [fail, player],
   );
-
-  const phoneStt = usePhoneStt({
-    // 폰 STT 는 말하는 중에 바로 글자가 나오므로, 합계 시간은 인식이 끝난 순간부터 잰다.
-    onFinished: (transcript) => void answerAndSpeak(transcript, Date.now(), undefined),
-    onError: fail,
-  });
 
   const resetResult = () => {
     setErrorMessage("");
@@ -80,15 +105,76 @@ export default function App() {
     setAnswerText("");
     setSpeechText("");
     setTimings({});
+    setCanReplay(false);
   };
+
+  const onPhoneFinished = async (transcript: string) => {
+    const conversation = conversationRef.current;
+    const outcome = await answerAndSpeak(transcript, Date.now());
+    if (outcome !== "empty") return;
+    if (!conversation) {
+      fail("인식된 말이 없어요. 다시 말해 주세요.");
+      return;
+    }
+    if (conversationRef.current !== conversation) return;
+    const next = decideNextTurn(true, conversation.emptyTurns, outcome);
+    conversation.emptyTurns = next.emptyTurns;
+    if (next.continueListening) {
+      await listenAgain(conversation);
+    } else {
+      fail("말이 없어서 대화를 멈췄어요.");
+    }
+  };
+
+  const { liveTranscript, start: startPhone, stop: stopPhone, cancel: cancelPhone } = usePhoneStt({
+    silenceMs,
+    onFinished: (transcript) => void onPhoneFinished(transcript),
+    onError: fail,
+  });
+
+  const listenAgain = useCallback(async (conversation: Conversation) => {
+    setStage("listening");
+    if (!(await startPhone()) && conversationRef.current === conversation) {
+      finishConversation();
+    }
+  }, [finishConversation, startPhone]);
+
+  useEffect(() => {
+    const conversation = conversationRef.current;
+    if (!playback.didJustFinish || !conversation?.awaitingPlayback) return;
+    conversation.awaitingPlayback = false;
+    void listenAgain(conversation);
+  }, [listenAgain, playback]);
+
+  const stopConversation = useCallback(() => {
+    askContext.current = undefined;
+    finishConversation();
+    cancelPhone();
+    player.pause();
+  }, [cancelPhone, finishConversation, player]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "background" && conversationRef.current) stopConversation();
+    });
+    return () => subscription.remove();
+  }, [stopConversation]);
 
   const onMicPress = async () => {
     try {
-      if (stage === "idle") {
+      if (stage === "idle" && !conversationRef.current) {
         resetResult();
         setStage("listening");
         if (sttMode === "phone") {
-          await phoneStt.start();
+          player.pause();
+          if (conversationMode) {
+            const conversation: Conversation = { emptyTurns: 0, awaitingPlayback: false };
+            conversationRef.current = conversation;
+            setConversationActive(true);
+            await listenAgain(conversation);
+          } else if (!(await startPhone())) {
+            setStage("idle");
+          }
         } else {
           await serverRecorder.start();
         }
@@ -98,7 +184,7 @@ export default function App() {
         return;
       }
       if (sttMode === "phone") {
-        phoneStt.stop();
+        stopPhone();
         return;
       }
       const stoppedAt = Date.now();
@@ -106,7 +192,9 @@ export default function App() {
       setStage("transcribing");
       const sttStarted = Date.now();
       const recognized = await postStt(uri);
-      await answerAndSpeak(recognized.text, stoppedAt, Date.now() - sttStarted);
+      if (await answerAndSpeak(recognized.text, stoppedAt, Date.now() - sttStarted) === "empty") {
+        fail("인식된 말이 없어요. 다시 말해 주세요.");
+      }
     } catch (error) {
       fail(error instanceof Error ? error.message : String(error));
     }
@@ -118,7 +206,7 @@ export default function App() {
   };
 
   const isBusy = stage !== "idle" && stage !== "listening";
-  const liveText = sttMode === "phone" && stage === "listening" ? phoneStt.liveTranscript : "";
+  const liveText = sttMode === "phone" && stage === "listening" ? liveTranscript : "";
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -141,14 +229,51 @@ export default function App() {
           ))}
         </View>
 
+        {sttMode === "phone" ? (
+          <View>
+            <Pressable
+              accessibilityRole="switch"
+              accessibilityState={{ checked: conversationMode, disabled: stage !== "idle" }}
+              disabled={stage !== "idle"}
+              onPress={() => setConversationMode((enabled) => !enabled)}
+              style={[styles.modeButton, conversationMode && styles.modeButtonActive]}
+            >
+              <Text style={[styles.modeText, conversationMode && styles.modeTextActive]}>
+                대화 모드 {conversationMode ? "켜짐" : "꺼짐"}
+              </Text>
+            </Pressable>
+            <Text style={styles.meta}>말이 끝났다고 보는 쉬는 시간</Text>
+            <View style={styles.modeRow}>
+              {SILENCE_OPTIONS_MS.map((ms) => (
+                <Pressable
+                  key={ms}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: ms === silenceMs, disabled: stage !== "idle" }}
+                  disabled={stage !== "idle"}
+                  onPress={() => setSilenceMs(ms)}
+                  style={[styles.modeButton, ms === silenceMs && styles.modeButtonActive]}
+                >
+                  <Text style={[styles.modeText, ms === silenceMs && styles.modeTextActive]}>
+                    {formatSilenceLabel(ms)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         <Pressable
-          disabled={isBusy}
-          onPress={onMicPress}
-          style={[styles.micButton, stage === "listening" && styles.micButtonActive, isBusy && styles.disabled]}
+          disabled={isBusy && !conversationActive}
+          onPress={conversationActive ? stopConversation : onMicPress}
+          style={[styles.micButton, (conversationActive || stage === "listening") && styles.micButtonActive, isBusy && !conversationActive && styles.disabled]}
         >
-          <Text style={styles.micText}>{stage === "listening" ? "■ 말하기 끝" : "🎤 말하기"}</Text>
+          <Text style={styles.micText}>{conversationActive ? "■ 대화 끝내기" : stage === "listening" ? "■ 말하기 끝" : "🎤 말하기"}</Text>
         </Pressable>
-        <Text style={styles.stage}>{STAGE_LABELS[stage]}</Text>
+        <Text style={styles.stage}>
+          {stage === "listening" && sttMode === "phone"
+            ? "듣는 중… 말을 멈추면 자동으로 질문해요"
+            : STAGE_LABELS[stage]}
+        </Text>
         {liveText ? <Text style={styles.live}>{liveText}</Text> : null}
 
         <View style={styles.typedRow}>
@@ -182,7 +307,7 @@ export default function App() {
                   .join(" · ")
           }
         />
-        {speechText && stage === "idle" ? (
+        {canReplay && stage === "idle" ? (
           <Pressable
             onPress={() => {
               player.seekTo(0);
