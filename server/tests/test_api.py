@@ -185,7 +185,9 @@ def test_family_demo_carries_dose_across_turns_and_corrects_it(monkeypatch):
     assert "오후 3시" in corrected["answerText"]
     assert "수정했어요" in corrected["answerText"]
     assert corrected["context"]["dose_at"] == "2026-11-04T15:00:00+09:00"
-    assert "context" not in ask("아버지 병원 예약 언제였지", corrected["context"])
+    # 다른 주제로 넘어가면 복용 시각 대화는 끝나고, 답한 주제만 남는다.
+    after = ask("아버지 병원 예약 언제였지", corrected["context"])["context"]
+    assert after.get("dose_at") is None and after["last_topic"] == "father_hospital"
 
 
 def test_prerecorded_answer_is_downloadable_and_labeled():
@@ -222,3 +224,45 @@ def test_all_25_recordings_match_their_manifest():
         result = engine.synthesize(item["speechText"])
         assert result.sample_rate == 24000
         assert abs(result.duration_sec - item["durationSec"]) < 0.01
+
+
+def test_prerecorded_c1_to_c7_including_dynamic_dose_times():
+    from app.test_sheet import TEST_CASES
+
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded", answer_provider="family-demo")))
+    context = None
+    for case in TEST_CASES:
+        if not case["id"].startswith("C"):
+            continue
+        response = client.post("/ask", json={"text": case["say"], "context": context})
+        assert response.status_code == 200
+        answer = response.json()
+        context = answer.get("context")
+        if case["id"] in ("C4", "C5"):
+            assert "시험 기록에 " in answer["answerText"]
+            assert "말씀하신 시각으로" in answer["speechText"]
+        audio = client.post("/tts", json={"text": answer["speechText"]})
+        assert audio.status_code == 200, (case["id"], audio.text)
+        assert client.get(audio.json()["audioUrl"]).content[:4] == b"RIFF"
+
+
+def test_prerecorded_ignores_spacing_and_punctuation():
+    """폰 STT 가 띄어 쓴 말('퇴근 길에')이 답에 들어가도 녹음('퇴근길에')을 찾는다."""
+    from app.engines.prerecorded import PrerecordedTtsEngine, canonical_text
+
+    engine = PrerecordedTtsEngine()
+    spaced = "남편에게 '퇴근 길에 약국 들러' 부탁을 보냈어요"
+    assert engine.synthesize(spaced).sample_rate == 24000
+    assert canonical_text(" 두부, 계란 ") == "두부계란"
+
+
+def test_prerecorded_keys_are_unique_after_compacting():
+    import json
+
+    from app.engines.prerecorded import DEFAULT_RECORDINGS_DIR, canonical_text
+
+    texts = []
+    for folder in (DEFAULT_RECORDINGS_DIR, DEFAULT_RECORDINGS_DIR.parent / "c1-c7"):
+        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+        texts += [canonical_text(item["speechText"]) for item in manifest["recordings"]]
+    assert len(texts) == 32 and len(set(texts)) == 32

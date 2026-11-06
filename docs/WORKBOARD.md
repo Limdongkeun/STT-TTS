@@ -39,7 +39,9 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 ## 정한 것
 
-- 임시 TTS 기본은 prerecorded(지수 D1~D25 로컬 WAV)다. 문장이 일치할 때만 재생하고 불일치하면 422 안내를 보낸다. ElevenLabs 추가 API 사용은 금지한다.
+- **서버 실행·종료는 사용자가 직접 처리한다. AI는 명시적으로 요청받은 경우에만 서버를 켜거나 끈다.** (2026-11-05 사용자 지시)
+
+- 임시 TTS 기본은 prerecorded(지수 C1~C7·D1~D25 로컬 WAV)다. 문장이 일치할 때만 재생하고 불일치하면 422 안내를 보낸다. ElevenLabs 추가 API 사용은 금지한다.
 
 - 실제 STT 서버는 8001(`--extra asr`), 답+TTS 서버는 8002(`--extra tts`)로 나눈다. qwen-asr와 qwen-tts가 서로 다른 transformers 버전을 쓰기 때문이다. mock만 쓸 때는 8002 하나로 된다.
 - 코딩 규칙은 Teddy Core Policy(`/Users/teddy/Desktop/UPTIVE/LLM-코딩/core_instructions.md` + `packs/`)를 따른다.
@@ -52,7 +54,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 항목 | 결과 | 확인 |
 |---|---|---|
-| server pytest | 258개 통과 | 2026-11-05 Codex |
+| server pytest | 260개 통과 | 2026-11-05 Codex |
 | app `npm test` / `npm run typecheck` | 36개 통과 / 통과 | 2026-11-05 Claude |
 | app 린트 | ESLint 설정 없음, 못 돌림 | 2026-11-04 Claude |
 
@@ -60,6 +62,9 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-05 17:40 | Claude | 17:07 시험 후속: 앱 재생 확인(2초 안에 시작 안 하면 다시 틀고, 그래도 안 되면 안내·메모 '재생 안 됨'), 재생 전 오디오 세션 다시 켜기 / 녹음·화면 답 비교 때 띄어쓰기·문장부호 무시 / 대화 맥락 last_topic(앞 턴 장보기면 '○○ 추가해줘'를 장보기로) / 같은 뜻 다른 말(살 거·사야 할 거·챙겨가) / 받아쓰기 보정(충전정·헤어제·부루펜 결·현장학습 통해서·아니한테) | 서버 288개, 앱 40개, tsc 통과. 17:07 인식 글 그대로 다시 돌리면 32개 중 31개 녹음 답(D6만 실패). 폰 재생은 실기기 확인 필요 |
+| 2026-11-05 16:55 | Codex | 사용자 요청으로 8002 서버 종료, 서버 실행·종료는 사용자 담당으로 기록 | 8002 리스너 없음 확인 |
+| 2026-11-05 16:53 | Codex | 추가 승인된 C1~C7 7개만 ElevenLabs 생성·앱 연결. C4·C5 화면 시각 유지, 음성은 기록·수정 요약 | 서버 260개 통과, 실행 서버 C1~C7 모두 200. 추가 API 사용 금지 유지 |
 | 2026-11-05 15:55 | Claude | 사전 녹음에 없는 답: /tts 404 → 앱은 오류 대신 화면 답만, 시험표 들린 답 '녹음 없음'(-) 표시·끝낸 문장으로 셈. zip을 git 대상에서 빼고 .gitignore 추가(파일은 남김) | 서버 259개, 앱 37개, tsc 통과. 서버 재시작 필요 |
 | 2026-11-05 14:58 | Codex | D1~D25 로컬 사전 음성 연결, 기본 TTS prerecorded 및 실행 서버 재시작. ElevenLabs 추가 호출 없음 | 서버 258개 통과, 실제 /ask→/tts→WAV 다운로드 확인, 폰 청취 확인 대기 |
 | 2026-11-05 14:55 | Codex | D1~D25 답변만 ElevenLabs 지수로 사전 생성. 추가 API 사용 금지(사용자 지시) | 25개 WAV·MP3, 총 135.44초, 파일·무음 검사 통과. 앱 연결 및 청취 검수 전 |

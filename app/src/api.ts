@@ -12,7 +12,8 @@ export const sttServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_STT_SERVER_
 export const ttsServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_TTS_SERVER_URL);
 
 export type SttResponse = { text: string; language: string | null; engine: string; elapsedMs: number };
-export type AskContext = { awaiting_dose_time: boolean; dose_at?: string };
+/** 서버가 들고 다니라고 준 대화 상태. last_topic: 바로 앞 턴에 답한 주제(예: "shopping"). */
+export type AskContext = { awaiting_dose_time: boolean; dose_at?: string; last_topic?: string };
 export type AskResponse = {
   answerText: string;
   speechText: string;

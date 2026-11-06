@@ -1,4 +1,4 @@
-import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, AppState, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -14,6 +14,7 @@ import {
   ttsServerUrl,
   type AskContext,
 } from "./src/api";
+import { waitUntilStarted } from "./src/playback";
 import { describeServerInfo, PHONE_STT_LABEL, sttLabelFor, type HealthResponse, type ServerInfo } from "./src/serverInfo";
 import {
   decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
@@ -60,6 +61,10 @@ export default function App() {
   recordTurnRef.current = testSheet.recordTurn;
   const markNoRecordingRef = useRef(testSheet.markNoRecording);
   markNoRecordingRef.current = testSheet.markNoRecording;
+  const markPlaybackFailedRef = useRef(testSheet.markPlaybackFailed);
+  markPlaybackFailedRef.current = testSheet.markPlaybackFailed;
+  /** 재생할 때마다 1씩 늘린다. 재생 확인 중에 새 답이 오면 지난 확인은 멈춘다. */
+  const playIdRef = useRef(0);
   // 시험표에 적을 STT 이름(폰 기본 STT, 또는 서버 STT 모델 이름). 서버 STT 를 고르면 STT 서버에 모델을 묻는다.
   const [sttServerHealth, setSttServerHealth] = useState<HealthResponse | null>(null);
   const sttLabelRef = useRef(PHONE_STT_LABEL);
@@ -92,6 +97,25 @@ export default function App() {
     setErrorMessage(message);
     finishConversation();
   }, [finishConversation]);
+
+  /** 재생이 2초 안에 시작하지 않으면 한 번 다시 튼다. 그래도 안 되면 알리고 시험표 메모에 적는다. */
+  const ensurePlaying = useCallback(
+    async (playId: number, fromVoice: boolean) => {
+      const probe = () => ({ playing: player.playing, currentTime: player.currentTime });
+      if (await waitUntilStarted(probe)) return;
+      if (playIdRef.current !== playId) return;
+      await setIsAudioActiveAsync(true).catch(() => undefined);
+      await player.seekTo(0);
+      player.play();
+      if (await waitUntilStarted(probe)) return;
+      if (playIdRef.current !== playId) return;
+      if (fromVoice) markPlaybackFailedRef.current();
+      setNotice("음성을 받았는데 폰에서 재생이 시작되지 않았어요. '다시 듣기'를 눌러 보세요.");
+      // 대화 모드는 재생이 끝나야 다음 턴을 듣는데, 재생이 안 되면 거기서 멈춘다.
+      if (conversationRef.current?.awaitingPlayback) finishConversation();
+    },
+    [finishConversation, player],
+  );
 
   const answerAndSpeak = useCallback(
     async (text: string, startedAt: number, sttMs?: number, fromVoice = false): Promise<TurnOutcome> => {
@@ -131,6 +155,8 @@ export default function App() {
         if (wasStopped()) return "stopped";
         const ttsMs = Date.now() - ttsStarted;
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+        // 폰 음성인식이 막 끝나 오디오 세션이 녹음용으로 남아 있을 수 있어, 재생용으로 다시 켠다.
+        await setIsAudioActiveAsync(true);
         if (wasStopped()) return "stopped";
         player.replace({ uri: speech.fullAudioUrl });
         if (conversation) {
@@ -139,6 +165,7 @@ export default function App() {
           conversation.awaitingPlayback = next.continueListening;
         }
         player.play();
+        void ensurePlaying(++playIdRef.current, fromVoice);
         setTimings({ sttMs, askMs, ttsMs, totalMs: Date.now() - startedAt });
         setCanReplay(true);
         if (!conversation) setStage("idle");
@@ -149,7 +176,7 @@ export default function App() {
         return "error";
       }
     },
-    [fail, finishConversation, player],
+    [ensurePlaying, fail, finishConversation, player],
   );
 
   /** 시험표의 '이 문장 말하기': 그 문장의 '나'로 바꾸고 바로 듣기 시작한다. 듣는 중에 다시 누르면 말하기 끝. */

@@ -18,6 +18,8 @@ import {
   type TestCase,
 } from "./testSheet";
 
+const PLAYBACK_FAILED_NOTE = "재생 안 됨";
+
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 export function useTestSheet() {
@@ -139,6 +141,15 @@ export function useTestSheet() {
     if (caseId) update(caseId, { heard: "-" });
   }, [update]);
 
+  /** 방금 적은 문장의 음성이 폰에서 재생되지 않았을 때: 메모에 '재생 안 됨'을 더한다(원인 확인용). */
+  const markPlaybackFailed = useCallback(() => {
+    const caseId = lastRecordedRef.current;
+    if (!caseId) return;
+    const note = resultOf(resultsRef.current, caseId).note;
+    if (note.includes(PLAYBACK_FAILED_NOTE)) return;
+    update(caseId, { note: note ? `${note} / ${PLAYBACK_FAILED_NOTE}` : PLAYBACK_FAILED_NOTE });
+  }, [update]);
+
   /** 지금 시험표를 저장본으로 남긴다. 남긴 저장본을 돌려주고, 실패하면 null. */
   const save = useCallback(async (): Promise<Attempt | null> => {
     setSaving(true);
@@ -198,6 +209,7 @@ export function useTestSheet() {
     update,
     recordTurn,
     markNoRecording,
+    markPlaybackFailed,
     save,
     clearSheet,
     changeDevice,

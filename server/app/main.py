@@ -176,9 +176,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker)
         else:
             answer_text = answer_provider.answer(text)
+        speech_text = answer_text
+        if settings.tts_engine == "prerecorded" and context and context.dose_at and answer_text.startswith("시험 기록에 "):
+            action = "수정했어요" if "수정했어요." in answer_text else "기록했어요"
+            speech_text = (
+                f"말씀하신 시각으로 복용 시간을 {action}. "
+                "가상 일정에 등록된 다음 복용 예정 시각은 오후 9시예요."
+            )
         return AskResponse(
             answer_text=answer_text,
-            speech_text=normalize_for_speech(answer_text),
+            speech_text=normalize_for_speech(speech_text),
             provider=answer_provider.name,
             context=context,
             elapsed_ms=_elapsed_ms(started),

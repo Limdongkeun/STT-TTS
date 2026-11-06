@@ -37,6 +37,18 @@ REQUEST_PATTERN = re.compile(
     r"(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s+(.+?)\s*(?:해\s*)?(?:달라고|주라고|하라고)?\s*부탁"
 )
 ITEMS_AFTER_LIST = re.compile(r"(?:목록에|장보기에)\s+(.+?)\s*(?:좀\s+)?(?:넣어|추가|적어)")
+# "장보기"라는 말 없이 장보기 목록을 묻는 말 (비교용 글 기준: 공백 없음)
+SHOPPING_QUERY = re.compile(r"살거|살것|사야할거|사야할것|사야될거|사야돼|사야되|뭐사야|사올거")
+# "장보기"라는 말 없이 넣어 달라고 해도 장보기로 보는 물건
+GROCERY_WORDS = (
+    "우유", "기저귀", "두부", "계란", "달걀", "휴지", "물티슈", "라면", "생수", "세제",
+    "사과", "바나나", "빵", "쌀", "고기", "분유", "치약", "샴푸",
+)
+ADD_WORDS = ("넣어", "추가", "적어")
+# 장보기가 아닌 다른 주제 말 (앞 턴이 장보기였어도 이 말이 있으면 장보기로 보지 않는다)
+NOT_SHOPPING_WORDS = ("선물", "생신", "생일", "용돈", "생활비", "관리비", "가스비", "통신비", "부탁", "일정")
+# 아이 준비물을 묻는 다른 말
+SUPPLY_WORDS = ("준비물", "챙겨가", "챙겨갈", "챙길거", "가져가", "가져갈")
 ITEM_SUFFIX = re.compile(r"(?:이랑|랑|하고|좀)$")
 ITEM_STOPWORDS = {"좀", "목록", "목록에", "그리고", "장보기", "장보기에"}
 EXPIRY_KEYS = {
@@ -102,7 +114,7 @@ def _named_person(text: str, speaker: str) -> str | None:
 
 def _extract_items(words: str) -> list[str]:
     match = ITEMS_AFTER_LIST.search(words)
-    segment = match.group(1) if match else re.split(r"장\s*보기|장\s*볼", words)[0]
+    segment = match.group(1) if match else re.split(r"장\s*보기|장\s*볼|\s(?:좀\s+)?(?:넣어|추가|적어)", words)[0]
     items: list[str] = []
     for token in segment.split():
         token = ITEM_SUFFIX.sub("", token)
@@ -116,13 +128,19 @@ class FamilyTopics:
         self._lock = threading.Lock()
         self._state = FamilyRecords()
         self._asking = False
+        self._last_topic = ""
 
     def reset(self) -> None:
         with self._lock:
             self._state = FamilyRecords()
 
-    def answer(self, question: str, text: str, speaker: str, now: datetime) -> str | None:
-        """맞는 주제가 없으면 None. text 는 compact_question 결과."""
+    def answer(
+        self, question: str, text: str, speaker: str, now: datetime, *, last_topic: str = ""
+    ) -> tuple[str | None, str]:
+        """(답, 답한 주제 이름). 맞는 주제가 없으면 (None, ""). text 는 compact_question 결과.
+
+        last_topic 은 바로 앞 턴에 답한 주제(예: "shopping"): 주제 말이 빠진 말을 푸는 데 쓴다.
+        """
         words = spaced_words(question)
         today = now.date()
         # 물음표로 끝나면 묻는 말: "남편이 냈어?" 는 기록하지 않는다.
@@ -144,11 +162,12 @@ class FamilyTopics:
         )
         with self._lock:
             self._asking = asking
+            self._last_topic = last_topic
             for handler in handlers:
                 reply = handler(text, words, speaker, today)
                 if reply:
-                    return reply
-        return None
+                    return reply, handler.__name__.lstrip("_")
+        return None, ""
 
     # 6. 부탁 주고받기
     def _requests(self, text: str, words: str, speaker: str, today: date) -> str | None:
@@ -222,9 +241,16 @@ class FamilyTopics:
                 state.shopping.remove(item)
             tail = f" 남은 건 {copula(', '.join(state.shopping))}" if state.shopping else " 이제 목록이 비었어요."
             return f"{topic(', '.join(found))} 장보기 목록에서 뺐어요.{tail}"
+        adding = any(word in text for word in ADD_WORDS)
+        other_topic = any(word in text for word in NOT_SHOPPING_WORDS)
+        if not has_list and not other_topic:
+            # "살 거 뭐 있어?" / "우유랑 기저귀 추가해줘"(앞 턴이 장보기였거나 장보기 물건이 있을 때)
+            has_list = bool(SHOPPING_QUERY.search(text)) or (
+                adding and (self._last_topic == "shopping" or any(word in text for word in GROCERY_WORDS))
+            )
         if not has_list:
             return None
-        if any(word in text for word in ("넣어", "추가", "적어")):
+        if adding:
             items = _extract_items(words)
             if not items:
                 return "장보기 목록에 넣을 물건을 같이 말해 주세요."
@@ -404,7 +430,7 @@ class FamilyTopics:
             if state.consent_submitted_by:
                 return f"현장학습 동의서는 {subject(SPEAKER_LABELS[state.consent_submitted_by])} 냈어요."
             return f"현장학습 동의서는 아직 안 냈어요. {format_date(state.consent_due, today)}까지 내야 해요."
-        if "준비물" not in text:
+        if not any(word in text for word in SUPPLY_WORDS):
             return None
         resolved = _resolve_day(text, today)
         if resolved and resolved[1]:

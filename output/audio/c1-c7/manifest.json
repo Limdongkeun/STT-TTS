@@ -1,0 +1,79 @@
+{
+  "generatedForDate": "2026-11-05",
+  "timezone": "Asia/Seoul",
+  "voiceName": "지수",
+  "voiceId": "iWLjl1zCuqXRkW6494ve",
+  "model": "eleven_v4",
+  "recordings": [
+    {
+      "id": "C1",
+      "question": "다음 주 우리 집 일정 뭐야?",
+      "answerText": "다음 주 가족 일정은 두 건이에요. 화요일에 가족 식사, 토요일에 장보기가 있어요.",
+      "speechText": "다음 주 가족 일정은 두 건이에요. 화요일에 가족 식사, 토요일에 장보기가 있어요.",
+      "wavFile": "C1.wav",
+      "mp3File": "C1.mp3",
+      "durationSec": 6.48,
+      "sha256": "eeebc5b3617d37adf5a9993f0c9053f0a99397b926e12e63179e95b26d353b41"
+    },
+    {
+      "id": "C2",
+      "question": "소윤이 이번 주 학교 학원 일정 뭐야?",
+      "answerText": "소윤이는 수요일에 학교 체험학습, 금요일에 피아노 학원이 있어요.",
+      "speechText": "소윤이는 수요일에 학교 체험학습, 금요일에 피아노 학원이 있어요.",
+      "wavFile": "C2.wav",
+      "mp3File": "C2.mp3",
+      "durationSec": 5.28,
+      "sha256": "c5167d870854d10d941699587e9c9879524d9a2abeba24b962c4012a4993e7bd"
+    },
+    {
+      "id": "C3",
+      "question": "애기 해열제 부르펜 계열 먹었는데 시간 체크해줘",
+      "answerText": "몇 시에 먹였나요?",
+      "speechText": "몇 시에 먹였나요?",
+      "wavFile": "C3.wav",
+      "mp3File": "C3.mp3",
+      "durationSec": 1.6,
+      "sha256": "232d8e4ee1e2119f6dfe69ad357e005c567a58af87ae80ea39dd30d29d003363"
+    },
+    {
+      "id": "C4",
+      "question": "30분 전에 먹였어",
+      "answerText": "시험 기록에 11월 5일 오후 4시 22분에 먹인 걸로 기록했어요. 가상 일정에 등록된 다음 복용 예정 시각은 오후 9시예요.",
+      "speechText": "말씀하신 시각으로 복용 시간을 기록했어요. 가상 일정에 등록된 다음 복용 예정 시각은 오후 아홉 시예요.",
+      "wavFile": "C4.wav",
+      "mp3File": "C4.mp3",
+      "durationSec": 8.16,
+      "sha256": "cb65c6a57e89cfd7ef77fb117cde77cb255f3f8df3acd810a316a77af23ab4dc"
+    },
+    {
+      "id": "C5",
+      "question": "아니, 30분 전이 아니라 한 시간 전이야",
+      "answerText": "시험 기록에 11월 5일 오후 3시 52분에 먹인 걸로 수정했어요. 가상 일정에 등록된 다음 복용 예정 시각은 오후 9시예요.",
+      "speechText": "말씀하신 시각으로 복용 시간을 수정했어요. 가상 일정에 등록된 다음 복용 예정 시각은 오후 아홉 시예요.",
+      "wavFile": "C5.wav",
+      "mp3File": "C5.mp3",
+      "durationSec": 8.16,
+      "sha256": "8f1443e970e7adf6370d3b1d3748089eb297cafa1f27b3265a261f53dd6049f0"
+    },
+    {
+      "id": "C6",
+      "question": "아버지 병원 예약 언제였지?",
+      "answerText": "11월 2일에 등록한 아버지 병원 예약은 11월 12일 목요일 오전 10시로 확인돼요.",
+      "speechText": "십일월 이일에 등록한 아버지 병원 예약은 십일월 십이일 목요일 오전 열 시로 확인돼요.",
+      "wavFile": "C6.wav",
+      "mp3File": "C6.mp3",
+      "durationSec": 6.64,
+      "sha256": "ef0064fb3cf830f27da98b846da7f9bb47b8a84e66b0c824f12685c9e2549a6b"
+    },
+    {
+      "id": "C7",
+      "question": "소윤이 다음 주 학교 학원 일정 뭐야?",
+      "answerText": "시험 일정은 소윤이의 이번 주 학교와 학원 일정만 준비돼 있어요.",
+      "speechText": "시험 일정은 소윤이의 이번 주 학교와 학원 일정만 준비돼 있어요.",
+      "wavFile": "C7.wav",
+      "mp3File": "C7.mp3",
+      "durationSec": 5.28,
+      "sha256": "54b42eff871e18e4865cda712f9ecb0e057061fe2580e6c54a3646e23ab47bb6"
+    }
+  ]
+}

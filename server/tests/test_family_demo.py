@@ -102,6 +102,11 @@ NOW = datetime(2026, 11, 5, 10, 0, tzinfo=KST)  # 목요일
         ("이번달에7년용돈보냈어", "이번달에친정용돈보냈어"),
         ("칠년용돈", "친정용돈"),
         ("공기심장사상충약언제먹어야돼", "콩이심장사상충약언제먹어야돼"),
+        # 실기기 시험(2026-11-05 17:07)
+        ("이번달충전정용돈보냈어", "이번달친정용돈보냈어"),
+        ("애기헤어제부루펜결먹였는데시간체크해줘", "애기해열제부르펜계열먹였는데시간체크해줘"),
+        ("현장학습통해서냈어", "현장학습동의서냈어"),
+        ("아니한테온부탁뭐있어", "아내한테온부탁뭐있어"),
     ],
 )
 def test_correct_transcript_fixes_known_variants(compact, expected):
@@ -119,6 +124,9 @@ def test_correct_transcript_fixes_known_variants(compact, expected):
         "소윤이학원언제가",  # 어린이집이 없으면 학원은 학원
         "공기청정기켜줘",  # 반려견 말이 없으면 공기는 공기
         "7년동안모았어",  # 용돈 앞이 아니면 그대로
+        "헤어제품뭐살까",  # 해열제·약 말이 없으면 헤어제는 그대로
+        "아니그게아니라",  # 한테·에게 앞이 아니면 아니는 그대로
+        "통해서보냈어",  # 현장학습 뒤가 아니면 그대로
         "84000원",
         "",
     ],
@@ -200,6 +208,23 @@ def fresh_answer(question: str, speaker: str = "wife") -> str:
         ("husband", "퇴근길에 우유 사 달라고 부탁해줘", "아내에게 '퇴근길에 우유 사' 부탁을 보냈어요."),
         ("husband", "나한테 부탁이 뭐야?", "남편에게 온 부탁이 없어요."),
         ("wife", "이번 달 관리비 됐어", "관리비 23만 4천 원은 남편이 11월 3일에 냈어요."),
+        # 같은 뜻 다른 말 (실기기 시험 2026-11-05 17:07 메모)
+        ("wife", "장볼거리 뭐야?", "장보기 목록은 두부, 계란 2가지예요."),
+        ("wife", "살 거 뭐 있어?", "장보기 목록은 두부, 계란 2가지예요."),
+        ("wife", "사야 할 거 뭐야?", "장보기 목록은 두부, 계란 2가지예요."),
+        ("wife", "마트에서 뭐 사야 돼?", "장보기 목록은 두부, 계란 2가지예요."),
+        ("wife", "우유랑 기저귀 추가해줘", "장보기 목록에 우유, 기저귀를 넣었어요."),
+        ("wife", "휴지 좀 넣어줘", "장보기 목록에 휴지를 넣었어요."),
+        ("wife", "아버지 병원 예약 언제야?", "11월 12일 목요일 오전 10시로 확인돼요."),
+        ("wife", "아버지 병원 예약 언제였지?", "11월 12일 목요일 오전 10시로 확인돼요."),
+        ("wife", "시어머니 생신 선물 뭐 사기로 했어?", "선물은 안마기로 정했고"),
+        ("wife", "시어머니 생신 선물 뭐 살거야?", "선물은 안마기로 정했고"),
+        ("wife", "소윤이 내일 뭐 챙겨가?", "소윤이 준비물은 색종이, 풀이에요."),
+        # 실기기 시험(2026-11-05 17:07)에서 폰 STT 가 실제로 받아 적은 그대로
+        ("wife", "애기 헤어제 부루펜 결 먹였는데 시간 체크 해 줘", "몇 시에 먹였나요?"),
+        ("wife", "이번 달 충전정 용돈 보냈어", "이번 달 친정 용돈 30만 원은 아직 안 보냈어요. 매달 10일에 보내기로 했어요."),
+        ("wife", "현장학습 통해서 냈어", "현장학습 동의서는 아직 안 냈어요."),
+        ("husband", "아니한테 온 부탁 뭐 있어?", "아내에게 온 부탁은 1건이에요."),
     ],
 )
 def test_topic_variants(speaker, question, expected):
@@ -210,3 +235,40 @@ def test_ask_logs_correction(caplog):
     with caplog.at_level(logging.INFO, logger="uvicorn.error"):
         FamilyDemoAnswerProvider().answer("서윤이 이번 주 일정", now=NOW)
     assert "ask corrected '서윤이이번주일정' -> '소윤이이번주일정'" in caplog.text
+
+
+def test_last_topic_lets_add_without_saying_shopping():
+    """앞 턴이 장보기였으면 "콩나물 추가해줘"처럼 장보기라는 말이 없어도 장보기 목록에 넣는다."""
+    provider = FamilyDemoAnswerProvider()
+    first, context = provider.answer("장보기 목록 뭐 남았어?", now=NOW)
+    assert context is not None and context.last_topic == "shopping"
+    added, _ = provider.answer("콩나물 추가해줘", context, now=NOW)
+    assert added.startswith("장보기 목록에 콩나물을 넣었어요.")
+
+
+def test_add_without_shopping_context_or_grocery_word_is_not_shopping():
+    provider = FamilyDemoAnswerProvider()
+    answer, _ = provider.answer("콩나물 추가해줘", now=NOW)
+    assert "장보기" not in answer
+    _, context = provider.answer("아버지 병원 예약 언제야?", now=NOW)
+    assert context is not None and context.last_topic == "father_hospital"
+    answer, _ = provider.answer("콩나물 추가해줘", context, now=NOW)
+    assert "장보기" not in answer
+
+
+def test_last_topic_does_not_start_dose_dialog():
+    """주제 상태만 있는 context 로 모르는 말을 하면 복용 시각 대화로 가지 않는다."""
+    provider = FamilyDemoAnswerProvider()
+    _, context = provider.answer("장보기 목록 뭐 남았어?", now=NOW)
+    answer, next_context = provider.answer("오늘 날씨 어때?", context, now=NOW)
+    assert answer == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
+    assert next_context is None
+
+
+def test_last_topic_must_be_a_simple_name():
+    from pydantic import ValidationError
+
+    from app.family_demo import FamilyDemoContext
+
+    with pytest.raises(ValidationError):
+        FamilyDemoContext(last_topic="Shopping; drop")

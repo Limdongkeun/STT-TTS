@@ -10,7 +10,7 @@ import unicodedata
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.family_topics import FamilyTopics
 from app.stt_correction import correct_transcript
@@ -34,6 +34,8 @@ def compact_question(question: str) -> str:
 class FamilyDemoContext(BaseModel):
     awaiting_dose_time: bool = False
     dose_at: datetime | None = None
+    # 바로 앞 턴에 답한 주제(예: "shopping"). "우유랑 기저귀 추가해줘"처럼 주제 말이 빠진 다음 말을 푼다.
+    last_topic: str = Field(default="", max_length=40, pattern=r"^[a-z_]*$")
 
 
 class FamilyDemoAnswerProvider:
@@ -59,15 +61,16 @@ class FamilyDemoAnswerProvider:
         if text != compact:
             logger.info("ask corrected %r -> %r", compact, text)
         current = (now if now is not None else datetime.now(KST)).astimezone(KST)
-        topic_reply = self._topics.answer(question, text, speaker, current)
+        last_topic = context.last_topic if context else ""
+        topic_reply, topic_name = self._topics.answer(question, text, speaker, current, last_topic=last_topic)
         if topic_reply:
-            return topic_reply, None
+            return topic_reply, FamilyDemoContext(last_topic=topic_name)
 
         if "해열제" in text and ("부르펜" in text or "브루펜" in text) and any(
             word in text for word in ("애기", "아기", "아이")
         ):
             context = FamilyDemoContext(awaiting_dose_time=True)
-        if context:
+        if context and (context.awaiting_dose_time or context.dose_at):
             return self._answer_dose(text, context, current)
         return "이 질문에 맞는 시험 답변이 준비돼 있지 않아요.", None
 

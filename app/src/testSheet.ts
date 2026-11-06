@@ -186,10 +186,12 @@ export function summarize(cases: TestCase[], results: Record<string, SheetResult
   return { done, bad, total: cases.length, avgCer };
 }
 
-/** 날짜에 따라 바뀌지 않는 문장은 화면 답이 기대 답과 글자까지 같으면 ○ 를 미리 채운다. 아니면 비워 둔다. */
+/** 날짜에 따라 바뀌지 않는 문장은 화면 답이 기대 답과 같으면 ○ 를 미리 채운다. 아니면 비워 둔다.
+ * 띄어쓰기·문장부호 차이('퇴근 길에' / '퇴근길에')는 같은 답으로 본다. */
 export function autoScreenMark(testCase: TestCase, answer: string): Mark {
   if (testCase.dateDependent) return "";
-  return answer.trim() === testCase.expect.trim() ? "o" : "";
+  const got = compact(answer);
+  return got !== "" && got === compact(testCase.expect) ? "o" : "";
 }
 
 /** 말한 문장을 기록할 때의 결과. 사람이 이미 누른 화면 답(○/×)은 덮지 않는다.

@@ -100,6 +100,8 @@ test("summarize: 끝낸 문장과 × 있는 문장 수, 평균 CER", () => {
 test("autoScreenMark: 글자까지 같을 때만 ○, 날짜 따라 바뀌는 문장은 비워 둠", () => {
   assert.equal(autoScreenMark(CASE_A, " 장보기 목록은 두부, 계란 2가지예요. "), "o");
   assert.equal(autoScreenMark(CASE_A, "장보기 목록은 두부 2가지예요."), "");
+  assert.equal(autoScreenMark(CASE_A, "장보기 목록은 두부,계란 2 가지예요"), "o"); // 띄어쓰기·문장부호만 다름
+  assert.equal(autoScreenMark(CASE_A, "  "), "");
   assert.equal(autoScreenMark(CASE_B, CASE_B.expect), "");
 });
 
