@@ -4,6 +4,7 @@
 - draft.json: 작성 중인 시험표. 누를 때마다 저장(앱을 새로고침해도 남음), 초기화하면 비움
 - <저장 시각>.json · .md: [저장하기]로 남긴 저장본(그때 코드 버전·요약·결과)
 - history.md: 저장본마다 한 줄. 개발하면서 결과가 어떻게 바뀌는지 본다
+- draft-audio/, <저장 시각>-audio/: 폰 STT 가 들은 소리(WAV). 다음 주 서버 STT 에 같은 소리를 넣어 비교한다
 가 results/test-runs/<기기>/ 에 남는다(results/ 는 git 에 올리지 않음).
 기대 답은 docs/test-plan.md, .scratch/family-shared-tasks/spec.md 와 같다.
 """
@@ -30,6 +31,14 @@ LEGACY_RUN_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}-(?P<device>[a-z0-9][a-z0-9-
 REPO_DIR = Path(__file__).resolve().parents[2]
 MAX_ATTEMPTS_LISTED = 20
 DEFAULT_RESULTS_DIR = Path(__file__).resolve().parents[2] / "results" / "test-runs"
+
+# 시험 환경: 조용함 · TV 소음 · 3m 거리 · 다른 사람 목소리
+Condition = Literal["", "quiet", "tv", "far", "other_voice"]
+CONDITION_LABELS = {"quiet": "조용함", "tv": "TV 소음", "far": "3m 거리", "other_voice": "다른 목소리", "": ""}
+MAX_TIMING_MS = 600_000
+# 서버가 지어 주는 음성 파일 이름(예: D6_1762400000000.wav). 경로 문자는 들어갈 수 없다.
+AUDIO_FILE_PATTERN = re.compile(r"^(?P<case>[A-Z][0-9]{1,2})_[0-9]{1,16}\.(?P<ext>wav|caf)$")
+DRAFT_AUDIO_DIR = "draft-audio"
 
 Mark = Literal["", "o", "x"]
 # 들린 답에만 '-'(녹음 없음: 이 답의 소리가 없어 판단하지 않음)가 더 있다.
@@ -109,6 +118,13 @@ class SheetResult(BaseModel):
     speaker: Literal["", "wife", "husband"] = ""
     # 이 턴을 받아 적은 STT (예: "폰 기본 STT", "Qwen3-ASR-1.7B"). 앱이 적는다.
     stt: str = Field(default="", max_length=120)
+    condition: Condition = ""
+    # 걸린 시간(ms): 답 만들기 · TTS · 말이 끝난 뒤 답 소리가 나기 시작할 때까지
+    ask_ms: int | None = Field(default=None, ge=0, le=MAX_TIMING_MS)
+    tts_ms: int | None = Field(default=None, ge=0, le=MAX_TIMING_MS)
+    reply_ms: int | None = Field(default=None, ge=0, le=MAX_TIMING_MS)
+    # 이 턴에 폰 STT 가 들은 소리(draft-audio/ 안 파일 이름). 서버가 지어 준 이름만 받는다.
+    audio_file: str = Field(default="", max_length=40, pattern=AUDIO_FILE_PATTERN.pattern + "|^$")
     updated_at: str = Field(default="", max_length=40)
 
 
@@ -215,12 +231,34 @@ def summarize(results: dict[str, dict], previous: dict[str, dict] | None, requir
         "cer": round(sum(cers) / len(cers), 3) if cers else None,
         "cer_cases": len(cers),
         "heard_checked": require_heard,
+        "reply_ms": average_reply_ms(results),
+        "conditions": conditions_used(results),
     }
     if previous is not None:
         before = {case_id: case_state(previous.get(case_id), require_heard) for case_id in ordered}
         summary["improved"] = [c for c in ordered if before[c] == "bad" and states[c] == "good"]
         summary["worsened"] = [c for c in ordered if before[c] == "good" and states[c] == "bad"]
     return summary
+
+
+def average_reply_ms(results: dict[str, dict]) -> int | None:
+    """말이 끝난 뒤 소리가 나기까지 평균(ms). 잰 턴이 없으면 None."""
+    values = [value for result in results.values() if isinstance(value := result.get("reply_ms"), int)]
+    return round(sum(values) / len(values)) if values else None
+
+
+def conditions_used(results: dict[str, dict]) -> list[str]:
+    """시험표에 적힌 환경(시험 문장 순서로 처음 나온 순)."""
+    found: list[str] = []
+    for case in TEST_CASES:
+        condition = results.get(case["id"], {}).get("condition", "")
+        if condition and condition not in found:
+            found.append(condition)
+    return found
+
+
+def _seconds(ms: int | None) -> str:
+    return "-" if ms is None else f"{ms / 1000:.1f}초"
 
 
 def _percent(cer: float | None) -> str:
@@ -232,8 +270,8 @@ def render_markdown(title: str, results: dict[str, dict]) -> str:
     lines = [
         f"# 음성 시험 결과 — {title}",
         "",
-        "| # | 말한 문장 | 인식한 말 | 인식 정확도 | 화면 답 | 핵심 | 화면 | 들림 | 메모 |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| # | 말한 문장 | 인식한 말 | 인식 정확도 | 화면 답 | 핵심 | 화면 | 들림 | 환경 | 말 끝→소리 | 메모 |",
+        "|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for case in TEST_CASES:
         result = results.get(case["id"], {})
@@ -246,6 +284,8 @@ def render_markdown(title: str, results: dict[str, dict]) -> str:
             MARK_LABELS.get(result.get("key", ""), ""),
             MARK_LABELS.get(result.get("screen", ""), ""),
             MARK_LABELS.get(result.get("heard", ""), ""),
+            CONDITION_LABELS.get(result.get("condition", ""), ""),
+            _seconds(result.get("reply_ms")) if isinstance(result.get("reply_ms"), int) else "",
             _cell(result.get("note", "")),
         ]
         lines.append("| " + " | ".join(cells) + " |")
@@ -262,8 +302,8 @@ def _changes_text(summary: dict) -> str:
 
 
 HISTORY_HEADER = (
-    "| 저장 시각 | STT | TTS | 코드 버전 | 인식 정확도(평균) | 끝낸 문장 | ○ | × 있는 문장 | 같은 STT 지난번보다 |\n"
-    "|---|---|---|---|---|---|---|---|---|\n"
+    "| 저장 시각 | STT | TTS | 코드 버전 | 환경 | 인식 정확도(평균) | 말 끝→소리(평균) | 끝낸 문장 | ○ | × 있는 문장 | 같은 STT 지난번보다 |\n"
+    "|---|---|---|---|---|---|---|---|---|---|---|\n"
 )
 
 
@@ -314,6 +354,42 @@ class SheetStore:
     def clear_draft(self, device: str) -> None:
         with self._lock:
             self._write(self._device_dir(device) / "draft.json", "{}")
+            shutil.rmtree(self._device_dir(device) / DRAFT_AUDIO_DIR, ignore_errors=True)
+
+    def save_draft_audio(self, device: str, case_id: str, data: bytes, now: datetime | None = None) -> str:
+        """폰 STT 가 들은 소리를 작성 중인 시험표 옆에 둔다. 지어 준 파일 이름을 돌려준다(앱이 시험표에 적음).
+        WAV(RIFF/WAVE)·CAF 만 받는다. 아니면 ValueError."""
+        if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+            ext = "wav"
+        elif data[:4] == b"caff":
+            ext = "caf"
+        else:
+            raise ValueError("WAV 또는 CAF 음성 파일만 받아요.")
+        stamp = round((now or datetime.now(KST)).timestamp() * 1000)
+        name = f"{case_id}_{stamp}.{ext}"
+        if not AUDIO_FILE_PATTERN.fullmatch(name):
+            raise ValueError("음성 파일 이름을 만들 수 없어요.")
+        folder = self._device_dir(device) / DRAFT_AUDIO_DIR
+        with self._lock:
+            folder.mkdir(parents=True, exist_ok=True)
+            temp = folder / f"{name}.tmp"
+            temp.write_bytes(data)
+            temp.replace(folder / name)
+        return name
+
+    def _copy_audio(self, device: str, draft: dict[str, dict], target: Path) -> dict[str, str]:
+        """시험표에 적힌 음성 파일만 저장본 폴더로 복사한다. 케이스 id → 저장본 기준 경로."""
+        source = self._device_dir(device) / DRAFT_AUDIO_DIR
+        copied: dict[str, str] = {}
+        for case_id, result in draft.items():
+            name = str(result.get("audio_file", ""))
+            match = AUDIO_FILE_PATTERN.fullmatch(name)
+            if not match or match["case"] != case_id or not (source / name).is_file():
+                continue
+            target.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source / name, target / f"{case_id}.{match['ext']}")
+            copied[case_id] = f"{target.name}/{case_id}.{match['ext']}"
+        return copied
 
     def _attempt_paths(self, device: str) -> list[Path]:
         folder = self._device_dir(device)
@@ -345,6 +421,7 @@ class SheetStore:
                 # '_02' 는 이름순 정렬에서 원래 이름 뒤에 온다('-' 는 '.' 보다 앞이라 안 됨)
                 stem = f"{moment.strftime('%Y-%m-%d_%H%M%S')}_{suffix:02d}"
             version = self._code_version()
+            audio = self._copy_audio(device, draft, folder / f"{stem}-audio")
             # TTS 가 mock 이면 '들린 답'은 판단할 수 없으니 끝낸 문장·비교에서 뺀다.
             summary = summarize(draft, previous, require_heard=tts_label != "mock")
             record = {
@@ -356,16 +433,23 @@ class SheetStore:
                 "tts": tts_label,
                 "compared_with": previous_record.get("file", "") if previous_record else "",
                 "summary": summary,
+                "audio": audio,
                 "results": draft,
             }
             self._write(folder / f"{stem}.json", json.dumps(record, ensure_ascii=False, indent=2))
             stt_text = " + ".join(labels) or "STT 모름"
+            conditions = " + ".join(CONDITION_LABELS[c] for c in summary["conditions"]) or "-"
             title = f"{device} · {moment.strftime('%Y-%m-%d %H:%M')} · STT {stt_text} · TTS {tts_label or '모름'} · {version or '버전 모름'}"
-            self._write(folder / f"{stem}.md", render_markdown(title, draft))
+            markdown = render_markdown(title, draft)
+            extra = [f"- 환경: {conditions} · 말 끝→소리 평균 {_seconds(summary['reply_ms'])}"]
+            if audio:
+                extra.append(f"- 들은 소리 {len(audio)}개: `{stem}-audio/` (다음 주 서버 STT 비교용)")
+            heading, _, table = markdown.partition("\n\n")
+            self._write(folder / f"{stem}.md", heading + "\n\n" + "\n".join(extra) + "\n\n" + table)
             history = folder / "history.md"
             row = (
-                f"| {moment.strftime('%Y-%m-%d %H:%M')} | {stt_text} | {tts_label or '-'} | {version or '-'} | "
-                f"{_percent(summary['cer'])} | {summary['done']}/{summary['total']} | {summary['ok_marks']} | {', '.join(summary['bad_cases']) or '-'} | "
+                f"| {moment.strftime('%Y-%m-%d %H:%M')} | {stt_text} | {tts_label or '-'} | {version or '-'} | {conditions} | "
+                f"{_percent(summary['cer'])} | {_seconds(summary['reply_ms'])} | {summary['done']}/{summary['total']} | {summary['ok_marks']} | {', '.join(summary['bad_cases']) or '-'} | "
                 f"{_changes_text(summary) if previous_record else '같은 STT 첫 저장본'} |\n"
             )
             if history.exists():
@@ -398,6 +482,9 @@ class SheetStore:
             "avgCer": summary.get("cer"),
             "cerCases": summary.get("cer_cases", 0),
             "heardChecked": summary.get("heard_checked", True),
+            "avgReplyMs": summary.get("reply_ms"),
+            "conditions": summary.get("conditions", []),
+            "audioCount": len(record.get("audio", {})),
             "badCases": summary.get("bad_cases", []),
             "improved": summary.get("improved", []),
             "worsened": summary.get("worsened", []),

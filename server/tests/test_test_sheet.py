@@ -212,8 +212,8 @@ def test_attempts_compare_only_with_same_stt(tmp_path):
 
     history = (tmp_path / DEVICE / "history.md").read_text(encoding="utf-8")
     # TTS 가 mock 이라 '들린 답'은 세지 않는다: ○ 는 핵심·화면 2개
-    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | 0% | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
-    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | 0% | 1/32 | 2 | - | ×→○ D1 |" in history
+    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | - | 0% | - | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
+    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | - | 0% | - | 1/32 | 2 | - | ×→○ D1 |" in history
 
 
 def test_stt_labels_and_tts_label():
@@ -277,7 +277,7 @@ def test_history_starts_new_table_when_columns_change(tmp_path):
     history = (folder / "history.md").read_text(encoding="utf-8")
     assert history.startswith(old.rstrip("\n"))  # 예전 줄은 그대로
     assert "| 인식 정확도(평균) |" in history
-    assert "| 2026-11-05 14:00 | STT 모름 | mock | v2 | 100% | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
+    assert "| 2026-11-05 14:00 | STT 모름 | mock | v2 | - | 100% | - | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
     markdown = (folder / "2026-11-05_140000.md").read_text(encoding="utf-8")
     assert "| C1 | 다음 주 우리 집 일정 뭐야? | 다음 주 우리 집 일정 뭐야? | 100% |" in markdown
 
@@ -291,3 +291,78 @@ def test_no_recording_heard_counts_as_done_and_shows_label():
     assert SheetResult(heard="-").heard == "-"
     with pytest.raises(ValueError):
         SheetResult(key="-")
+
+
+def _wav(seconds: float = 0.1) -> bytes:
+    import io
+    import wave
+
+    buffer = io.BytesIO()
+    with wave.open(buffer, "wb") as out:
+        out.setnchannels(1)
+        out.setsampwidth(2)
+        out.setframerate(16000)
+        out.writeframes(b"\0\0" * int(16000 * seconds))
+    return buffer.getvalue()
+
+
+def test_condition_and_timings_round_trip_and_summary(client, tmp_path):
+    body = {"recognized": "장보기 목록 뭐 남았어", "key": "o", "screen": "o", "heard": "o",
+            "condition": "tv", "askMs": 40, "ttsMs": 120, "replyMs": 1800}
+    assert client.put(f"/test-sheet/{DEVICE}/draft/D1", json=body).status_code == 200
+    client.put(f"/test-sheet/{DEVICE}/draft/D4", json={**body, "replyMs": 2200, "condition": "quiet"})
+    saved = client.get(f"/test-sheet/{DEVICE}/draft").json()["results"]["D1"]
+    assert (saved["condition"], saved["askMs"], saved["ttsMs"], saved["replyMs"]) == ("tv", 40, 120, 1800)
+    attempt = client.post(f"/test-sheet/{DEVICE}/attempts").json()
+    assert attempt["avgReplyMs"] == 2000
+    assert attempt["conditions"] == ["tv", "quiet"]  # 시험 문장 순서(D1 → D4)로 처음 나온 순
+    folder = tmp_path / DEVICE
+    markdown = next(folder.glob("2*.md")).read_text(encoding="utf-8")
+    assert "- 환경: TV 소음 + 조용함 · 말 끝→소리 평균 2.0초" in markdown
+    assert "| TV 소음 | 1.8초 |" in markdown
+    history = (folder / "history.md").read_text(encoding="utf-8")
+    assert "| TV 소음 + 조용함 | 50% | 2.0초 |"  # D4 는 다른 문장을 적어 정확도가 낮다 in history
+
+
+@pytest.mark.parametrize("patch", [
+    {"condition": "kitchen"}, {"replyMs": -1}, {"askMs": 600_001}, {"audioFile": "../x.wav"}, {"audioFile": "D1_1.mp3"},
+])
+def test_rejects_bad_condition_timing_and_audio_name(client, patch):
+    assert client.put(f"/test-sheet/{DEVICE}/draft/D1", json=patch).status_code == 422
+
+
+def test_audio_upload_is_copied_into_attempt_and_cleared_with_draft(client, tmp_path):
+    response = client.put(f"/test-sheet/{DEVICE}/draft/D1/audio", files={"audio": ("a.wav", _wav(), "audio/wav")})
+    assert response.status_code == 200
+    name = response.json()["audioFile"]
+    assert name.startswith("D1_") and name.endswith(".wav")
+    client.put(f"/test-sheet/{DEVICE}/draft/D1", json={"recognized": "장보기", "audioFile": name})
+    # 시험표에 적히지 않은 파일(지난 턴 소리)은 저장본으로 옮기지 않는다
+    stale = client.put(f"/test-sheet/{DEVICE}/draft/D4/audio", files={"audio": ("b.wav", _wav(), "audio/wav")})
+    assert stale.status_code == 200
+    attempt = client.post(f"/test-sheet/{DEVICE}/attempts").json()
+    assert attempt["audioCount"] == 1
+    stem = attempt["file"].removesuffix(".json")
+    copied = tmp_path / DEVICE / f"{stem}-audio" / "D1.wav"
+    assert copied.read_bytes() == _wav()
+    assert not (tmp_path / DEVICE / f"{stem}-audio" / "D4.wav").exists()
+    assert f"`{stem}-audio/`" in (tmp_path / DEVICE / f"{stem}.md").read_text(encoding="utf-8")
+    client.delete(f"/test-sheet/{DEVICE}/draft")
+    assert not (tmp_path / DEVICE / "draft-audio").exists()
+    assert copied.exists()  # 저장본 소리는 남는다
+
+
+def test_audio_upload_rejects_bad_input(client):
+    url = f"/test-sheet/{DEVICE}/draft/D1/audio"
+    assert client.put(url, files={"audio": ("a.mp3", b"ID3notwav", "audio/mpeg")}).status_code == 415
+    assert client.put(url, files={"audio": ("a.wav", b"", "audio/wav")}).status_code == 400
+    assert client.put(f"/test-sheet/{DEVICE}/draft/Z9/audio", files={"audio": ("a.wav", _wav(), "audio/wav")}).status_code == 404
+    assert client.put(f"/test-sheet/BAD!/draft/D1/audio", files={"audio": ("a.wav", _wav(), "audio/wav")}).status_code == 422
+
+
+def test_audio_upload_size_limit(client, monkeypatch):
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "MAX_SHEET_AUDIO_BYTES", 1000)
+    response = client.put(f"/test-sheet/{DEVICE}/draft/D1/audio", files={"audio": ("a.wav", _wav(1.0), "audio/wav")})
+    assert response.status_code == 413

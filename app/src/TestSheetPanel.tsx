@@ -8,12 +8,15 @@ import {
   accuracyText,
   charErrorRate,
   CHECKS,
+  conditionLabel,
+  CONDITIONS,
   describeAttempt,
   describeChanges,
   hasBad,
   isDone,
   isVisible,
   resultOf,
+  secondsText,
   summarize,
   type CheckKey,
   type Mark,
@@ -72,6 +75,32 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
     <View style={styles.sheet}>
       <Text style={styles.title}>시험표</Text>
       <Text style={styles.meta}>지금 STT: {sttLabel} (맨 위 STT 고르기로 바꿔요. 저장본은 같은 STT끼리 비교해요)</Text>
+      <Text style={styles.meta}>시험 환경 (말한 턴마다 같이 적혀요)</Text>
+      <View style={styles.row}>
+        {CONDITIONS.map(([value, label]) => (
+          <Pressable
+            key={value}
+            accessibilityRole="button"
+            accessibilityState={{ selected: sheet.condition === value }}
+            disabled={stage !== "idle"}
+            onPress={() => sheet.setCondition(value)}
+            style={[styles.smallButton, sheet.condition === value && styles.smallButtonActive]}
+          >
+            <Text style={[styles.smallText, sheet.condition === value && styles.smallTextActive]}>{label}</Text>
+          </Pressable>
+        ))}
+      </View>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityState={{ checked: sheet.saveAudio }}
+        disabled={stage !== "idle"}
+        onPress={() => sheet.setSaveAudio(!sheet.saveAudio)}
+        style={[styles.smallButton, sheet.saveAudio && styles.smallButtonActive, styles.alignStart]}
+      >
+        <Text style={[styles.smallText, sheet.saveAudio && styles.smallTextActive]}>
+          {sheet.saveAudio ? "🎙 들은 소리 저장 켜짐 (폰 STT, 다음 주 비교용)" : "🎙 들은 소리 저장 꺼짐"}
+        </Text>
+      </Pressable>
       <View style={styles.row}>
         {deviceDraft === null ? (
           <>
@@ -191,6 +220,7 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
                   화면 답: {result.answer}
                 </Text>
               ) : null}
+              {turnMeta(result.condition, result.replyMs, result.askMs, result.ttsMs)}
 
               <View style={styles.checks}>
                 {CHECKS.map(([key, label]) => {
@@ -275,11 +305,23 @@ function AttemptList({ attempts, showAll, onToggle }: { attempts: Attempt[]; sho
   );
 }
 
+/** "TV 소음 · 말 끝→소리 1.8초 (답 0.1초 · TTS 0.2초)" — 적힌 게 없으면 아무것도 안 보인다. */
+function turnMeta(condition: Parameters<typeof conditionLabel>[0], replyMs?: number | null, askMs?: number | null, ttsMs?: number | null) {
+  const parts: string[] = [];
+  if (condition) parts.push(conditionLabel(condition));
+  if (replyMs != null) {
+    const detail = [askMs != null ? `답 ${secondsText(askMs)}` : "", ttsMs != null ? `TTS ${secondsText(ttsMs)}` : ""].filter(Boolean);
+    parts.push(`말 끝→소리 ${secondsText(replyMs)}${detail.length ? ` (${detail.join(" · ")})` : ""}`);
+  }
+  return parts.length ? <Text style={styles.meta}>{parts.join(" · ")}</Text> : null;
+}
+
 const styles = StyleSheet.create({
   sheet: { marginTop: 24, paddingTop: 16, borderTopWidth: 2, borderTopColor: "#111", gap: 10 },
   title: { fontSize: 20, fontWeight: "700", color: "#111" },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
   flex: { flex: 1 },
+  alignStart: { alignSelf: "flex-start" },
   meta: { fontSize: 12, color: "#666" },
   status: { fontSize: 13, color: "#C0281A" },
   statusInfo: { color: "#1D7A46" },

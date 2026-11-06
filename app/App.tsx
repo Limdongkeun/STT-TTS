@@ -14,13 +14,13 @@ import {
   ttsServerUrl,
   type AskContext,
 } from "./src/api";
-import { waitUntilStarted } from "./src/playback";
+import { FIRST_START_TIMEOUT_MS, waitUntilLoaded, waitUntilStarted } from "./src/playback";
 import { describeServerInfo, PHONE_STT_LABEL, sttLabelFor, type HealthResponse, type ServerInfo } from "./src/serverInfo";
 import {
   decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
 } from "./src/conversation";
 import { STT_MODE_LABELS, type SttMode } from "./src/sttModes";
-import { usePhoneStt } from "./src/usePhoneStt";
+import { usePhoneStt, type PhoneTurn } from "./src/usePhoneStt";
 import { useServerRecorder } from "./src/useServerRecorder";
 import { TestSheetPanel } from "./src/TestSheetPanel";
 import { describeAttempt, type TestCase } from "./src/testSheet";
@@ -63,6 +63,10 @@ export default function App() {
   markNoRecordingRef.current = testSheet.markNoRecording;
   const markPlaybackFailedRef = useRef(testSheet.markPlaybackFailed);
   markPlaybackFailedRef.current = testSheet.markPlaybackFailed;
+  const markPlaybackRetriedRef = useRef(testSheet.markPlaybackRetried);
+  markPlaybackRetriedRef.current = testSheet.markPlaybackRetried;
+  const recordTimingsRef = useRef(testSheet.recordTimings);
+  recordTimingsRef.current = testSheet.recordTimings;
   /** 재생할 때마다 1씩 늘린다. 재생 확인 중에 새 답이 오면 지난 확인은 멈춘다. */
   const playIdRef = useRef(0);
   // 시험표에 적을 STT 이름(폰 기본 STT, 또는 서버 STT 모델 이름). 서버 STT 를 고르면 STT 서버에 모델을 묻는다.
@@ -98,27 +102,36 @@ export default function App() {
     finishConversation();
   }, [finishConversation]);
 
-  /** 재생이 2초 안에 시작하지 않으면 한 번 다시 튼다. 그래도 안 되면 알리고 시험표 메모에 적는다. */
+  /** 재생이 2초 안에 시작하지 않으면 한 번 다시 튼다. 그래도 안 되면 알리고 시험표 메모에 적는다.
+   *  소리가 나기 시작했으면 true (그 시각을 '말 끝→소리' 시간으로 쓴다). */
   const ensurePlaying = useCallback(
-    async (playId: number, fromVoice: boolean) => {
+    async (playId: number, fromVoice: boolean): Promise<boolean> => {
       const probe = () => ({ playing: player.playing, currentTime: player.currentTime });
-      if (await waitUntilStarted(probe)) return;
-      if (playIdRef.current !== playId) return;
+      if (await waitUntilStarted(probe, FIRST_START_TIMEOUT_MS)) return true;
+      if (playIdRef.current !== playId) return false;
       await setIsAudioActiveAsync(true).catch(() => undefined);
       await player.seekTo(0);
       player.play();
-      if (await waitUntilStarted(probe)) return;
-      if (playIdRef.current !== playId) return;
+      if (await waitUntilStarted(probe)) {
+        // 다시 틀어서야 났다: 고쳐졌는지 시험표에서 셀 수 있게 남긴다.
+        if (fromVoice && playIdRef.current === playId) markPlaybackRetriedRef.current();
+        return true;
+      }
+      if (playIdRef.current !== playId) return false;
       if (fromVoice) markPlaybackFailedRef.current();
       setNotice("음성을 받았는데 폰에서 재생이 시작되지 않았어요. '다시 듣기'를 눌러 보세요.");
       // 대화 모드는 재생이 끝나야 다음 턴을 듣는데, 재생이 안 되면 거기서 멈춘다.
       if (conversationRef.current?.awaitingPlayback) finishConversation();
+      return false;
     },
     [finishConversation, player],
   );
 
   const answerAndSpeak = useCallback(
-    async (text: string, startedAt: number, sttMs?: number, fromVoice = false): Promise<TurnOutcome> => {
+    /** startedAt: 말이 끝난 시각. 이때부터 답 소리가 나기 시작할 때까지를 '말 끝→소리'로 잰다. */
+    async (
+      text: string, startedAt: number, sttMs?: number, fromVoice = false, phoneTurn: PhoneTurn | null = null,
+    ): Promise<TurnOutcome> => {
       if (!text) return "empty";
       const conversation = conversationRef.current;
       const wasStopped = () => conversation !== null && conversationRef.current !== conversation;
@@ -135,7 +148,7 @@ export default function App() {
         setAnswerText(answer.answerText);
         setSpeechText(answer.speechText);
         // 시험표에는 말로 한 턴만 적는다(글로 묻기는 인식 시험이 아니다).
-        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current);
+        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current, phoneTurn);
 
         setStage("speaking");
         const ttsStarted = Date.now();
@@ -146,7 +159,10 @@ export default function App() {
           if (!(error instanceof NoRecordingError)) throw error;
           // 사전 녹음 TTS 에 이 답의 소리가 없다: 오류 대신 화면 답만 보여 주고 시험표에 '녹음 없음'을 적는다.
           if (wasStopped()) return "stopped";
-          if (fromVoice) markNoRecordingRef.current();
+          if (fromVoice) {
+            markNoRecordingRef.current();
+            recordTimingsRef.current({ askMs });
+          }
           setNotice("이 답은 녹음이 없어 화면 답만 보여 줘요.");
           setTimings({ sttMs, askMs, totalMs: Date.now() - startedAt });
           finishConversation();
@@ -159,13 +175,18 @@ export default function App() {
         await setIsAudioActiveAsync(true);
         if (wasStopped()) return "stopped";
         player.replace({ uri: speech.fullAudioUrl });
+        // 다 읽히기 전에 play 를 부르면 무시될 수 있다(13:51 시험에서 20/23턴).
+        await waitUntilLoaded(() => player.isLoaded);
+        if (wasStopped()) return "stopped";
         if (conversation) {
           const next = decideNextTurn(true, conversation.emptyTurns, "answered");
           conversation.emptyTurns = next.emptyTurns;
           conversation.awaitingPlayback = next.continueListening;
         }
         player.play();
-        void ensurePlaying(++playIdRef.current, fromVoice);
+        void ensurePlaying(++playIdRef.current, fromVoice).then((started) => {
+          if (started && fromVoice) recordTimingsRef.current({ askMs, ttsMs, replyMs: Date.now() - startedAt });
+        });
         setTimings({ sttMs, askMs, ttsMs, totalMs: Date.now() - startedAt });
         setCanReplay(true);
         if (!conversation) setStage("idle");
@@ -234,9 +255,10 @@ export default function App() {
     setCanReplay(false);
   };
 
-  const onPhoneFinished = async (transcript: string) => {
+  const onPhoneFinished = async (transcript: string, turn: PhoneTurn) => {
     const conversation = conversationRef.current;
-    const outcome = await answerAndSpeak(transcript, Date.now(), undefined, true);
+    // 말이 끝난 때부터 잰다(쉬는 시간을 기다린 몫도 사람이 느끼는 시간이라 넣는다).
+    const outcome = await answerAndSpeak(transcript, turn.speechEndedAt ?? Date.now(), undefined, true, turn);
     if (outcome !== "empty") return;
     if (!conversation) {
       fail("인식된 말이 없어요. 다시 말해 주세요.");
@@ -254,7 +276,9 @@ export default function App() {
 
   const { liveTranscript, start: startPhone, stop: stopPhone, cancel: cancelPhone } = usePhoneStt({
     silenceMs,
-    onFinished: (transcript) => void onPhoneFinished(transcript),
+    // 시험 중인 문장이 있을 때만 들은 소리를 남긴다('이 문장 말하기'는 문장을 고른 바로 뒤에 듣기 시작한다).
+    persistAudio: () => testSheet.saveAudio && testSheet.getActiveId() !== null,
+    onFinished: (transcript, turn) => void onPhoneFinished(transcript, turn),
     onError: fail,
   });
 

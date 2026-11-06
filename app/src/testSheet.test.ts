@@ -6,6 +6,7 @@ import {
   accuracyText,
   autoScreenMark,
   charErrorRate,
+  conditionLabel,
   defaultDevice,
   describeAttempt,
   describeChanges,
@@ -18,7 +19,9 @@ import {
   nextCase,
   recordTurn,
   resultOf,
+  secondsText,
   summarize,
+  timingPatch,
   type Attempt,
   type SheetResult,
   type TestCase,
@@ -66,6 +69,11 @@ test("describeAttempt / describeChanges", () => {
     "[STT 모름] · 이상한 값 · 버전 모름 · 끝낸 30/32 · × 3",
   );
   assert.equal(describeAttempt({ ...ATTEMPT, sttLabels: ["폰 기본 STT", "Qwen3-ASR-1.7B"] }).startsWith("[폰 기본 STT + Qwen3-ASR-1.7B]"), true);
+  assert.equal(
+    describeAttempt({ ...ATTEMPT, avgReplyMs: 1830, audioCount: 30 }),
+    "[폰 기본 STT] · 11/5 13:40 · 9a49c4f (수정 중) · 소리까지 1.8초 · 끝낸 30/32 · × 3 · 소리 30개",
+  );
+  assert.equal(describeAttempt({ ...ATTEMPT, avgReplyMs: null, audioCount: 0 }), describeAttempt(ATTEMPT));
   assert.equal(describeChanges(ATTEMPT), "×→○ D1 / ○→× D8");
   assert.equal(describeChanges({ ...ATTEMPT, improved: [], worsened: [] }), "지난번과 같아요");
   assert.equal(describeChanges({ ...ATTEMPT, comparedWith: "" }), "이 STT의 첫 저장본");
@@ -112,10 +120,36 @@ test("recordTurn: 인식한 말·답·STT 를 넣고, 사람이 누른 화면 �
     recognized: "장보기 목록 뭐 남았어",
     answer: "다른 답",
     stt: "폰 기본 STT",
+    condition: "",
+    askMs: null,
+    ttsMs: null,
+    replyMs: null,
+    audioFile: "",
     screen: "x",
     note: "메모",
   });
   assert.equal(recordTurn(EMPTY_RESULT, CASE_A, "q", CASE_A.expect, "폰 기본 STT").screen, "o");
+});
+
+test("recordTurn: 이번 환경을 적고, 지난 턴의 시간·소리 파일은 비운다", () => {
+  const previous: SheetResult = { ...EMPTY_RESULT, condition: "quiet", askMs: 10, ttsMs: 20, replyMs: 1500, audioFile: "D1_1.wav" };
+  const recorded = recordTurn(previous, CASE_A, "말", "답", "폰 기본 STT", "tv");
+  assert.equal(recorded.condition, "tv");
+  assert.deepEqual([recorded.askMs, recorded.ttsMs, recorded.replyMs, recorded.audioFile], [null, null, null, ""]);
+});
+
+test("timingPatch: 잴 수 없었던 값(없음·음수·NaN·10분 넘음)은 null, 나머지는 정수", () => {
+  assert.deepEqual(timingPatch({ askMs: 40.6, ttsMs: 120, replyMs: 1830 }), { askMs: 41, ttsMs: 120, replyMs: 1830 });
+  assert.deepEqual(timingPatch({ askMs: 40 }), { askMs: 40, ttsMs: null, replyMs: null });
+  assert.deepEqual(timingPatch({ askMs: -1, ttsMs: Number.NaN, replyMs: 600_001 }), { askMs: null, ttsMs: null, replyMs: null });
+  assert.deepEqual(timingPatch({ replyMs: 0 }), { askMs: null, ttsMs: null, replyMs: 0 });
+});
+
+test("secondsText / conditionLabel", () => {
+  assert.equal(secondsText(1830), "1.8초");
+  assert.equal(secondsText(0), "0.0초");
+  assert.equal(conditionLabel("tv"), "TV 소음");
+  assert.equal(conditionLabel(""), "");
 });
 
 test("nextCase: 다음 문장, 마지막이거나 없으면 null", () => {

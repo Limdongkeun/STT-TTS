@@ -4,6 +4,28 @@ export type Mark = "" | "o" | "x";
 /** 들린 답에만 "-"(녹음 없음: 이 답의 소리가 없어 판단하지 않음)가 더 있다. */
 export type HeardMark = Mark | "-";
 
+/** 시험 환경. 다음 주 서버 STT 와 같은 조건끼리 비교하려고 턴마다 적는다. */
+export type Condition = "" | "quiet" | "tv" | "far" | "other_voice";
+
+export const CONDITIONS = [
+  ["quiet", "조용함"],
+  ["tv", "TV 소음"],
+  ["far", "3m 거리"],
+  ["other_voice", "다른 목소리"],
+] as const;
+
+export const DEFAULT_CONDITION: Condition = "quiet";
+
+export function conditionLabel(condition: Condition): string {
+  return CONDITIONS.find(([key]) => key === condition)?.[1] ?? "";
+}
+
+/** 한 턴에 걸린 시간(ms). replyMs 는 말이 끝난 뒤 답 소리가 나기 시작할 때까지. */
+export type TurnTimings = { askMs?: number; ttsMs?: number; replyMs?: number };
+
+/** 서버와 같은 상한(10분). 넘거나 음수·NaN 이면 적지 않는다. */
+export const MAX_TIMING_MS = 600_000;
+
 export type TestCase = {
   group: string;
   id: string;
@@ -24,6 +46,12 @@ export type SheetResult = {
   speaker: "" | "wife" | "husband";
   /** 이 턴을 받아 적은 STT (예: "폰 기본 STT", "Qwen3-ASR-1.7B") */
   stt: string;
+  condition: Condition;
+  askMs?: number | null;
+  ttsMs?: number | null;
+  replyMs?: number | null;
+  /** 이 턴에 폰 STT 가 들은 소리(서버가 지어 준 파일 이름). 다음 주 서버 STT 비교용 */
+  audioFile?: string;
   updatedAt?: string;
 };
 
@@ -46,6 +74,7 @@ export const EMPTY_RESULT: SheetResult = {
   note: "",
   speaker: "",
   stt: "",
+  condition: "",
 };
 
 const DEVICE_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
@@ -86,6 +115,10 @@ export type Attempt = {
   avgCer?: number | null;
   /** false 면 TTS 가 mock 이라 '들린 답'을 세지 않은 저장본 */
   heardChecked?: boolean;
+  /** 말이 끝난 뒤 소리가 나기까지 평균(ms). 잰 턴이 없으면 null */
+  avgReplyMs?: number | null;
+  /** 저장본에 같이 남은 소리 파일 수 */
+  audioCount?: number;
 };
 
 /** "11/5 13:40 · 9a49c4f · 끝낸 30/32 · × 3" */
@@ -95,7 +128,9 @@ export function describeAttempt(attempt: Attempt): string {
   const stt = attempt.sttLabels.length ? attempt.sttLabels.join(" + ") : "STT 모름";
   const parts = [`[${stt}]`, when, attempt.version || "버전 모름"];
   if (attempt.avgCer !== undefined && attempt.avgCer !== null) parts.push(`인식 ${accuracyText(attempt.avgCer)}`);
+  if (attempt.avgReplyMs !== undefined && attempt.avgReplyMs !== null) parts.push(`소리까지 ${secondsText(attempt.avgReplyMs)}`);
   parts.push(`끝낸 ${attempt.done}/${attempt.total}`, `× ${attempt.badCases.length}`);
+  if (attempt.audioCount) parts.push(`소리 ${attempt.audioCount}개`);
   return parts.join(" · ");
 }
 
@@ -195,13 +230,14 @@ export function autoScreenMark(testCase: TestCase, answer: string): Mark {
 }
 
 /** 말한 문장을 기록할 때의 결과. 사람이 이미 누른 화면 답(○/×)은 덮지 않는다.
- * 지난 턴의 '녹음 없음'은 이번 턴 소리에 따라 다시 정하므로 비운다. */
+ * 지난 턴의 '녹음 없음'과 걸린 시간은 이번 턴에 다시 정하므로 비운다. */
 export function recordTurn(
   previous: SheetResult,
   testCase: TestCase,
   recognized: string,
   answer: string,
   stt: string,
+  condition: Condition = "",
 ): SheetResult {
   const auto = autoScreenMark(testCase, answer);
   return {
@@ -209,9 +245,27 @@ export function recordTurn(
     recognized,
     answer,
     stt,
+    condition,
+    askMs: null,
+    ttsMs: null,
+    replyMs: null,
+    audioFile: "",
     screen: auto === "o" ? "o" : previous.screen,
     heard: previous.heard === "-" ? "" : previous.heard,
   };
+}
+
+const validMs = (value: number | undefined): number | null =>
+  value !== undefined && Number.isFinite(value) && value >= 0 && value <= MAX_TIMING_MS ? Math.round(value) : null;
+
+/** 시험표에 적을 시간 칸. 잴 수 없었던 값(음수·너무 큼·없음)은 null 로 비운다. */
+export function timingPatch(timings: TurnTimings): Pick<SheetResult, "askMs" | "ttsMs" | "replyMs"> {
+  return { askMs: validMs(timings.askMs), ttsMs: validMs(timings.ttsMs), replyMs: validMs(timings.replyMs) };
+}
+
+/** 1830 → "1.8초" */
+export function secondsText(ms: number): string {
+  return `${(ms / 1000).toFixed(1)}초`;
 }
 
 export function nextCase(cases: TestCase[], currentId: string): TestCase | null {

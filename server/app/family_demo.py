@@ -16,6 +16,8 @@ from app.family_topics import FamilyTopics
 from app.stt_correction import correct_transcript
 
 KST = ZoneInfo("Asia/Seoul")
+# 시험 문장의 기대 답과 사전 녹음이 만들어진 시각(11월 5일 목요일 오후 3시).
+DEMO_NOW = datetime(2026, 11, 5, 15, 0, tzinfo=KST)
 # uvicorn 이 이미 출력하는 로거: 보정 전후를 서버 터미널에서 바로 본다.
 logger = logging.getLogger("uvicorn.error")
 RELATIVE_TIME = re.compile(r"(?<![0-9])(?:(?P<hours>[0-9]{1,2})시간|(?P<minutes>[0-9]{1,3})분)전")

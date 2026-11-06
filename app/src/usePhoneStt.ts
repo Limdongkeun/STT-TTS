@@ -9,9 +9,21 @@ import {
 } from "./conversation";
 import { CONTEXTUAL_WORDS } from "./sttModes";
 
+/** 한 턴을 마칠 때 같이 넘기는 것. */
+export type PhoneTurn = {
+  /** 말하는 중 마지막으로 글자가 들어온 시각(Date.now 기준). 말이 끝난 때로 본다. 없으면 null */
+  speechEndedAt: number | null;
+  /** persistAudio 일 때 폰 STT 가 들은 소리 파일(16kHz WAV). 없으면 null */
+  audioUri: string | null;
+  /** 이 턴에 소리 파일을 달라고 했는지. 달라고 했는데 audioUri 가 없으면 폰이 파일을 안 준 것이다. */
+  audioRequested: boolean;
+};
+
 type Options = {
   silenceMs?: number;
-  onFinished: (transcript: string) => void;
+  /** 듣기를 시작할 때 물어본다: 들은 소리를 파일로 남길지(다음 주 서버 STT 와 같은 소리로 비교). */
+  persistAudio?: () => boolean;
+  onFinished: (transcript: string, turn: PhoneTurn) => void;
   onError: (message: string) => void;
 };
 
@@ -19,16 +31,25 @@ type Session = {
   phase: "permission" | "starting" | "listening" | "stopping" | "ending" | "cancelled";
   transcript: TranscriptState;
   error?: string;
+  lastSpeechAt: number | null;
+  audioUri: string | null;
+  audioRequested: boolean;
 };
 
-export function usePhoneStt({ silenceMs = DEFAULT_SILENCE_MS, onFinished, onError }: Options) {
+// 서버 STT 모델(Qwen3-ASR)이 받는 모양과 같게: 16kHz 16비트
+const RECORDING_OPTIONS = { persist: true, outputSampleRate: 16_000, outputEncoding: "pcmFormatInt16" } as const;
+
+export function usePhoneStt({ silenceMs = DEFAULT_SILENCE_MS, persistAudio, onFinished, onError }: Options) {
   const [liveTranscript, setLiveTranscript] = useState("");
   const sessionRef = useRef<Session | null>(null);
   const silenceRef = useRef(silenceMs);
+  const persistRef = useRef(persistAudio);
+  persistRef.current = persistAudio;
 
   useEffect(() => {
     silenceRef.current = silenceMs;
   }, [silenceMs]);
+
 
   const [timer] = useState(() => createSilenceTimer(
     () => silenceRef.current,
@@ -73,7 +94,16 @@ export function usePhoneStt({ silenceMs = DEFAULT_SILENCE_MS, onFinished, onErro
     if (!text?.trim()) return;
     session.transcript = appendResult(session.transcript, text, event.isFinal);
     setLiveTranscript(transcriptText(session.transcript));
-    if (session.phase === "listening") timer.bump();
+    if (session.phase === "listening") {
+      session.lastSpeechAt = Date.now();
+      timer.bump();
+    }
+  });
+
+  // 소리 파일은 audioend 뒤에 다 써진다(end 보다 먼저 온다).
+  useSpeechRecognitionEvent("audioend", (event) => {
+    const session = sessionRef.current;
+    if (session && session.phase !== "cancelled") session.audioUri = event.uri ?? null;
   });
 
   useSpeechRecognitionEvent("error", (event) => {
@@ -95,12 +125,14 @@ export function usePhoneStt({ silenceMs = DEFAULT_SILENCE_MS, onFinished, onErro
     sessionRef.current = null;
     if (session.phase === "cancelled") return;
     if (session.error) onError(session.error);
-    else onFinished(transcriptText(session.transcript));
+    else onFinished(transcriptText(session.transcript), {
+      speechEndedAt: session.lastSpeechAt, audioUri: session.audioUri, audioRequested: session.audioRequested,
+    });
   });
 
   const start = useCallback(async (): Promise<boolean> => {
     if (sessionRef.current) return false;
-    const session: Session = { phase: "permission", transcript: EMPTY_TRANSCRIPT };
+    const session: Session = { phase: "permission", transcript: EMPTY_TRANSCRIPT, lastSpeechAt: null, audioUri: null, audioRequested: false };
     sessionRef.current = session;
     setLiveTranscript("");
     try {
@@ -110,12 +142,14 @@ export function usePhoneStt({ silenceMs = DEFAULT_SILENCE_MS, onFinished, onErro
         throw new Error("마이크·음성 인식 권한이 없어요. 설정에서 켜 주세요.");
       }
       session.phase = "starting";
+      session.audioRequested = persistRef.current?.() ?? false;
       ExpoSpeechRecognitionModule.start({
         lang: "ko-KR",
         continuous: true,
         interimResults: true,
         addsPunctuation: true,
         contextualStrings: CONTEXTUAL_WORDS,
+        ...(session.audioRequested ? { recordingOptions: RECORDING_OPTIONS } : {}),
       });
       return true;
     } catch (error) {

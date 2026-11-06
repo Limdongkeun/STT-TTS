@@ -24,7 +24,7 @@ from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
-from app.family_demo import FamilyDemoAnswerProvider, FamilyDemoContext
+from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext
 from app.normalize import normalize_for_speech
 from app.settings import Settings, load_settings
 from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
@@ -36,6 +36,8 @@ LOGGED_QUESTION_CHARS = 200
 AUDIO_ID_PATTERN = re.compile(r"^[0-9a-f]{32}$")
 MAX_STORED_AUDIO = 50
 UPLOAD_CHUNK_BYTES = 1024 * 1024
+# 시험표에 붙이는 폰 STT 소리: 16kHz 16비트 모노면 약 5분
+MAX_SHEET_AUDIO_BYTES = 10 * 1024 * 1024
 
 
 class ApiModel(BaseModel):
@@ -140,6 +142,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 settings.tts_model_id if settings.tts_engine == "qwen3-tts" else ""
             ),
             "answerProvider": answer_provider.name,
+            "demoClock": settings.demo_clock,
         }
 
     @app.post("/stt", response_model=SttResponse)
@@ -173,7 +176,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         logger.info("ask question=%r", text[:LOGGED_QUESTION_CHARS])
         context = None
         if isinstance(answer_provider, FamilyDemoAnswerProvider):
-            answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker)
+            demo_now = DEMO_NOW if settings.demo_clock == "fixed" else None
+            answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker, now=demo_now)
         else:
             answer_text = answer_provider.answer(text)
         speech_text = answer_text
@@ -237,6 +241,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="없는 시험 문장 번호예요.")
         saved = sheet_store.save_draft_case(device, case_id, result)
         return SheetResult.model_validate(saved).model_dump(by_alias=True)
+
+    @app.put("/test-sheet/{device}/draft/{case_id}/audio")
+    def save_draft_audio(device: str, case_id: str, audio: UploadFile = File(...)) -> dict[str, str]:
+        """폰 STT 가 들은 소리(WAV)를 받아 둔다. 돌려준 파일 이름을 앱이 그 문장의 audioFile 에 적는다."""
+        _check_device(device)
+        if case_id not in CASES_BY_ID:
+            raise HTTPException(status_code=404, detail="없는 시험 문장 번호예요.")
+        data = _read_limited(audio, MAX_SHEET_AUDIO_BYTES)
+        try:
+            name = sheet_store.save_draft_audio(device, case_id, data)
+        except ValueError as exc:
+            raise HTTPException(status_code=415, detail=str(exc)) from exc
+        return {"audioFile": name}
 
     @app.delete("/test-sheet/{device}/draft")
     def clear_draft(device: str) -> dict[str, str]:

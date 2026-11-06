@@ -53,6 +53,7 @@ def test_health(client):
         "ttsEngine": "mock",
         "ttsModel": "",
         "answerProvider": "fixed",
+        "demoClock": "fixed",
     }
 
 
@@ -167,7 +168,8 @@ def test_family_demo_carries_dose_across_turns_and_corrects_it(monkeypatch):
             return cls(2026, 11, 4, 16, 0, tzinfo=tz)
 
     monkeypatch.setattr(family_demo, "datetime", FixedClock)
-    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+    # 시계를 직접 바꿔 시험하므로 실제 시각 모드로 띄운다.
+    client = TestClient(create_app(make_settings(answer_provider="family-demo", demo_clock="real")))
 
     def ask(text, context=None):
         response = client.post("/ask", json={"text": text, "context": context})
@@ -266,3 +268,29 @@ def test_prerecorded_keys_are_unique_after_compacting():
         manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
         texts += [canonical_text(item["speechText"]) for item in manifest["recordings"]]
     assert len(texts) == 32 and len(set(texts)) == 32
+
+
+def test_family_demo_answers_at_fixed_test_time_by_default():
+    # 녹음은 11월 5일 기준('28일 남았어요'). 시험하는 날이 달라도 같은 답이 나와야 녹음과 맞는다.
+    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+    assert "28일 남았어요" in client.post("/ask", json={"text": "자동차 보험 언제 끝나?"}).json()["answerText"]
+
+
+def test_family_demo_real_clock_uses_now(monkeypatch):
+    from datetime import datetime
+
+    from app import family_demo
+
+    seen = []
+    original = family_demo.FamilyDemoAnswerProvider.answer
+
+    def spy(self, question, context=None, *, speaker="wife", now=None):
+        seen.append(now)
+        return original(self, question, context, speaker=speaker, now=now)
+
+    monkeypatch.setattr(family_demo.FamilyDemoAnswerProvider, "answer", spy)
+    for clock, expected in (("fixed", family_demo.DEMO_NOW), ("real", None)):
+        client = TestClient(create_app(make_settings(answer_provider="family-demo", demo_clock=clock)))
+        assert client.post("/ask", json={"text": "자동차 보험 언제 끝나?"}).status_code == 200
+        assert seen[-1] == expected
+    assert isinstance(family_demo.DEMO_NOW, datetime)

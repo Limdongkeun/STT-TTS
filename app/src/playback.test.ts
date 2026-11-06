@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { hasStarted, waitUntilStarted, type PlaybackState } from "./playback.ts";
+import { hasStarted, waitUntilLoaded, waitUntilStarted, type PlaybackState } from "./playback.ts";
 
 const noSleep = async () => {};
 
@@ -32,4 +32,13 @@ test("waitUntilStarted: 끝까지 시작하지 않으면 false (정해진 횟수
   };
   assert.equal(await waitUntilStarted(probe, 1_000, noSleep), false);
   assert.equal(calls, 7); // 0·200·…·1000ms 6번 + 마지막 1번
+});
+
+test("waitUntilLoaded: 다 읽히면 바로 true, 끝까지 안 읽히면 false", async () => {
+  let calls = 0;
+  assert.equal(await waitUntilLoaded(() => ++calls >= 3, 1_000, noSleep), true);
+  assert.equal(calls, 3);
+  calls = 0;
+  assert.equal(await waitUntilLoaded(() => { calls += 1; return false; }, 100, noSleep), false);
+  assert.equal(calls, 4); // 0·50·100ms 3번 + 마지막 1번
 });

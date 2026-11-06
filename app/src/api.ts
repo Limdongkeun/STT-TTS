@@ -123,6 +123,20 @@ export function putDraftCase(device: string, caseId: string, result: SheetResult
   );
 }
 
+/** 폰 STT 가 들은 소리(WAV)를 그 문장 옆에 올린다. 서버가 지어 준 파일 이름을 돌려준다. */
+export async function putDraftAudio(device: string, caseId: string, recordingUri: string): Promise<string> {
+  const name = audioFileName(recordingUri);
+  const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
+  const form = new FormData();
+  form.append("audio", file as unknown as Blob);
+  const body = await request<{ audioFile?: unknown }>(
+    sheetUrl(device, `/draft/${encodeURIComponent(caseId)}/audio`),
+    { method: "PUT", body: form },
+  );
+  if (typeof body?.audioFile !== "string") throw new Error("서버 응답 모양이 달라요.");
+  return body.audioFile;
+}
+
 /** 작성 중인 시험표를 비운다(저장본은 남는다). */
 export async function clearDraft(device: string): Promise<void> {
   await request<unknown>(sheetUrl(device, "/draft"), { method: "DELETE" }, HEALTH_TIMEOUT_MS);

@@ -7,6 +7,8 @@ STT_ENGINES = ("mock", "qwen3-asr")
 TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded")
 ANSWER_PROVIDERS = ("fixed", "family-demo")
 DTYPES = ("bfloat16", "float16", "float32")
+# fixed: 시험 시각(2026-11-05 15:00 KST)으로 답한다. 녹음·기대 답이 이 날짜 기준이라 날마다 결과가 같다.
+DEMO_CLOCKS = ("fixed", "real")
 
 
 def _choice(name: str, default: str, allowed: tuple[str, ...]) -> str:
@@ -41,6 +43,8 @@ class Settings:
     max_upload_bytes: int
     # 시험표 결과 폴더. 비우면 <레포>/results/test-runs
     test_results_dir: str = ""
+    # family-demo 답의 기준 시각: fixed(시험 시각 고정) 또는 real(실제 지금)
+    demo_clock: str = "fixed"
 
 
 def load_settings() -> Settings:
@@ -57,4 +61,5 @@ def load_settings() -> Settings:
         model_dtype=_choice("MODEL_DTYPE", "bfloat16", DTYPES),
         max_upload_bytes=_positive_int("MAX_UPLOAD_MB", 20) * 1024 * 1024,
         test_results_dir=os.environ.get("TEST_RESULTS_DIR", "").strip(),
+        demo_clock=_choice("DEMO_CLOCK", "fixed", DEMO_CLOCKS),
     )
