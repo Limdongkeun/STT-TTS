@@ -24,9 +24,10 @@ from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
-from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext
+from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
 from app.settings import Settings, load_settings
+from app.stt_correction import correct_transcript
 from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
 
 # uvicorn 이 이미 출력하는 로거를 써서 서버 터미널에 바로 보이게 한다.
@@ -64,6 +65,8 @@ class AskResponse(ApiModel):
     provider: str
     elapsed_ms: int
     context: FamilyDemoContext | None = None
+    # family-demo 가 보정한 뒤의 글(띄어쓰기·문장부호 없음). 시험표에 보정 전·후를 함께 남긴다.
+    corrected_text: str | None = None
 
 
 class TtsRequest(ApiModel):
@@ -132,7 +135,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0")
 
     @app.get("/health")
-    def health() -> dict[str, str]:
+    def health() -> dict[str, str | int]:
         return {
             "status": "ok",
             "sttEngine": stt_engine.name,
@@ -143,6 +146,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             ),
             "answerProvider": answer_provider.name,
             "demoClock": settings.demo_clock,
+            # 서버 STT 에 넣는 힌트 낱말 수(0 = 힌트 없음). 폰 STT 는 늘 같은 목록을 쓴다.
+            "sttHints": getattr(stt_engine, "hint_count", 0),
         }
 
     @app.post("/stt", response_model=SttResponse)
@@ -175,7 +180,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # 시험용: 폰 STT 가 보낸 글을 repr 로 남겨 보이지 않는 문자(예: ​)도 확인한다.
         logger.info("ask question=%r", text[:LOGGED_QUESTION_CHARS])
         context = None
+        corrected_text = None
         if isinstance(answer_provider, FamilyDemoAnswerProvider):
+            corrected_text = correct_transcript(compact_question(text))
             demo_now = DEMO_NOW if settings.demo_clock == "fixed" else None
             answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker, now=demo_now)
         else:
@@ -193,6 +200,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             provider=answer_provider.name,
             context=context,
             elapsed_ms=_elapsed_ms(started),
+            corrected_text=corrected_text,
         )
 
     @app.post("/tts", response_model=TtsResponse)

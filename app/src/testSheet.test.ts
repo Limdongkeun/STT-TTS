@@ -5,6 +5,7 @@ import { test } from "node:test";
 import {
   accuracyText,
   autoScreenMark,
+  changedCorrection,
   charErrorRate,
   conditionLabel,
   defaultDevice,
@@ -18,6 +19,7 @@ import {
   isVisible,
   nextCase,
   recordTurn,
+  referenceText,
   resultOf,
   secondsText,
   summarize,
@@ -125,6 +127,8 @@ test("recordTurn: 인식한 말·답·STT 를 넣고, 사람이 누른 화면 �
     ttsMs: null,
     replyMs: null,
     audioFile: "",
+    spoken: "",
+    corrected: "",
     screen: "x",
     note: "메모",
   });
@@ -191,4 +195,22 @@ test("녹음 없음('-'): 들린 답을 판단하지 않아도 끝난 문장, �
   assert.equal(hasBad(noRecording), false);
   assert.equal(recordTurn(noRecording, CASE_A, "q", "답", "폰 기본 STT").heard, "");
   assert.equal(recordTurn({ ...done, heard: "x" }, CASE_A, "q", "답", "폰 기본 STT").heard, "x");
+});
+
+test("recordTurn: 보정 뒤 글을 적고, 지난 턴의 '실제로 말한 문장'은 비운다", () => {
+  const recorded = recordTurn({ ...EMPTY_RESULT, spoken: "지난번 말" }, CASE_A, "수연이", "답", "폰 기본 STT", "", "소윤이");
+  assert.deepEqual([recorded.spoken, recorded.corrected], ["", "소윤이"]);
+});
+
+test("referenceText / summarize: 실제로 말한 문장이 있으면 그것과 비교한다", () => {
+  const spokenResult: SheetResult = { ...EMPTY_RESULT, recognized: "장볼거리 뭐야", spoken: " 장볼거리 뭐야? " };
+  assert.equal(referenceText(CASE_A, spokenResult), "장볼거리 뭐야?");
+  assert.equal(referenceText(CASE_A, { ...spokenResult, spoken: "  " }), CASE_A.say);
+  assert.equal(summarize([CASE_A], { D1: spokenResult }).avgCer, 0);
+});
+
+test("changedCorrection: 보정으로 글자가 달라졌을 때만", () => {
+  assert.equal(changedCorrection({ ...EMPTY_RESULT, recognized: "수연이 일정", corrected: "소윤이일정" }), "소윤이일정");
+  assert.equal(changedCorrection({ ...EMPTY_RESULT, recognized: "소윤이 일정", corrected: "소윤이일정" }), "");
+  assert.equal(changedCorrection(EMPTY_RESULT), "");
 });

@@ -12,6 +12,7 @@ from pathlib import Path
 from app.device import resolve_device, resolve_dtype
 from app.engines.base import SttResult
 from app.settings import Settings
+from app.stt_hints import hint_context, load_hint_words
 
 
 class Qwen3AsrEngine:
@@ -19,6 +20,10 @@ class Qwen3AsrEngine:
 
     def __init__(self, settings: Settings) -> None:
         self._settings = settings
+        # 폰 STT 와 같은 힌트 낱말(공평 비교). STT_HINTS=off 면 넣지 않는다.
+        words = load_hint_words() if settings.stt_hints == "on" else []
+        self.hint_count = len(words)
+        self._context = hint_context(words)
         self._model = None
         self._lock = threading.Lock()
 
@@ -38,6 +43,6 @@ class Qwen3AsrEngine:
 
     def transcribe(self, wav_path: Path) -> SttResult:
         model = self._load()
-        results = model.transcribe(audio=str(wav_path), language=self._settings.speech_language)
+        results = model.transcribe(audio=str(wav_path), context=self._context, language=self._settings.speech_language)
         first = results[0]
         return SttResult(text=first.text.strip(), language=getattr(first, "language", None))

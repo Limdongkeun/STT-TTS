@@ -162,7 +162,9 @@ export function useTestSheet() {
 
   /** 시험 중인 문장에 이번 턴(인식한 말·답)을 적고 다음 문장으로 넘어간다. 다음 문장을 돌려준다. */
   const recordTurn = useCallback(
-    (recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null): TestCase | null => {
+    (
+      recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null, corrected = "",
+    ): TestCase | null => {
       const caseId = activeIdRef.current;
       const testCase = casesRef.current.find((item) => item.id === caseId);
       // 시험 중인 문장이 없던 턴이면 지난 문장에 '녹음 없음'이 잘못 적히지 않게 비운다.
@@ -170,7 +172,9 @@ export function useTestSheet() {
       if (!caseId || !testCase) return null;
       update(
         caseId,
-        buildRecord(resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt, conditionRef.current),
+        buildRecord(
+          resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt, conditionRef.current, corrected,
+        ),
       );
       if (phoneTurn?.audioUri) attachAudio(caseId, phoneTurn.audioUri, recognized);
       else if (phoneTurn?.audioRequested) addNote(caseId, AUDIO_MISSING_NOTE);

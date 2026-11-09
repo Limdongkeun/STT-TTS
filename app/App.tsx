@@ -148,7 +148,7 @@ export default function App() {
         setAnswerText(answer.answerText);
         setSpeechText(answer.speechText);
         // 시험표에는 말로 한 턴만 적는다(글로 묻기는 인식 시험이 아니다).
-        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current, phoneTurn);
+        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current, phoneTurn, answer.correctedText ?? "");
 
         setStage("speaking");
         const ttsStarted = Date.now();

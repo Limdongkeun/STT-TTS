@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
   accuracyText,
+  changedCorrection,
   charErrorRate,
   CHECKS,
   conditionLabel,
@@ -15,6 +16,8 @@ import {
   hasBad,
   isDone,
   isVisible,
+  MAX_SPOKEN_CHARS,
+  referenceText,
   resultOf,
   secondsText,
   summarize,
@@ -164,7 +167,9 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
       {sheet.cases.map((testCase) => {
         const result = resultOf(sheet.results, testCase.id);
         if (!isVisible(result, filter, requireHeard)) return null;
-        const cer = charErrorRate(testCase.say, result.recognized);
+        const spoken = result.spoken?.trim() ?? "";
+        const cer = charErrorRate(referenceText(testCase, result), result.recognized);
+        const corrected = changedCorrection(result);
         const active = sheet.activeId === testCase.id;
         const listening = active && stage === "listening";
         const disabled = stage === "busy" || (stage === "listening" && !active);
@@ -210,9 +215,19 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
                 style={styles.input}
                 accessibilityLabel={`${testCase.id} 인식한 말`}
               />
+              {corrected ? <Text style={styles.meta}>서버 보정 뒤: {corrected}</Text> : null}
+              <Text style={styles.label}>실제로 말한 문장 (대본과 다르게 말했을 때만)</Text>
+              <TextInput
+                value={result.spoken ?? ""}
+                onChangeText={(value) => sheet.update(testCase.id, { spoken: value }, 600)}
+                placeholder="비우면 대본 문장과 비교해요"
+                maxLength={MAX_SPOKEN_CHARS}
+                style={styles.input}
+                accessibilityLabel={`${testCase.id} 실제로 말한 문장`}
+              />
               {cer !== null ? (
                 <Text style={[styles.accuracy, cer > 0 && styles.answerDiff]}>
-                  인식 정확도 {accuracyText(cer)} (말한 문장과 글자 비교, 띄어쓰기 빼고)
+                  인식 정확도 {accuracyText(cer)} ({spoken ? "실제로 말한 문장" : "대본"}과 글자 비교, 띄어쓰기 빼고)
                 </Text>
               ) : null}
               {result.answer ? (

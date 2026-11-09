@@ -37,4 +37,10 @@ test("sttLabelFor: 폰 기본 STT / 서버 모델 이름 / 확인 안 됨", () =
   assert.equal(sttLabelFor("server", HEALTH), "서버 mock STT");
   assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B" }), "Qwen3-ASR-1.7B");
   assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "" }), "서버 qwen3-asr");
+  // 힌트를 쓰면 이름에 붙여 힌트 없는 저장본과 따로 비교한다.
+  assert.equal(
+    sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B", sttHints: 42 }),
+    "Qwen3-ASR-1.7B · 힌트 42",
+  );
+  assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B", sttHints: 0 }), "Qwen3-ASR-1.7B");
 });

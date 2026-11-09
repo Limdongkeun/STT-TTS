@@ -3,6 +3,7 @@
 import { isHealthResponse, type HealthResponse } from "./serverInfo";
 import { DEFAULT_SPEAKER, type Speaker } from "./speaker";
 import type { Attempt, SheetResult, TestCase } from "./testSheet";
+import { readUploadResult } from "./uploadResult";
 import { audioFileName, audioMimeType, joinUrl, normalizeBaseUrl } from "./url";
 
 const REQUEST_TIMEOUT_MS = 120_000;
@@ -20,6 +21,8 @@ export type AskResponse = {
   provider: string;
   elapsedMs: number;
   context?: AskContext;
+  /** family-demo 가 보정한 뒤의 글(띄어쓰기 없음). 시험표에 보정 전·후를 함께 남긴다 */
+  correctedText?: string;
 };
 export type TtsResponse = {
   audioUrl: string;
@@ -67,6 +70,33 @@ async function request<T>(url: string, init: RequestInit, timeoutMs: number = RE
   }
 }
 
+/** 녹음 파일 하나를 multipart 필드 audio 로 올린다.
+ * 전역 fetch(Expo)는 {uri,name,type} 파일을 못 보내서 XMLHttpRequest 를 쓴다(uploadResult.ts 참고). */
+function uploadAudio<T>(url: string, method: "POST" | "PUT", recordingUri: string): Promise<T> {
+  const name = audioFileName(recordingUri);
+  const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
+  const form = new FormData();
+  // React Native 의 FormData 는 {uri,name,type} 객체를 파일로 보낸다.
+  form.append("audio", file as unknown as Blob);
+  return new Promise<T>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(method, url);
+    xhr.timeout = REQUEST_TIMEOUT_MS;
+    xhr.onload = () => {
+      const result = readUploadResult(xhr.status, xhr.responseText);
+      if (result.ok) resolve(result.body as T);
+      else reject(new ApiError(result.message, result.status));
+    };
+    // 연결 실패는 status 0 으로 읽는다(서버 꺼짐·주소 틀림 안내).
+    xhr.onerror = () => {
+      const result = readUploadResult(0, "");
+      reject(new ApiError(result.ok ? "" : result.message, 0));
+    };
+    xhr.ontimeout = () => reject(new Error(`서버가 ${REQUEST_TIMEOUT_MS / 1000}초 안에 답하지 않았어요.`));
+    xhr.send(form);
+  });
+}
+
 /** 답·TTS 서버의 지금 모드(답 모드, 엔진)를 묻는다. */
 export async function getHealth(target: "tts" | "stt" = "tts"): Promise<HealthResponse> {
   const baseUrl = target === "tts" ? requireUrl(ttsServerUrl, "TTS 서버") : requireUrl(sttServerUrl, "STT 서버");
@@ -79,12 +109,7 @@ export async function getHealth(target: "tts" | "stt" = "tts"): Promise<HealthRe
 
 export function postStt(recordingUri: string): Promise<SttResponse> {
   const baseUrl = requireUrl(sttServerUrl, "STT 서버");
-  const name = audioFileName(recordingUri);
-  const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
-  const form = new FormData();
-  // React Native 의 FormData 는 {uri,name,type} 객체를 파일로 보낸다.
-  form.append("audio", file as unknown as Blob);
-  return request<SttResponse>(joinUrl(baseUrl, "/stt"), { method: "POST", body: form });
+  return uploadAudio<SttResponse>(joinUrl(baseUrl, "/stt"), "POST", recordingUri);
 }
 
 export function postAsk(text: string, context?: AskContext, speaker: Speaker = DEFAULT_SPEAKER): Promise<AskResponse> {
@@ -125,13 +150,8 @@ export function putDraftCase(device: string, caseId: string, result: SheetResult
 
 /** 폰 STT 가 들은 소리(WAV)를 그 문장 옆에 올린다. 서버가 지어 준 파일 이름을 돌려준다. */
 export async function putDraftAudio(device: string, caseId: string, recordingUri: string): Promise<string> {
-  const name = audioFileName(recordingUri);
-  const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
-  const form = new FormData();
-  form.append("audio", file as unknown as Blob);
-  const body = await request<{ audioFile?: unknown }>(
-    sheetUrl(device, `/draft/${encodeURIComponent(caseId)}/audio`),
-    { method: "PUT", body: form },
+  const body = await uploadAudio<{ audioFile?: unknown } | null>(
+    sheetUrl(device, `/draft/${encodeURIComponent(caseId)}/audio`), "PUT", recordingUri,
   );
   if (typeof body?.audioFile !== "string") throw new Error("서버 응답 모양이 달라요.");
   return body.audioFile;

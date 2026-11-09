@@ -52,8 +52,15 @@ export type SheetResult = {
   replyMs?: number | null;
   /** 이 턴에 폰 STT 가 들은 소리(서버가 지어 준 파일 이름). 다음 주 서버 STT 비교용 */
   audioFile?: string;
+  /** 대본과 다르게 말했을 때 실제로 말한 문장(사람이 적음). 있으면 인식 정확도를 이것과 비교한다 */
+  spoken?: string;
+  /** 서버가 보정한 뒤의 글(/ask correctedText). 보정 전 글은 recognized */
+  corrected?: string;
   updatedAt?: string;
 };
+
+/** 서버와 같은 길이 제한(실제로 말한 문장). */
+export const MAX_SPOKEN_CHARS = 200;
 
 export type SheetFilter = "all" | "todo" | "bad";
 
@@ -206,6 +213,17 @@ export function accuracyText(cer: number): string {
   return `${Math.round(Math.max(0, 1 - cer) * 100)}%`;
 }
 
+/** 인식 정확도를 잴 기준 문장: 실제로 말한 문장이 적혀 있으면 그것, 아니면 대본. */
+export function referenceText(testCase: TestCase, result: SheetResult): string {
+  return result.spoken?.trim() || testCase.say;
+}
+
+/** 서버 보정으로 글자가 달라졌을 때만 보정 뒤 글을 돌려준다(띄어쓰기·문장부호 차이는 같다고 본다). */
+export function changedCorrection(result: SheetResult): string {
+  const corrected = result.corrected ?? "";
+  return corrected && compact(corrected) !== compact(result.recognized) ? corrected : "";
+}
+
 export function summarize(cases: TestCase[], results: Record<string, SheetResult>, requireHeard = true) {
   let done = 0;
   let bad = 0;
@@ -214,7 +232,7 @@ export function summarize(cases: TestCase[], results: Record<string, SheetResult
     const result = resultOf(results, testCase.id);
     if (isDone(result, requireHeard)) done += 1;
     if (hasBad(result, requireHeard)) bad += 1;
-    const cer = charErrorRate(testCase.say, result.recognized);
+    const cer = charErrorRate(referenceText(testCase, result), result.recognized);
     if (cer !== null) cers.push(cer);
   }
   const avgCer = cers.length ? cers.reduce((sum, value) => sum + value, 0) / cers.length : null;
@@ -230,7 +248,7 @@ export function autoScreenMark(testCase: TestCase, answer: string): Mark {
 }
 
 /** 말한 문장을 기록할 때의 결과. 사람이 이미 누른 화면 답(○/×)은 덮지 않는다.
- * 지난 턴의 '녹음 없음'과 걸린 시간은 이번 턴에 다시 정하므로 비운다. */
+ * 지난 턴의 '녹음 없음'·걸린 시간·실제로 말한 문장은 이번 턴에 다시 정하므로 비운다. */
 export function recordTurn(
   previous: SheetResult,
   testCase: TestCase,
@@ -238,6 +256,7 @@ export function recordTurn(
   answer: string,
   stt: string,
   condition: Condition = "",
+  corrected = "",
 ): SheetResult {
   const auto = autoScreenMark(testCase, answer);
   return {
@@ -250,6 +269,8 @@ export function recordTurn(
     ttsMs: null,
     replyMs: null,
     audioFile: "",
+    spoken: "",
+    corrected,
     screen: auto === "o" ? "o" : previous.screen,
     heard: previous.heard === "-" ? "" : previous.heard,
   };

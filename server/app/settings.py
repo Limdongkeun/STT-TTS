@@ -9,6 +9,8 @@ ANSWER_PROVIDERS = ("fixed", "family-demo")
 DTYPES = ("bfloat16", "float16", "float32")
 # fixed: 시험 시각(2026-11-05 15:00 KST)으로 답한다. 녹음·기대 답이 이 날짜 기준이라 날마다 결과가 같다.
 DEMO_CLOCKS = ("fixed", "real")
+# on: 서버 STT 에도 폰 STT 와 같은 힌트 낱말(app/data/stt_hints.json)을 넣는다. off 는 힌트 없이 비교할 때.
+STT_HINTS = ("on", "off")
 
 
 def _choice(name: str, default: str, allowed: tuple[str, ...]) -> str:
@@ -45,6 +47,7 @@ class Settings:
     test_results_dir: str = ""
     # family-demo 답의 기준 시각: fixed(시험 시각 고정) 또는 real(실제 지금)
     demo_clock: str = "fixed"
+    stt_hints: str = "on"
 
 
 def load_settings() -> Settings:
@@ -62,4 +65,5 @@ def load_settings() -> Settings:
         max_upload_bytes=_positive_int("MAX_UPLOAD_MB", 20) * 1024 * 1024,
         test_results_dir=os.environ.get("TEST_RESULTS_DIR", "").strip(),
         demo_clock=_choice("DEMO_CLOCK", "fixed", DEMO_CLOCKS),
+        stt_hints=_choice("STT_HINTS", "on", STT_HINTS),
     )

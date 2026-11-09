@@ -321,7 +321,8 @@ def test_condition_and_timings_round_trip_and_summary(client, tmp_path):
     assert "- 환경: TV 소음 + 조용함 · 말 끝→소리 평균 2.0초" in markdown
     assert "| TV 소음 | 1.8초 |" in markdown
     history = (folder / "history.md").read_text(encoding="utf-8")
-    assert "| TV 소음 + 조용함 | 50% | 2.0초 |"  # D4 는 다른 문장을 적어 정확도가 낮다 in history
+    # D4 는 다른 문장을 적어 정확도가 낮다
+    assert "| TV 소음 + 조용함 | 50% | 2.0초 |" in history
 
 
 @pytest.mark.parametrize("patch", [
@@ -366,3 +367,36 @@ def test_audio_upload_size_limit(client, monkeypatch):
     monkeypatch.setattr(main_module, "MAX_SHEET_AUDIO_BYTES", 1000)
     response = client.put(f"/test-sheet/{DEVICE}/draft/D1/audio", files={"audio": ("a.wav", _wav(1.0), "audio/wav")})
     assert response.status_code == 413
+
+
+def test_spoken_sentence_is_the_reference_for_accuracy(client, tmp_path):
+    # 대본과 다르게 말했으면 실제로 말한 문장과 비교한다(대본과 비교하면 STT가 맞게 적어도 깎인다).
+    body = {"recognized": "장볼거리 뭐야", "spoken": "장볼거리 뭐야?", "key": "o", "screen": "o", "heard": "o"}
+    assert client.put(f"/test-sheet/{DEVICE}/draft/D1", json=body).status_code == 200
+    attempt = client.post(f"/test-sheet/{DEVICE}/attempts").json()
+    assert attempt["avgCer"] == 0.0
+    markdown = next((tmp_path / DEVICE).glob("2*.md")).read_text(encoding="utf-8")
+    assert "- 바꿔 말한 문장 1개(✎): 인식 정확도는 실제로 말한 문장과 비교" in markdown
+    assert "| D1 | ✎ 장볼거리 뭐야? | 장볼거리 뭐야 | 100% |" in markdown
+
+
+def test_summary_counts_spoken_and_falls_back_to_script():
+    results = {"D1": {"recognized": "장보기 목록 뭐 남았어", "spoken": "  "}}
+    summary = summarize(results, None)
+    assert summary["spoken_count"] == 0
+    assert summary["cer"] == 0.0
+
+
+def test_markdown_shows_corrected_text_only_when_it_differs():
+    results = {
+        "C2": {"recognized": "수연이 이번 주 학교 일정", "corrected": "소윤이이번주학교일정"},
+        "D1": {"recognized": "장보기 목록 뭐 남았어", "corrected": "장보기목록뭐남았어"},
+    }
+    text = render_markdown("t", results)
+    assert "수연이 이번 주 학교 일정 → 보정: 소윤이이번주학교일정" in text
+    assert "장보기 목록 뭐 남았어 → 보정" not in text
+
+
+@pytest.mark.parametrize("patch", [{"spoken": "가" * 201}, {"corrected": "가" * 501}])
+def test_rejects_too_long_spoken_or_corrected(client, patch):
+    assert client.put(f"/test-sheet/{DEVICE}/draft/D1", json=patch).status_code == 422

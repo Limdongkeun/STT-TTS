@@ -54,6 +54,7 @@ def test_health(client):
         "ttsModel": "",
         "answerProvider": "fixed",
         "demoClock": "fixed",
+        "sttHints": 0,
     }
 
 
@@ -294,3 +295,11 @@ def test_family_demo_real_clock_uses_now(monkeypatch):
         assert client.post("/ask", json={"text": "자동차 보험 언제 끝나?"}).status_code == 200
         assert seen[-1] == expected
     assert isinstance(family_demo.DEMO_NOW, datetime)
+
+
+def test_ask_returns_corrected_text_for_family_demo():
+    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+    body = client.post("/ask", json={"text": "수연이 이번 주 학교 일정 뭐야?"}).json()
+    assert body["correctedText"].startswith("소윤이")
+    fixed = TestClient(create_app(make_settings(answer_provider="fixed"))).post("/ask", json={"text": "안녕"}).json()
+    assert "correctedText" not in fixed

@@ -36,6 +36,7 @@ DEFAULT_RESULTS_DIR = Path(__file__).resolve().parents[2] / "results" / "test-ru
 Condition = Literal["", "quiet", "tv", "far", "other_voice"]
 CONDITION_LABELS = {"quiet": "조용함", "tv": "TV 소음", "far": "3m 거리", "other_voice": "다른 목소리", "": ""}
 MAX_TIMING_MS = 600_000
+MAX_SPOKEN_CHARS = 200
 # 서버가 지어 주는 음성 파일 이름(예: D6_1762400000000.wav). 경로 문자는 들어갈 수 없다.
 AUDIO_FILE_PATTERN = re.compile(r"^(?P<case>[A-Z][0-9]{1,2})_[0-9]{1,16}\.(?P<ext>wav|caf)$")
 DRAFT_AUDIO_DIR = "draft-audio"
@@ -125,6 +126,10 @@ class SheetResult(BaseModel):
     reply_ms: int | None = Field(default=None, ge=0, le=MAX_TIMING_MS)
     # 이 턴에 폰 STT 가 들은 소리(draft-audio/ 안 파일 이름). 서버가 지어 준 이름만 받는다.
     audio_file: str = Field(default="", max_length=40, pattern=AUDIO_FILE_PATTERN.pattern + "|^$")
+    # 대본과 다르게 말했을 때 실제로 말한 문장(사람이 적는다). 있으면 인식 정확도를 이 문장과 비교한다.
+    spoken: str = Field(default="", max_length=MAX_SPOKEN_CHARS)
+    # 서버가 보정한 뒤의 글(/ask 의 correctedText). 보정 전 글은 recognized.
+    corrected: str = Field(default="", max_length=500)
     updated_at: str = Field(default="", max_length=40)
 
 
@@ -212,6 +217,12 @@ def char_error_rate(reference: str, hypothesis: str) -> float | None:
     return _edit_distance(ref, hyp) / len(ref)
 
 
+def reference_text(case: dict, result: dict | None) -> str:
+    """인식 정확도를 잴 기준 문장: 실제로 말한 문장이 적혀 있으면 그것, 아니면 대본."""
+    spoken = str((result or {}).get("spoken", "")).strip()
+    return spoken or case["say"]
+
+
 def summarize(results: dict[str, dict], previous: dict[str, dict] | None, require_heard: bool = True) -> dict:
     ordered = [case["id"] for case in TEST_CASES]
     keys = _check_keys(require_heard)
@@ -219,7 +230,9 @@ def summarize(results: dict[str, dict], previous: dict[str, dict] | None, requir
     cers = [
         cer
         for case in TEST_CASES
-        if (cer := char_error_rate(case["say"], str(results.get(case["id"], {}).get("recognized", "")))) is not None
+        if (cer := char_error_rate(
+            reference_text(case, results.get(case["id"])), str(results.get(case["id"], {}).get("recognized", "")),
+        )) is not None
     ]
     summary = {
         "done": sum(1 for case_id in ordered if _is_done(results.get(case_id, {}), require_heard)),
@@ -233,6 +246,7 @@ def summarize(results: dict[str, dict], previous: dict[str, dict] | None, requir
         "heard_checked": require_heard,
         "reply_ms": average_reply_ms(results),
         "conditions": conditions_used(results),
+        "spoken_count": sum(1 for case in TEST_CASES if str(results.get(case["id"], {}).get("spoken", "")).strip()),
     }
     if previous is not None:
         before = {case_id: case_state(previous.get(case_id), require_heard) for case_id in ordered}
@@ -275,11 +289,12 @@ def render_markdown(title: str, results: dict[str, dict]) -> str:
     ]
     for case in TEST_CASES:
         result = results.get(case["id"], {})
+        spoken = str(result.get("spoken", "")).strip()
         cells = [
             case["id"],
-            _cell(case["say"]),
-            _cell(result.get("recognized", "")),
-            _percent(char_error_rate(case["say"], str(result.get("recognized", "")))),
+            _cell(f"✎ {spoken}" if spoken else case["say"]),
+            _cell(_recognized_text(result)),
+            _percent(char_error_rate(reference_text(case, result), str(result.get("recognized", "")))),
             _cell(result.get("answer", "")),
             MARK_LABELS.get(result.get("key", ""), ""),
             MARK_LABELS.get(result.get("screen", ""), ""),
@@ -290,6 +305,15 @@ def render_markdown(title: str, results: dict[str, dict]) -> str:
         ]
         lines.append("| " + " | ".join(cells) + " |")
     return "\n".join(lines) + "\n"
+
+
+def _recognized_text(result: dict) -> str:
+    """인식한 말. 서버 보정으로 글자가 달라졌으면 보정 뒤 글을 같이 보인다."""
+    recognized = str(result.get("recognized", ""))
+    corrected = str(result.get("corrected", ""))
+    if corrected and compact_question(corrected) != compact_question(recognized):
+        return f"{recognized} → 보정: {corrected}"
+    return recognized
 
 
 def _changes_text(summary: dict) -> str:
@@ -442,6 +466,8 @@ class SheetStore:
             title = f"{device} · {moment.strftime('%Y-%m-%d %H:%M')} · STT {stt_text} · TTS {tts_label or '모름'} · {version or '버전 모름'}"
             markdown = render_markdown(title, draft)
             extra = [f"- 환경: {conditions} · 말 끝→소리 평균 {_seconds(summary['reply_ms'])}"]
+            if summary.get("spoken_count"):
+                extra.append(f"- 바꿔 말한 문장 {summary['spoken_count']}개(✎): 인식 정확도는 실제로 말한 문장과 비교")
             if audio:
                 extra.append(f"- 들은 소리 {len(audio)}개: `{stem}-audio/` (다음 주 서버 STT 비교용)")
             heading, _, table = markdown.partition("\n\n")

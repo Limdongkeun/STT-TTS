@@ -1,5 +1,6 @@
 // 실행: npm test
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 
 import { CONTEXTUAL_WORDS } from "./sttModes.ts";
@@ -18,4 +19,11 @@ test("CONTEXTUAL_WORDS: 겹치거나 빈 말이 없고 100개를 넘지 않는�
   assert.equal(new Set(CONTEXTUAL_WORDS).size, CONTEXTUAL_WORDS.length);
   assert.ok(CONTEXTUAL_WORDS.every((word) => word.trim() === word && word.length > 0));
   assert.ok(CONTEXTUAL_WORDS.length <= 100);
+});
+
+test("CONTEXTUAL_WORDS: 서버 Qwen3-ASR 힌트 목록(server/app/data/stt_hints.json)과 같다", () => {
+  // 두 STT 를 같은 힌트로 비교한다(공평 비교). 한쪽만 고치면 이 테스트가 막는다.
+  const file = new URL("../../server/app/data/stt_hints.json", import.meta.url);
+  const { words } = JSON.parse(readFileSync(file, "utf8")) as { words: string[] };
+  assert.deepEqual([...CONTEXTUAL_WORDS], words);
 });
