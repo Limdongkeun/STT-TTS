@@ -55,6 +55,10 @@ def test_health(client):
         "answerProvider": "fixed",
         "demoClock": "fixed",
         "sttHints": 0,
+        "ttsChoices": [
+            {"engine": "prerecorded", "label": "JISOO 사전 녹음 (C1~C7·D1~D25)"},
+            {"engine": "mock", "label": "mock"},
+        ],
     }
 
 
@@ -303,3 +307,36 @@ def test_ask_returns_corrected_text_for_family_demo():
     assert body["correctedText"].startswith("소윤이")
     fixed = TestClient(create_app(make_settings(answer_provider="fixed"))).post("/ask", json={"text": "안녕"}).json()
     assert "correctedText" not in fixed
+
+
+def test_one_server_offers_107_when_url_is_set():
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded", tts107_url="http://107.test:5110")))
+    choices = client.get("/health").json()["ttsChoices"]
+    assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "mock"]
+    assert choices[1]["label"] == "107 Qwen3-TTS · G 목소리"
+    assert choices[0]["label"] == "JISOO 사전 녹음 (C1~C7·D1~D25)"
+
+
+def test_tts_engine_can_be_chosen_per_request():
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
+    beep = client.post("/tts", json={"text": "아무 글이나 읽어 줘", "engine": "mock"})
+    assert (beep.status_code, beep.json()["engine"]) == (200, "mock")
+    # 기본(사전 녹음)은 녹음 없는 글이면 404 그대로
+    assert client.post("/tts", json={"text": "아무 글이나 읽어 줘"}).status_code == 404
+
+
+@pytest.mark.parametrize("engine", ["qwen3-tts-107", "qwen3-tts", "elevenlabs", "../x"])
+def test_unavailable_tts_engine_is_rejected(engine):
+    client = TestClient(create_app(make_settings(tts_engine="mock")))
+    response = client.post("/tts", json={"text": "안녕하세요", "engine": engine})
+    assert response.status_code == 422
+
+
+def test_ask_shortens_dose_speech_only_for_chosen_prerecorded():
+    client = TestClient(create_app(make_settings(tts_engine="mock", answer_provider="family-demo")))
+    first = client.post("/ask", json={"text": "애기 해열제 부르펜 계열 먹었는데 시간 체크해줘"}).json()
+    context = first.get("context")
+    spoken = client.post("/ask", json={"text": "30분 전에 먹였어", "context": context, "ttsEngine": "prerecorded"}).json()
+    plain = client.post("/ask", json={"text": "30분 전에 먹였어", "context": context}).json()
+    assert spoken["speechText"].startswith("말씀하신 시각으로")
+    assert plain["speechText"].startswith("시험 기록에 ")

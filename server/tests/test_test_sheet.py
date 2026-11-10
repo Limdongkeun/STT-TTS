@@ -400,3 +400,16 @@ def test_markdown_shows_corrected_text_only_when_it_differs():
 @pytest.mark.parametrize("patch", [{"spoken": "가" * 201}, {"corrected": "가" * 501}])
 def test_rejects_too_long_spoken_or_corrected(client, patch):
     assert client.put(f"/test-sheet/{DEVICE}/draft/D1", json=patch).status_code == 422
+
+
+def test_attempt_tts_label_comes_from_turns(tmp_path):
+    """앱에서 턴마다 고른 TTS 이름이 있으면 서버 기본 이름 대신 그걸 적는다."""
+    store = SheetStore(tmp_path, code_version=lambda: "v1")
+    store.save_draft_case(DEVICE, "D1", SheetResult(**done("o", stt="폰 기본 STT", tts="107 Qwen3-TTS · G 목소리")))
+    store.save_draft_case(DEVICE, "D2", SheetResult(**done("o", stt="폰 기본 STT", tts="107 Qwen3-TTS · G 목소리")))
+    attempt = store.save_attempt(DEVICE, now=LATER, tts_label="JISOO 사전 녹음 (C1~C7·D1~D25)")
+    assert attempt["tts"] == "107 Qwen3-TTS · G 목소리"
+
+    store.clear_draft(DEVICE)
+    store.save_draft_case(DEVICE, "D1", SheetResult(**done("o", stt="폰 기본 STT")))
+    assert store.save_attempt(DEVICE, now=LATER.replace(hour=16), tts_label="mock")["tts"] == "mock"

@@ -12,6 +12,7 @@ import tempfile
 import time
 import uuid
 from collections import OrderedDict
+from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
@@ -24,9 +25,10 @@ from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
+from app.engines.qwen3_tts_107 import Tts107Error
 from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
-from app.settings import Settings, load_settings
+from app.settings import Settings, load_settings, tts_choices
 from app.stt_correction import correct_transcript
 from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
 
@@ -57,6 +59,8 @@ class AskRequest(ApiModel):
     context: FamilyDemoContext | None = None
     # 말하는 사람(부부 공유 업무 시험). "내가", "나한테", "여보"를 이 사람 기준으로 푼다.
     speaker: Literal["wife", "husband"] = "wife"
+    # 앱이 고른 TTS 엔진(없으면 서버 기본). 사전 녹음일 때만 C4·C5 읽기용 글을 녹음에 맞춰 줄인다.
+    tts_engine: str | None = Field(default=None, max_length=40)
 
 
 class AskResponse(ApiModel):
@@ -72,6 +76,8 @@ class AskResponse(ApiModel):
 class TtsRequest(ApiModel):
     text: str = Field(min_length=1, max_length=1000)
     normalize: bool = False
+    # 앱이 고른 TTS 엔진(없으면 서버 기본). /health 의 ttsChoices 안에서만 고를 수 있다.
+    engine: str | None = Field(default=None, max_length=40)
 
 
 class TtsResponse(ApiModel):
@@ -125,6 +131,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     stt_engine = create_stt_engine(settings)
     tts_engine = create_tts_engine(settings)
+    choices = tts_choices(settings)
+    # 앱이 요청마다 고르는 TTS. 기본 엔진 말고는 처음 고를 때 만든다(107 은 이때도 부르지 않는다).
+    tts_engines = {settings.tts_engine: tts_engine}
+
+    def pick_tts_engine(name: str | None):
+        key = name or settings.tts_engine
+        if key not in choices:
+            raise HTTPException(status_code=422, detail=f"이 서버에서 고를 수 없는 TTS예요: {key[:40]}")
+        if key not in tts_engines:
+            tts_engines[key] = create_tts_engine(replace(settings, tts_engine=key))
+        return tts_engines[key]
+
+    def tts_record_label(name: str) -> str:
+        """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글)."""
+        label = getattr(pick_tts_engine(name), "label", name) if name == "qwen3-tts-107" else tts_label_for(
+            name, settings.tts_model_id
+        )
+        return label
     answer_provider = (
         FamilyDemoAnswerProvider() if settings.answer_provider == "family-demo" else create_answer_provider(settings)
     )
@@ -134,20 +158,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0")
 
+    def tts_model_label() -> str:
+        """/health·저장본에 적는 TTS 이름. mock 은 빈 글."""
+        if settings.tts_engine == "prerecorded":
+            return VOICE_LABEL
+        if settings.tts_engine == "qwen3-tts":
+            return settings.tts_model_id
+        return getattr(tts_engine, "label", "")
+
     @app.get("/health")
-    def health() -> dict[str, str | int]:
+    def health() -> dict[str, object]:
         return {
             "status": "ok",
             "sttEngine": stt_engine.name,
             "sttModel": settings.asr_model_id if settings.stt_engine == "qwen3-asr" else "",
             "ttsEngine": tts_engine.name,
-            "ttsModel": VOICE_LABEL if settings.tts_engine == "prerecorded" else (
-                settings.tts_model_id if settings.tts_engine == "qwen3-tts" else ""
-            ),
+            "ttsModel": tts_model_label(),
             "answerProvider": answer_provider.name,
             "demoClock": settings.demo_clock,
             # 서버 STT 에 넣는 힌트 낱말 수(0 = 힌트 없음). 폰 STT 는 늘 같은 목록을 쓴다.
             "sttHints": getattr(stt_engine, "hint_count", 0),
+            # 앱 버튼으로 고를 수 있는 TTS(서버 하나로 합쳐 띄울 때). label 은 시험표에 적히는 이름.
+            "ttsChoices": [{"engine": name, "label": tts_record_label(name)} for name in choices],
         }
 
     @app.post("/stt", response_model=SttResponse)
@@ -188,7 +220,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         else:
             answer_text = answer_provider.answer(text)
         speech_text = answer_text
-        if settings.tts_engine == "prerecorded" and context and context.dose_at and answer_text.startswith("시험 기록에 "):
+        chosen_tts = request.tts_engine or settings.tts_engine
+        if chosen_tts == "prerecorded" and context and context.dose_at and answer_text.startswith("시험 기록에 "):
             action = "수정했어요" if "수정했어요." in answer_text else "기록했어요"
             speech_text = (
                 f"말씀하신 시각으로 복용 시간을 {action}. "
@@ -210,16 +243,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not text:
             raise HTTPException(status_code=400, detail="읽을 글이 없습니다.")
         try:
-            result = tts_engine.synthesize(text)
+            engine = pick_tts_engine(request.engine)
+            result = engine.synthesize(text)
         except RecordingUnavailableError as exc:
             # 404: 이 답의 녹음이 없다(앱은 오류 대신 화면 답만 보여 준다). 422 는 요청 모양 오류로 남겨 둔다.
             raise HTTPException(status_code=404, detail=str(exc)) from exc
+        except Tts107Error as exc:
+            # 503: 107 TTS 를 지금 못 쓴다(회사 망 밖, 시험 페이지 꺼짐, 시간 초과). 앱은 이 안내를 보여 준다.
+            logger.warning("tts107 failed: %s", exc)
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
         audio_id = audio_store.save(result.wav_bytes)
         return TtsResponse(
             audio_url=f"/audio/{audio_id}",
             duration_sec=round(result.duration_sec, 3),
             sample_rate=result.sample_rate,
-            engine=tts_engine.name,
+            engine=engine.name,
             elapsed_ms=_elapsed_ms(started),
         )
 
@@ -272,7 +310,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.post("/test-sheet/{device}/attempts")
     def save_attempt(device: str) -> dict:
         _check_device(device)
-        tts_label = tts_label_for(settings.tts_engine, settings.tts_model_id)
+        # 턴마다 앱이 적은 TTS 이름이 있으면 그걸 쓰고(시험표 안에서 TTS 를 바꿀 수 있다), 없으면 서버 기본.
+        tts_label = tts_record_label(settings.tts_engine)
         try:
             return sheet_store.save_attempt(device, tts_label=tts_label)
         except ValueError as exc:

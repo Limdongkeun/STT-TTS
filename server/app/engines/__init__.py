@@ -23,6 +23,10 @@ def create_tts_engine(settings: Settings) -> TtsEngine:
         from app.engines.qwen3_tts import Qwen3TtsEngine
 
         return Qwen3TtsEngine(settings)
+    if settings.tts_engine == "qwen3-tts-107":
+        from app.engines.qwen3_tts_107 import Qwen3Tts107Engine, load_voice
+
+        return Qwen3Tts107Engine(settings.tts107_url, load_voice(settings.tts107_voice), settings.tts107_timeout_sec)
     from app.engines.mock import MockTtsEngine
 
     return MockTtsEngine()

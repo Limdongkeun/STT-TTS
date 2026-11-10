@@ -119,6 +119,8 @@ class SheetResult(BaseModel):
     speaker: Literal["", "wife", "husband"] = ""
     # 이 턴을 받아 적은 STT (예: "폰 기본 STT", "Qwen3-ASR-1.7B"). 앱이 적는다.
     stt: str = Field(default="", max_length=120)
+    # 이 턴의 답을 읽은 TTS (예: "JISOO 사전 녹음 (C1~C7·D1~D25)", "107 Qwen3-TTS · G 목소리"). 앱이 적는다.
+    tts: str = Field(default="", max_length=120)
     condition: Condition = ""
     # 걸린 시간(ms): 답 만들기 · TTS · 말이 끝난 뒤 답 소리가 나기 시작할 때까지
     ask_ms: int | None = Field(default=None, ge=0, le=MAX_TIMING_MS)
@@ -140,14 +142,19 @@ def tts_label_for(engine: str, model_id: str) -> str:
     return model_id.rsplit("/", 1)[-1] if engine != "mock" and model_id else engine
 
 
-def stt_labels(results: dict[str, dict]) -> list[str]:
-    """저장본에 쓰인 STT 이름들, 많이 쓰인 순서. 적힌 게 없으면 빈 목록."""
+def labels_of(results: dict[str, dict], field: str) -> list[str]:
+    """저장본 턴들에 적힌 이름(stt·tts)들, 많이 쓰인 순서. 적힌 게 없으면 빈 목록."""
     counts: dict[str, int] = {}
     for result in results.values():
-        label = str(result.get("stt", "")).strip()
+        label = str(result.get(field, "")).strip()
         if label:
             counts[label] = counts.get(label, 0) + 1
     return sorted(counts, key=lambda label: -counts[label])
+
+
+def stt_labels(results: dict[str, dict]) -> list[str]:
+    """저장본에 쓰인 STT 이름들, 많이 쓰인 순서. 적힌 게 없으면 빈 목록."""
+    return labels_of(results, "stt")
 
 
 def is_valid_device(device: str) -> bool:
@@ -430,6 +437,8 @@ class SheetStore:
             if not any(case_state(result) or str(result.get("recognized", "")).strip() for result in draft.values()):
                 raise ValueError("저장할 시험 결과가 없어요.")
             labels = stt_labels(draft)
+            # 턴마다 적힌 TTS 가 있으면 그걸로(앱에서 TTS 를 골라 바꿀 수 있다). 없으면 서버가 준 이름.
+            tts_label = " + ".join(labels_of(draft, "tts")) or tts_label
             same_stt = [
                 record for record in (self._read(path) for path in reversed(self._attempt_paths(device)))
                 if record.get("stt_labels", []) == labels
