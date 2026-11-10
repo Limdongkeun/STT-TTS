@@ -263,6 +263,8 @@ class FamilyTopics:
     # 2. 공과금·고정 지출
     def _bills(self, text: str, words: str, speaker: str, today: date) -> str | None:
         state = self._state
+        # 영어로 받아 적은 이름도 같은 고지서로 본다(E1: STT 가 'Netflix'로 적을 수 있다).
+        text = re.sub("netflix", "넷플릭스", text, flags=re.IGNORECASE)
         name = next((bill_name for bill_name in state.bills if bill_name in text), None)
         if name is None:
             if "공과금" not in text and "고정지출" not in text:
@@ -466,11 +468,18 @@ class FamilyTopics:
             f"{subject(SPEAKER_LABELS[pet.medicine_last_by])} 먹였고, 다음은 {copula(format_date(next_month, today))}"
         )
 
-    # C6. 아버지 병원 예약 (등록일과 예약일을 구분)
+    # C6. 아버지 병원 예약 (등록일과 예약일을 구분) · E2. 혈압약이 떨어졌을 때 다음 진료
     def _father_hospital(self, text: str, words: str, speaker: str, today: date) -> str | None:
-        if not (("아버지" in text or "아빠" in text) and "병원" in text and "예약" in text):
+        if not (("아버지" in text or "아빠" in text) and "병원" in text):
             return None
         visit = self._state.father_hospital
+        if "혈압약" in text or "처방" in text:
+            return (
+                f"아버지 다음 진료는 {format_date(visit.visit_on, today, weekday=True)} {copula(visit.time_text)} "
+                "혈압약 처방은 그때 받으면 돼요."
+            )
+        if "예약" not in text:
+            return None
         return (
             f"{format_date(visit.registered_on, today)}에 등록한 아버지 병원 예약은 "
             f"{format_date(visit.visit_on, today, weekday=True)} {_ro(visit.time_text)} 확인돼요."

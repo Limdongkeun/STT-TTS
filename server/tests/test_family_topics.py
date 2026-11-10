@@ -218,3 +218,26 @@ def test_request_query_by_name_does_not_create_request(provider):
     assert ask(provider, "남편한테 온 부탁 뭐 있어?") == "남편에게 온 부탁이 없어요."
     assert ask(provider, "남편에게 부탁 온 거 있어") == "남편에게 온 부탁이 없어요."
     assert ask(provider, "아내가 부탁한 거 뭐 있어") == "아내가 보낸 부탁 중 남은 게 없어요."
+
+
+def test_e1_netflix_found_even_when_stt_writes_english():
+    from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider
+
+    provider = FamilyDemoAnswerProvider()
+    for question in ("넷플릭스 구독료 언제 빠져나가?", "Netflix 구독료 언제 빠져나가?"):
+        assert provider.answer(question, None, now=DEMO_NOW)[0] == "넷플릭스 1만 7천 원은 매달 22일 자동이체예요."
+    # 자동이체라 '아직 안 낸 공과금'에는 들어가지 않는다
+    assert "넷플릭스" not in provider.answer("아직 안 낸 공과금 뭐 있어?", None, now=DEMO_NOW)[0]
+
+
+def test_e2_blood_pressure_medicine_points_to_next_visit_and_c6_unchanged():
+    from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider
+
+    provider = FamilyDemoAnswerProvider()
+    e2 = provider.answer("아버지 혈압약 다 떨어졌는데 다음 병원 언제야?", None, now=DEMO_NOW)[0]
+    assert e2 == "아버지 다음 진료는 11월 12일 목요일 오전 10시예요. 혈압약 처방은 그때 받으면 돼요."
+    c6 = provider.answer("아버지 병원 예약 언제였지?", None, now=DEMO_NOW)[0]
+    assert c6.startswith("11월 2일에 등록한 아버지 병원 예약은")
+    # 예약도 혈압약도 아닌 병원 말은 이 주제가 아니다
+    assert provider.answer("아버지 병원 가는 길 알려줘", None, now=DEMO_NOW)[0] == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
+

@@ -11,8 +11,10 @@ from app.test_sheet import TEST_CASES
 
 def test_paraphrase_file_covers_every_case_with_new_sentences():
     paraphrases = load_paraphrases()
-    assert set(paraphrases) == {case["id"] for case in TEST_CASES}
-    for case in TEST_CASES:
+    # 말바꿈 기준선은 2026-11-06의 C·D 32문장으로 고정했다(E 문장은 11/09 추가, 기준선에 넣지 않음).
+    baseline_cases = [case for case in TEST_CASES if case["id"][0] in "CD"]
+    assert set(paraphrases) == {case["id"] for case in baseline_cases}
+    for case in baseline_cases:
         sentences = paraphrases[case["id"]]
         assert len(sentences) >= 4
         assert case["say"] not in sentences  # 원래 문장 그대로는 말바꿈이 아니다

@@ -34,7 +34,7 @@ def client(tmp_path) -> TestClient:
 
 def test_case_list_is_complete_and_unique():
     ids = [case["id"] for case in TEST_CASES]
-    assert ids == [f"C{n}" for n in range(1, 8)] + [f"D{n}" for n in range(1, 26)]
+    assert ids == [f"C{n}" for n in range(1, 8)] + [f"D{n}" for n in range(1, 26)] + ["E1", "E2"]
     assert all("who" not in case for case in TEST_CASES)  # '나' 역할 없음
 
 
@@ -74,7 +74,7 @@ def test_device_validation(device, valid):
 
 def test_get_cases(client):
     body = client.get("/test-cases").json()
-    assert len(body["cases"]) == 32
+    assert len(body["cases"]) == 34
     assert body["cases"][13]["id"] == "D7"
     assert body["cases"][3]["dateDependent"] is True
 
@@ -130,7 +130,7 @@ def test_store_snapshot_contents_and_same_second(tmp_path):
     assert second["file"] == "2026-11-05_140000_02.json"
     assert [a["file"] for a in store.list_attempts(DEVICE)] == ["2026-11-05_140000_02.json", "2026-11-05_140000.json"]
     assert first["version"] == "abc1234 (수정 중)"
-    assert (first["done"], first["total"], first["okMarks"]) == (1, 32, 3)
+    assert (first["done"], first["total"], first["okMarks"]) == (1, 34, 3)
     markdown = (tmp_path / DEVICE / "2026-11-05_140000.md").read_text(encoding="utf-8")
     assert markdown.startswith("# 음성 시험 결과 — ios-27-0-1 · 2026-11-05 14:00 · STT STT 모름 · TTS 모름 · abc1234 (수정 중)")
 
@@ -212,8 +212,8 @@ def test_attempts_compare_only_with_same_stt(tmp_path):
 
     history = (tmp_path / DEVICE / "history.md").read_text(encoding="utf-8")
     # TTS 가 mock 이라 '들린 답'은 세지 않는다: ○ 는 핵심·화면 2개
-    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | - | 0% | - | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
-    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | - | 0% | - | 1/32 | 2 | - | ×→○ D1 |" in history
+    assert "| 2026-11-05 15:00 | Qwen3-ASR-1.7B | mock | v1 | - | 0% | - | 1/34 | 2 | - | 같은 STT 첫 저장본 |" in history
+    assert "| 2026-11-05 16:00 | 폰 기본 STT | mock | v1 | - | 0% | - | 1/34 | 2 | - | ×→○ D1 |" in history
 
 
 def test_stt_labels_and_tts_label():
@@ -277,7 +277,7 @@ def test_history_starts_new_table_when_columns_change(tmp_path):
     history = (folder / "history.md").read_text(encoding="utf-8")
     assert history.startswith(old.rstrip("\n"))  # 예전 줄은 그대로
     assert "| 인식 정확도(평균) |" in history
-    assert "| 2026-11-05 14:00 | STT 모름 | mock | v2 | - | 100% | - | 1/32 | 2 | - | 같은 STT 첫 저장본 |" in history
+    assert "| 2026-11-05 14:00 | STT 모름 | mock | v2 | - | 100% | - | 1/34 | 2 | - | 같은 STT 첫 저장본 |" in history
     markdown = (folder / "2026-11-05_140000.md").read_text(encoding="utf-8")
     assert "| C1 | 다음 주 우리 집 일정 뭐야? | 다음 주 우리 집 일정 뭐야? | 100% |" in markdown
 

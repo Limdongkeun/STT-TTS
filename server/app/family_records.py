@@ -155,6 +155,8 @@ class FamilyRecords:
             "관리비": Bill(234_000, paid_by="husband", paid_on=date(2026, 11, 3)),
             "가스비": Bill(42_000, due=date(2026, 11, 25)),
             "통신비": Bill(89_000, auto_pay_day=20),
+            # E1(2026-11-09): 힌트 목록에 없는 영어 이름. STT 가 'Netflix'로 적어도 찾는다(_bills).
+            "넷플릭스": Bill(17_000, auto_pay_day=22),
         }
     )
     budget: int = 1_500_000
