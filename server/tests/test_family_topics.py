@@ -241,3 +241,19 @@ def test_e2_blood_pressure_medicine_points_to_next_visit_and_c6_unchanged():
     # 예약도 혈압약도 아닌 병원 말은 이 주제가 아니다
     assert provider.answer("아버지 병원 가는 길 알려줘", None, now=DEMO_NOW)[0] == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
 
+
+def test_shopping_items_drop_trailing_particles():
+    """'기저귀도 추가해'는 '기저귀'를 넣는다(2026-11-09 D2: '기저귀도'가 통째로 들어갔다)."""
+    from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider
+    from app.family_topics import _strip_particle
+
+    provider = FamilyDemoAnswerProvider()
+    answer = provider.answer("우유랑 기저귀도 장보기 목록에 추가해 줘", None, now=DEMO_NOW)[0]
+    assert answer == "장보기 목록에 우유, 기저귀를 넣었어요. 지금 목록은 두부, 계란, 우유, 기저귀예요."
+    cases = {
+        "기저귀도": "기저귀", "우유는": "우유", "라면을": "라면", "휴지를": "휴지", "빵도": "빵", "사과만": "사과",
+        # 이름 끝이 조사와 같은 말, 남는 말이 너무 짧은 말은 그대로
+        "포도": "포도", "아보카도": "아보카도", "청포도": "청포도", "포도도": "포도", "파만": "파만", "두부": "두부",
+    }
+    for token, expected in cases.items():
+        assert _strip_particle(token) == expected, token

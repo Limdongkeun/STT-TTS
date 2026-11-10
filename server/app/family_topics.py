@@ -50,6 +50,10 @@ NOT_SHOPPING_WORDS = ("선물", "생신", "생일", "용돈", "생활비", "관�
 # 아이 준비물을 묻는 다른 말
 SUPPLY_WORDS = ("준비물", "챙겨가", "챙겨갈", "챙길거", "가져가", "가져갈")
 ITEM_SUFFIX = re.compile(r"(?:이랑|랑|하고|좀)$")
+# 물건 이름 뒤에 붙은 조사("기저귀도", "우유는", "라면을"). 2026-11-09 D2에서 '기저귀도'가 통째로 목록에 들어갔다.
+ITEM_PARTICLE = re.compile(r"(?:은|는|을|를|도|만)$")
+# '도·만'은 이름 끝 글자일 수도 있어서, 떼고 남는 말이 두 글자 이상일 때만 뗀다. 이 말들은 통째로 둔다.
+ITEM_KEEP_WHOLE = {"포도", "아보카도", "청포도"}
 ITEM_STOPWORDS = {"좀", "목록", "목록에", "그리고", "장보기", "장보기에"}
 EXPIRY_KEYS = {
     "자동차 보험": ("보험",),
@@ -112,12 +116,26 @@ def _named_person(text: str, speaker: str) -> str | None:
     return None
 
 
+def _strip_particle(token: str) -> str:
+    """'기저귀도' → '기저귀', '라면을' → '라면'. '포도'처럼 이름 끝이 조사와 같은 말은 그대로 둔다."""
+    if token in ITEM_KEEP_WHOLE or token in GROCERY_WORDS:
+        return token
+    match = ITEM_PARTICLE.search(token)
+    if not match:
+        return token
+    stem = token[: match.start()]
+    if stem in GROCERY_WORDS:
+        return stem
+    min_stem = 2 if match.group() in ("도", "만") else 1
+    return stem if len(stem) >= min_stem else token
+
+
 def _extract_items(words: str) -> list[str]:
     match = ITEMS_AFTER_LIST.search(words)
     segment = match.group(1) if match else re.split(r"장\s*보기|장\s*볼|\s(?:좀\s+)?(?:넣어|추가|적어)", words)[0]
     items: list[str] = []
     for token in segment.split():
-        token = ITEM_SUFFIX.sub("", token)
+        token = _strip_particle(ITEM_SUFFIX.sub("", token))
         if token and token not in ITEM_STOPWORDS and token not in items:
             items.append(token)
     return items
