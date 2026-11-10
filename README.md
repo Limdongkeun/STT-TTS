@@ -31,13 +31,17 @@ uv run pytest    # 테스트
 
 | 상황 | 명령 (server 폴더에서) |
 |---|---|
+| ⓪ 서버 하나로 전부 (추천, 2026-11-09~) | `STT_ENGINE=qwen3-asr TTS_107_URL=http://<107 주소>:5110 .venv-asr/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002` |
 | ① 모델 없이 흐름만 (mock 전부, 포트 8002 하나) | `uv run uvicorn app.main:app --host 0.0.0.0 --port 8002` |
 | ② 실제 TTS (Qwen3-TTS Sohee) | `TTS_ENGINE=qwen3-tts uv run --extra tts uvicorn app.main:app --host 0.0.0.0 --port 8002` |
+| ②-107 107 서버 TTS (G 목소리, 회사 망) | `TTS_ENGINE=qwen3-tts-107 TTS_107_URL=http://<107 주소>:5110 uv run uvicorn app.main:app --host 0.0.0.0 --port 8002` |
 | ③ 실제 STT (Qwen3-ASR) | `STT_ENGINE=qwen3-asr uv run --extra asr uvicorn app.main:app --host 0.0.0.0 --port 8001` |
 
 - 답 찾기는 기본으로 **가족 돌봄 시험 답(`family-demo`)** 이다. 따로 설정하지 않아도 `docs/test-plan.md`의 C1~C7 질문에 답한다. 예전 고정 답이 필요하면 앞에 `ANSWER_PROVIDER=fixed`를 붙인다. 지금 서버의 답 모드는 앱 맨 위 파란 글자(또는 `GET /health`)로 확인한다.
 - **②③을 하나로 합칠 수 없다.** `qwen-asr`와 `qwen-tts`가 서로 다른 `transformers` 버전을 고정하기 때문이다. 그래서 STT 서버(8001)와 TTS 서버(8002)를 따로 띄운다. 코드는 같고 환경변수와 `--extra`만 다르다.
 - `--extra asr`나 `--extra tts`로 처음 실행하면 torch 같은 큰 패키지를 설치한다. 첫 요청 때는 모델(1.7B 기준 약 3~4GB)을 받는다.
+- ⓪은 Qwen STT 하나와 TTS 여러 개(지수 녹음·107 G 목소리·삐)를 한 서버에 둔다. 앱 맨 위 버튼으로 STT(폰 기본/서버 Qwen)와 TTS를 고르고, 고른 TTS는 요청마다 서버에 보낸다(`/tts`의 `engine`, `/health`의 `ttsChoices`). 앱 `.env`의 STT·TTS 주소를 둘 다 8002로 둔다. 맥에서 TTS 모델을 직접 돌리는 ②는 패키지 충돌 때문에 여기 들어가지 않는다.
+- ②-107은 이 맥에 모델을 받지 않고 107 시험 페이지(Qwen3-TTS)의 복제 기능을 부른다. 목소리 견본은 `server/app/data/voices/g.wav`(107이 설명으로 만든 목소리, 실제 사람 아님)이고, 107에는 아무것도 저장하지 않는다. 107을 못 쓰면 `/tts`가 503과 안내를 돌려준다. 첫 요청은 107이 모델을 올리느라 10~15초 걸리니 시험 전에 한 번 불러 둔다.
 - 0.6B로 바꿀 때: `ASR_MODEL_ID=Qwen/Qwen3-ASR-0.6B`, `TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
 - 그 밖의 설정은 `server/.env.example`에 있다. 장치(`MODEL_DEVICE=auto|mps|cpu|cuda:0`)와 자료형도 여기서 정한다.
 - 맥에서는 `auto`가 `mps`(Apple GPU)를 고른다. 오류가 나면 `MODEL_DEVICE=cpu MODEL_DTYPE=float32`로 바꿔서 시험한다.
