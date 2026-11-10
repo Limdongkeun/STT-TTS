@@ -15,7 +15,11 @@ import {
   type AskContext,
 } from "./src/api";
 import { FIRST_START_TIMEOUT_MS, waitUntilLoaded, waitUntilStarted } from "./src/playback";
-import { describeServerInfo, PHONE_STT_LABEL, sttLabelFor, type HealthResponse, type ServerInfo } from "./src/serverInfo";
+import {
+  activeTtsChoice, describeServerInfo, PHONE_STT_LABEL, sttLabelFor, ttsButtonLabel, ttsChoicesOf,
+  type HealthResponse, type ServerInfo,
+} from "./src/serverInfo";
+import { fetchSequentially, shouldSplitSpeech, SpeechCancelledError, splitSpeech } from "./src/speechChunks";
 import {
   decideNextTurn, DEFAULT_SILENCE_MS, formatSilenceLabel, SILENCE_OPTIONS_MS, type TurnOutcome,
 } from "./src/conversation";
@@ -31,6 +35,15 @@ type Stage = "idle" | "listening" | "transcribing" | "asking" | "speaking";
 type Conversation = { emptyTurns: number; awaitingPlayback: boolean };
 
 type Timings = { sttMs?: number; askMs?: number; ttsMs?: number; totalMs?: number };
+
+/** 한 답의 소리 조각들(문장 단위). audios[i] 는 i번째 조각의 음성 주소, next 는 다음에 틀 조각. */
+type SpeechQueue = { audios: Promise<string>[]; next: number; urls: string[] };
+
+/** 뒤 조각을 아무도 기다리지 않을 때 '처리 안 된 거부' 경고가 뜨지 않게 한다. */
+function quiet<T>(promise: Promise<T>): Promise<T> {
+  promise.catch(() => undefined);
+  return promise;
+}
 
 const STAGE_LABELS: Record<Stage, string> = {
   idle: "대기 중",
@@ -54,6 +67,8 @@ export default function App() {
   const [conversationActive, setConversationActive] = useState(false);
   const [canReplay, setCanReplay] = useState(false);
   const [serverInfo, setServerInfo] = useState<ServerInfo>({ kind: "checking" });
+  // 앱에서 고른 TTS(null = 서버 기본). 서버 하나로 합쳐 띄웠을 때 /health 의 ttsChoices 중에서 고른다.
+  const [ttsChoice, setTtsChoice] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   // 맨 아래 시험표: 시험 중인 문장이 있으면 이번 턴을 자동으로 적는다.
   const testSheet = useTestSheet();
@@ -90,6 +105,27 @@ export default function App() {
   const player = useAudioPlayer();
   const playback = useAudioPlayerStatus(player);
   const serverRecorder = useServerRecorder();
+  // 지금 읽는 답의 소리 조각들. 새 답·마이크·대화 멈춤 때 null 로 바꾸면 남은 조각은 만들지도 틀지도 않는다.
+  const speechQueueRef = useRef<SpeechQueue | null>(null);
+  const handledFinishRef = useRef<unknown>(null);
+  // '다시 듣기'용: 마지막 답의 조각 주소들(조각을 받을 때마다 늘어난다).
+  const lastSpeechUrlsRef = useRef<string[]>([]);
+  const serverHealth = serverInfo.kind === "ok" ? serverInfo.health : null;
+  const ttsChoices = ttsChoicesOf(serverHealth);
+  const activeTts = activeTtsChoice(serverHealth, ttsChoice);
+  const ttsEngineRef = useRef<string | undefined>(undefined);
+  ttsEngineRef.current = activeTts.engine;
+  // 고르기 버튼이 있는 서버에만 엔진을 보낸다(예전 서버는 늘 서버 기본).
+  const ttsRequestEngineRef = useRef<string | undefined>(undefined);
+  ttsRequestEngineRef.current = ttsChoices.length > 0 ? activeTts.engine : undefined;
+  const ttsLabelRef = useRef("");
+  ttsLabelRef.current = activeTts.label;
+
+  /** 답 소리를 멈춘다(남은 조각 포함). 말하기를 시작할 때 부른다 — 앞 답 소리가 녹음에 섞이지 않게. */
+  const stopSpeech = useCallback(() => {
+    speechQueueRef.current = null;
+    player.pause();
+  }, [player]);
 
   const finishConversation = useCallback(() => {
     conversationRef.current = null;
@@ -141,21 +177,41 @@ export default function App() {
         setStage("asking");
         const askStarted = Date.now();
         // '나'(역할)는 보내지 않는다: 누가 했는지는 문장 속 남편·아내로 서버가 알아듣는다.
-        const answer = await postAsk(text, askContext.current);
+        // 이 턴 동안 쓸 TTS 를 먼저 정해 둔다(턴 중간에 버튼을 바꿔도 한 답은 한 목소리로).
+        const turnTtsEngine = ttsRequestEngineRef.current;
+        const turnTtsLabel = ttsLabelRef.current;
+        const splitTurn = shouldSplitSpeech(ttsEngineRef.current);
+        const answer = await postAsk(text, askContext.current, undefined, turnTtsEngine);
         if (wasStopped()) return "stopped";
         askContext.current = answer.context;
         const askMs = Date.now() - askStarted;
         setAnswerText(answer.answerText);
         setSpeechText(answer.speechText);
         // 시험표에는 말로 한 턴만 적는다(글로 묻기는 인식 시험이 아니다).
-        if (fromVoice) recordTurnRef.current(text, answer.answerText, sttLabelRef.current, phoneTurn, answer.correctedText ?? "");
+        if (fromVoice) {
+          recordTurnRef.current(
+            text, answer.answerText, sttLabelRef.current, phoneTurn, answer.correctedText ?? "", turnTtsLabel,
+          );
+        }
 
         setStage("speaking");
         const ttsStarted = Date.now();
-        let speech;
+        // 그때그때 만드는 TTS(107 등)는 문장으로 나눠 첫 문장부터 튼다. ttsMs 는 첫 조각까지 기다린 시간이다.
+        const chunks = splitTurn ? splitSpeech(answer.speechText) : [];
+        const queue: SpeechQueue = { audios: [], next: 1, urls: [] };
+        speechQueueRef.current = queue;
+        lastSpeechUrlsRef.current = queue.urls;
+        queue.audios = fetchSequentially(
+          chunks.length > 0 ? chunks : [answer.speechText],
+          (chunk) => postTts(chunk, turnTtsEngine),
+          () => speechQueueRef.current === queue,
+        ).map((audio) => quiet(audio.then((speech) => speech.fullAudioUrl)));
+        let firstUrl: string;
         try {
-          speech = await postTts(answer.speechText);
+          firstUrl = await queue.audios[0];
         } catch (error) {
+          if (speechQueueRef.current === queue) speechQueueRef.current = null;
+          if (error instanceof SpeechCancelledError) return "stopped";
           if (!(error instanceof NoRecordingError)) throw error;
           // 사전 녹음 TTS 에 이 답의 소리가 없다: 오류 대신 화면 답만 보여 주고 시험표에 '녹음 없음'을 적는다.
           if (wasStopped()) return "stopped";
@@ -173,8 +229,9 @@ export default function App() {
         await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
         // 폰 음성인식이 막 끝나 오디오 세션이 녹음용으로 남아 있을 수 있어, 재생용으로 다시 켠다.
         await setIsAudioActiveAsync(true);
-        if (wasStopped()) return "stopped";
-        player.replace({ uri: speech.fullAudioUrl });
+        if (wasStopped() || speechQueueRef.current !== queue) return "stopped";
+        queue.urls.push(firstUrl);
+        player.replace({ uri: firstUrl });
         // 다 읽히기 전에 play 를 부르면 무시될 수 있다(13:51 시험에서 20/23턴).
         await waitUntilLoaded(() => player.isLoaded);
         if (wasStopped()) return "stopped";
@@ -289,19 +346,71 @@ export default function App() {
     }
   }, [finishConversation, startPhone]);
 
-  useEffect(() => {
+  /** 답 소리를 끝까지 다 읽었다: 대화 모드면 다음 말을 듣는다. */
+  const onSpeechFinished = useCallback(() => {
     const conversation = conversationRef.current;
-    if (!playback.didJustFinish || !conversation?.awaitingPlayback) return;
+    if (!conversation?.awaitingPlayback) return;
     conversation.awaitingPlayback = false;
     void listenAgain(conversation);
-  }, [listenAgain, playback]);
+  }, [listenAgain]);
+
+  /** 다음 조각을 기다렸다가 튼다. 그사이 멈췄으면(speechQueueRef 가 바뀜) 아무것도 하지 않는다. */
+  const playNextChunk = useCallback(async (queue: SpeechQueue) => {
+    const index = queue.next;
+    queue.next += 1;
+    let url: string;
+    try {
+      url = await queue.audios[index];
+    } catch (error) {
+      if (speechQueueRef.current !== queue) return;
+      speechQueueRef.current = null;
+      if (!(error instanceof SpeechCancelledError)) {
+        setNotice(`답 뒷부분 소리를 만들지 못했어요: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      onSpeechFinished();
+      return;
+    }
+    if (speechQueueRef.current !== queue) return;
+    queue.urls.push(url);
+    player.replace({ uri: url });
+    await waitUntilLoaded(() => player.isLoaded);
+    if (speechQueueRef.current !== queue) return;
+    player.play();
+  }, [onSpeechFinished, player]);
+
+  useEffect(() => {
+    // 같은 '끝남' 상태로 이 효과가 다시 돌면 조각을 하나 건너뛰게 되므로 한 번만 처리한다.
+    if (!playback.didJustFinish || handledFinishRef.current === playback) return;
+    handledFinishRef.current = playback;
+    const queue = speechQueueRef.current;
+    if (queue && queue.next < queue.audios.length) {
+      void playNextChunk(queue);
+      return;
+    }
+    onSpeechFinished();
+  }, [onSpeechFinished, playNextChunk, playback]);
+
+  /** '다시 듣기': 조각이 여럿이면 처음 조각부터 차례로 다시 튼다. */
+  const replaySpeech = useCallback(async () => {
+    const urls = [...lastSpeechUrlsRef.current];
+    if (urls.length <= 1) {
+      player.seekTo(0);
+      player.play();
+      return;
+    }
+    const queue: SpeechQueue = { audios: urls.map((url) => Promise.resolve(url)), next: 1, urls: [] };
+    speechQueueRef.current = queue;
+    player.replace({ uri: urls[0] });
+    await waitUntilLoaded(() => player.isLoaded);
+    if (speechQueueRef.current === queue) player.play();
+  }, [player]);
 
   const stopConversation = useCallback(() => {
     askContext.current = undefined;
     finishConversation();
     cancelPhone();
-    player.pause();
-  }, [cancelPhone, finishConversation, player]);
+    stopSpeech();
+  }, [cancelPhone, finishConversation, stopSpeech]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -333,8 +442,9 @@ export default function App() {
       if (stage === "idle" && !conversationRef.current) {
         resetResult();
         setStage("listening");
+        // 앞 답 소리를 먼저 멈춘다. 서버 STT 모드에서 멈추지 않아 앞 답이 녹음에 섞였다(11/09 D18·D21).
+        stopSpeech();
         if (sttMode === "phone") {
-          player.pause();
           if (conversationMode) {
             const conversation: Conversation = { emptyTurns: 0, awaitingPlayback: false };
             conversationRef.current = conversation;
@@ -413,6 +523,25 @@ export default function App() {
             </Pressable>
           ))}
         </View>
+
+        {ttsChoices.length > 1 ? (
+          <View style={styles.modeRow}>
+            {ttsChoices.map((choice) => (
+              <Pressable
+                key={choice.engine}
+                accessibilityRole="button"
+                accessibilityState={{ selected: activeTts.engine === choice.engine, disabled: stage !== "idle" }}
+                disabled={stage !== "idle"}
+                onPress={() => setTtsChoice(choice.engine)}
+                style={[styles.modeButton, activeTts.engine === choice.engine && styles.modeButtonActive]}
+              >
+                <Text style={[styles.modeText, activeTts.engine === choice.engine && styles.modeTextActive]}>
+                  TTS {ttsButtonLabel(choice.engine)}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
 
         {sttMode === "phone" ? (
           <View>
@@ -505,10 +634,7 @@ export default function App() {
         />
         {canReplay && stage === "idle" ? (
           <Pressable
-            onPress={() => {
-              player.seekTo(0);
-              player.play();
-            }}
+            onPress={() => void replaySpeech()}
             style={styles.replayButton}
           >
             <Text style={styles.askText}>▶ 다시 듣기</Text>
@@ -520,7 +646,7 @@ export default function App() {
           stage={stage === "listening" ? "listening" : stage === "idle" && !conversationActive ? "idle" : "busy"}
           liveText={liveText}
           sttLabel={sttLabel}
-          ttsIsMock={serverInfo.kind === "ok" && serverInfo.health.ttsEngine === "mock"}
+          ttsIsMock={activeTts.engine === "mock"}
           onChoose={chooseTestCase}
           onSave={() => void saveAndReset()}
         />

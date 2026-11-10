@@ -46,6 +46,8 @@ export type SheetResult = {
   speaker: "" | "wife" | "husband";
   /** 이 턴을 받아 적은 STT (예: "폰 기본 STT", "Qwen3-ASR-1.7B") */
   stt: string;
+  /** 이 턴의 답을 읽은 TTS (예: "107 Qwen3-TTS · G 목소리"). 앱에서 TTS 를 고르면 턴마다 달라질 수 있다 */
+  tts?: string;
   condition: Condition;
   askMs?: number | null;
   ttsMs?: number | null;
@@ -257,6 +259,7 @@ export function recordTurn(
   stt: string,
   condition: Condition = "",
   corrected = "",
+  tts = "",
 ): SheetResult {
   const auto = autoScreenMark(testCase, answer);
   return {
@@ -264,6 +267,7 @@ export function recordTurn(
     recognized,
     answer,
     stt,
+    tts,
     condition,
     askMs: null,
     ttsMs: null,

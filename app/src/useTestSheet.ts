@@ -163,7 +163,7 @@ export function useTestSheet() {
   /** 시험 중인 문장에 이번 턴(인식한 말·답)을 적고 다음 문장으로 넘어간다. 다음 문장을 돌려준다. */
   const recordTurn = useCallback(
     (
-      recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null, corrected = "",
+      recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null, corrected = "", tts = "",
     ): TestCase | null => {
       const caseId = activeIdRef.current;
       const testCase = casesRef.current.find((item) => item.id === caseId);
@@ -173,7 +173,7 @@ export function useTestSheet() {
       update(
         caseId,
         buildRecord(
-          resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt, conditionRef.current, corrected,
+          resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt, conditionRef.current, corrected, tts,
         ),
       );
       if (phoneTurn?.audioUri) attachAudio(caseId, phoneTurn.audioUri, recognized);

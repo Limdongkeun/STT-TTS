@@ -122,6 +122,7 @@ test("recordTurn: 인식한 말·답·STT 를 넣고, 사람이 누른 화면 �
     recognized: "장보기 목록 뭐 남았어",
     answer: "다른 답",
     stt: "폰 기본 STT",
+    tts: "",
     condition: "",
     askMs: null,
     ttsMs: null,
@@ -213,4 +214,9 @@ test("changedCorrection: 보정으로 글자가 달라졌을 때만", () => {
   assert.equal(changedCorrection({ ...EMPTY_RESULT, recognized: "수연이 일정", corrected: "소윤이일정" }), "소윤이일정");
   assert.equal(changedCorrection({ ...EMPTY_RESULT, recognized: "소윤이 일정", corrected: "소윤이일정" }), "");
   assert.equal(changedCorrection(EMPTY_RESULT), "");
+});
+
+test("recordTurn: 이 턴을 읽은 TTS 이름을 적는다", () => {
+  const recorded = recordTurn(EMPTY_RESULT, CASE_A, "말", "답", "폰 기본 STT", "quiet", "", "107 Qwen3-TTS · G 목소리");
+  assert.equal(recorded.tts, "107 Qwen3-TTS · G 목소리");
 });

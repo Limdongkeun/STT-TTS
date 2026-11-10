@@ -112,12 +112,15 @@ export function postStt(recordingUri: string): Promise<SttResponse> {
   return uploadAudio<SttResponse>(joinUrl(baseUrl, "/stt"), "POST", recordingUri);
 }
 
-export function postAsk(text: string, context?: AskContext, speaker: Speaker = DEFAULT_SPEAKER): Promise<AskResponse> {
+/** ttsEngine: 앱에서 고른 TTS(서버가 사전 녹음일 때만 읽기용 글을 녹음에 맞춘다). 없으면 서버 기본. */
+export function postAsk(
+  text: string, context?: AskContext, speaker: Speaker = DEFAULT_SPEAKER, ttsEngine?: string,
+): Promise<AskResponse> {
   const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
   return request<AskResponse>(joinUrl(baseUrl, "/ask"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, context, speaker }),
+    body: JSON.stringify({ text, context, speaker, ttsEngine }),
   });
 }
 
@@ -179,14 +182,15 @@ export async function resetDemo(): Promise<void> {
   await request<unknown>(joinUrl(baseUrl, "/demo/reset"), { method: "POST" }, HEALTH_TIMEOUT_MS);
 }
 
-export async function postTts(text: string): Promise<TtsResponse & { fullAudioUrl: string }> {
+/** engine: 앱에서 고른 TTS(/health ttsChoices 중 하나). 없으면 서버 기본. */
+export async function postTts(text: string, engine?: string): Promise<TtsResponse & { fullAudioUrl: string }> {
   const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
   let result: TtsResponse;
   try {
     result = await request<TtsResponse>(joinUrl(baseUrl, "/tts"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text, engine }),
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 404) throw new NoRecordingError(error.message);

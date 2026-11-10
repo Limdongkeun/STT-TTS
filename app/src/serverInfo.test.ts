@@ -2,7 +2,10 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { describeServerInfo, isHealthResponse, PHONE_STT_LABEL, sttLabelFor } from "./serverInfo.ts";
+import {
+  activeTtsChoice, describeServerInfo, isHealthResponse, PHONE_STT_LABEL, sttLabelFor, ttsButtonLabel, ttsChoicesOf,
+  type HealthResponse,
+} from "./serverInfo.ts";
 
 const HEALTH = { status: "ok", sttEngine: "mock", ttsEngine: "mock", answerProvider: "family-demo" };
 
@@ -43,4 +46,28 @@ test("sttLabelFor: 폰 기본 STT / 서버 모델 이름 / 확인 안 됨", () =
     "Qwen3-ASR-1.7B · 힌트 42",
   );
   assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B", sttHints: 0 }), "Qwen3-ASR-1.7B");
+});
+
+test("ttsChoicesOf / activeTtsChoice: 고른 TTS 가 서버 목록에 있을 때만 쓴다", () => {
+  const health = {
+    status: "ok", sttEngine: "qwen3-asr", ttsEngine: "prerecorded", answerProvider: "family-demo",
+    ttsChoices: [
+      { engine: "prerecorded", label: "JISOO 사전 녹음 (C1~C7·D1~D25)" },
+      { engine: "qwen3-tts-107", label: "107 Qwen3-TTS · G 목소리" },
+      { engine: 3, label: "모양이 틀림" },
+    ],
+  } as unknown as HealthResponse;
+  assert.deepEqual(ttsChoicesOf(health).map((choice) => choice.engine), ["prerecorded", "qwen3-tts-107"]);
+  assert.deepEqual(activeTtsChoice(health, "qwen3-tts-107"), { engine: "qwen3-tts-107", label: "107 Qwen3-TTS · G 목소리" });
+  assert.deepEqual(activeTtsChoice(health, "elevenlabs"), { engine: "prerecorded", label: "JISOO 사전 녹음 (C1~C7·D1~D25)" });
+  assert.deepEqual(activeTtsChoice(health, null).engine, "prerecorded");
+});
+
+test("ttsChoicesOf: 예전 서버(목록 없음)·서버 모름은 빈 목록, 엔진은 서버 기본", () => {
+  const old: HealthResponse = { status: "ok", sttEngine: "mock", ttsEngine: "mock", answerProvider: "fixed" };
+  assert.deepEqual(ttsChoicesOf(old), []);
+  assert.deepEqual(activeTtsChoice(old, "prerecorded"), { engine: "mock", label: "" });
+  assert.deepEqual(activeTtsChoice(null, null), { engine: undefined, label: "" });
+  assert.equal(ttsButtonLabel("qwen3-tts-107"), "107 G 목소리");
+  assert.equal(ttsButtonLabel("새엔진"), "새엔진");
 });
