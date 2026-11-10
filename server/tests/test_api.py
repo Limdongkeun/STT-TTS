@@ -313,8 +313,8 @@ def test_one_server_offers_107_when_url_is_set():
     client = TestClient(create_app(make_settings(tts_engine="prerecorded", tts107_url="http://107.test:5110")))
     choices = client.get("/health").json()["ttsChoices"]
     assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "mock"]
-    assert choices[1]["label"] == "107 Qwen3-TTS · G 목소리"
-    assert choices[0]["label"] == "JISOO 사전 녹음 (C1~C7·D1~D25)"
+    assert choices[1]["label"] == "107 Qwen3-TTS · G 목소리 · 입말"
+    assert choices[0]["label"] == "JISOO 사전 녹음 (C1~C7·D1~D25)"  # 사전 녹음은 원래 문장
 
 
 def test_tts_engine_can_be_chosen_per_request():

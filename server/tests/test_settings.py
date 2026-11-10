@@ -46,3 +46,13 @@ def test_real_engine_object_does_not_load_model(monkeypatch):
     settings = load_settings()
     assert create_stt_engine(settings)._model is None
     assert create_tts_engine(settings)._model is None
+
+
+def test_spoken_answers_setting(monkeypatch):
+    monkeypatch.delenv("SPOKEN_ANSWERS", raising=False)
+    assert load_settings().spoken_answers == "on"
+    monkeypatch.setenv("SPOKEN_ANSWERS", "off")
+    assert load_settings().spoken_answers == "off"
+    monkeypatch.setenv("SPOKEN_ANSWERS", "maybe")
+    with pytest.raises(ValueError):
+        load_settings()

@@ -11,6 +11,8 @@ DTYPES = ("bfloat16", "float16", "float32")
 DEMO_CLOCKS = ("fixed", "real")
 # on: 서버 STT 에도 폰 STT 와 같은 힌트 낱말(app/data/stt_hints.json)을 넣는다. off 는 힌트 없이 비교할 때.
 STT_HINTS = ("on", "off")
+# on: 그때그때 만드는 TTS(107·맥 Qwen)는 시험 답을 입말 문장(app/data/spoken_answers.json)으로 읽는다. off 는 원래 문장.
+SPOKEN_ANSWERS = ("on", "off")
 
 
 def _choice(name: str, default: str, allowed: tuple[str, ...]) -> str:
@@ -52,6 +54,7 @@ class Settings:
     tts107_url: str = ""
     tts107_voice: str = "g"
     tts107_timeout_sec: int = 90
+    spoken_answers: str = "on"
 
 
 # 서버 하나로 여러 TTS 를 고를 때 보여 주는 순서. 맥에서 모델을 돌리는 qwen3-tts 는 기본 엔진일 때만 고를 수 있다
@@ -96,4 +99,5 @@ def load_settings() -> Settings:
         tts107_url=_tts107_url(tts_engine),
         tts107_voice=os.environ.get("TTS_107_VOICE", "g").strip(),
         tts107_timeout_sec=_positive_int("TTS_107_TIMEOUT_SEC", 90),
+        spoken_answers=_choice("SPOKEN_ANSWERS", "on", SPOKEN_ANSWERS),
     )

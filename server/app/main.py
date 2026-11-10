@@ -29,6 +29,7 @@ from app.engines.qwen3_tts_107 import Tts107Error
 from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
 from app.settings import Settings, load_settings, tts_choices
+from app.spoken_answers import SPOKEN_ENGINES, load_spoken_answers, spoken_for, to_spoken_style
 from app.stt_correction import correct_transcript
 from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
 
@@ -132,6 +133,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     stt_engine = create_stt_engine(settings)
     tts_engine = create_tts_engine(settings)
     choices = tts_choices(settings)
+    spoken_answers = load_spoken_answers() if settings.spoken_answers == "on" else {}
+
+    def reads_spoken(engine_name: str) -> bool:
+        """이 TTS 가 시험 답을 입말 문장으로 읽는지."""
+        return bool(spoken_answers) and engine_name in SPOKEN_ENGINES
     # 앱이 요청마다 고르는 TTS. 기본 엔진 말고는 처음 고를 때 만든다(107 은 이때도 부르지 않는다).
     tts_engines = {settings.tts_engine: tts_engine}
 
@@ -144,11 +150,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return tts_engines[key]
 
     def tts_record_label(name: str) -> str:
-        """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글)."""
+        """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글). 입말로 읽으면 '· 입말'을 붙여 따로 비교한다."""
         label = getattr(pick_tts_engine(name), "label", name) if name == "qwen3-tts-107" else tts_label_for(
             name, settings.tts_model_id
         )
-        return label
+        return f"{label} · 입말" if reads_spoken(name) else label
     answer_provider = (
         FamilyDemoAnswerProvider() if settings.answer_provider == "family-demo" else create_answer_provider(settings)
     )
@@ -221,6 +227,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             answer_text = answer_provider.answer(text)
         speech_text = answer_text
         chosen_tts = request.tts_engine or settings.tts_engine
+        # 화면 답은 그대로, 소리만 입말로(그때그때 만드는 TTS 일 때만). 시험 답 목록에 없으면 규칙으로 다듬는다.
+        if reads_spoken(chosen_tts):
+            speech_text = spoken_for(answer_text, spoken_answers) or to_spoken_style(answer_text)
         if chosen_tts == "prerecorded" and context and context.dose_at and answer_text.startswith("시험 기록에 "):
             action = "수정했어요" if "수정했어요." in answer_text else "기록했어요"
             speech_text = (
