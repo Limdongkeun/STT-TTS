@@ -257,3 +257,55 @@ def test_shopping_items_drop_trailing_particles():
     }
     for token, expected in cases.items():
         assert _strip_particle(token) == expected, token
+
+
+def _answers(questions):
+    from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider
+
+    provider = FamilyDemoAnswerProvider()
+    return [provider.answer(question, None, now=DEMO_NOW)[0] for question in questions]
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("남편한테 퇴근길에 약국 들러 달라고 해줘", "남편에게 '퇴근길에 약국 들러' 부탁을 보냈어요."),
+        ("퇴근길에 약국 들러 달라고 남편한테 전해줘", "남편에게 '퇴근길에 약국 들러' 부탁을 보냈어요."),
+        ("남편한테 약국 들르라고 해", "남편에게 '약국 들르기' 부탁을 보냈어요."),
+        ("아내한테 빨래하라고 전해줘", "아내에게 '빨래하기' 부탁을 보냈어요."),
+        ("남편한테 약 먹으라고 말해 줘", "남편에게 '약 먹기' 부탁을 보냈어요."),
+        ("여보한테 우유 사 오라고 해", "남편에게 '우유 사 오기' 부탁을 보냈어요."),
+    ],
+)
+def test_request_sent_without_the_word_request(question, expected):
+    """'부탁'이라는 말 없이 전해 달라고 해도 부탁으로 알아듣는다(2026-11-10 D13 '약국 뚫리라고 말해줘')."""
+    assert _answers([question]) == [expected]
+
+
+@pytest.mark.parametrize(
+    "question",
+    ["남편한테 뭐라고 해?", "아내한테 고맙다고 전해줘", "남편이 약국 들렀어?", "가스비 아내가 냈어"],
+)
+def test_not_a_request_without_the_word_request(question):
+    assert "부탁을 보냈어요" not in _answers([question])[0]
+    assert "부탁을 끝낸" not in _answers([question])[0]
+
+
+def test_finishing_request_matches_person_and_content():
+    """2026-11-10 D15: 약국 부탁이 없는데 '남편은 약국 부탁 다 했어'가 아내의 우산 부탁을 끝냈다."""
+    assert _answers(["남편은 약국 부탁 다 했어", "아내한테 온 부탁 뭐 있어?"]) == [
+        "남편에게 남은 부탁이 없어요.",
+        "아내에게 온 부탁은 1건이에요. 남편이 부탁한 '소윤이 우산 챙기기'예요.",
+    ]
+    sent = "남편한테 퇴근길에 약국 들러 달라고 부탁해줘"
+    for done in ("남편이 약국 다녀왔어", "약국 부탁 남편이 했어", "남편 약국 부탁 끝났어", "약국 부탁 다 했어"):
+        assert _answers([sent, done])[1] == "'퇴근길에 약국 들러' 부탁을 끝낸 걸로 표시했어요.", done
+    # 내용만 말해도 맞는 부탁을 끝낸다(사람을 안 말하면 모든 남은 부탁에서 찾는다)
+    assert _answers(["소윤이 우산 챙겼어"]) == ["'소윤이 우산 챙기기' 부탁을 끝낸 걸로 표시했어요."]
+
+
+def test_request_query_by_person_without_particle():
+    assert _answers(["남편한테 약국 들르라고 해", "남편 부탁 뭐 있어?"])[1] == (
+        "남편에게 온 부탁은 1건이에요. 아내가 부탁한 '약국 들르기'예요."
+    )
+    assert _answers(["남편이 받은 부탁 뭐야"]) == ["남편에게 온 부탁이 없어요."]

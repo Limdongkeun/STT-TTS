@@ -36,6 +36,20 @@ REQUEST_WITHOUT_RECIPIENT = re.compile(r"^(.+?)\s*(?:해\s*)?(?:달라고|주라
 REQUEST_PATTERN = re.compile(
     r"(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s+(.+?)\s*(?:해\s*)?(?:달라고|주라고|하라고)?\s*부탁"
 )
+# '부탁'이라는 말 없이 전해 달라는 말(2026-11-10 D13 '약국 들리라고 말해줘'): "남편한테 약국 들르라고 해",
+# "~ 달라고 전해 줘", "~하라고 말해 줘". 받는 사람은 앞이나 뒤에 온다.
+RELAY_VERB = r"(?:해|말해|전해|얘기해|이야기해|알려)(?:\s*줘|\s*주세요|\s*줄래)?$"
+RELAY_TO_RECIPIENT = re.compile(
+    rf"(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s+(.+?(?:달라고|주라고|라고))\s*{RELAY_VERB}"
+)
+RELAY_RECIPIENT_AFTER = re.compile(
+    rf"^(.+?(?:달라고|주라고|라고))\s+(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s*{RELAY_VERB}"
+)
+# 부탁을 끝냈다는 말. '부탁했어'(부탁을 보냈다)는 끝낸 말로 보지 않는다.
+REQUEST_DONE_WORDS = ("다했", "완료", "끝냈", "끝났", "했다고", "했어", "했대", "다녀왔", "들렀", "챙겼")
+# 부탁 내용에서 어느 부탁인지 가리킬 때 쓰지 않는 말(사람 이름)
+REQUEST_PERSON_WORDS = {"남편", "신랑", "아내", "와이프", "여보", "소윤", "소윤이", "콩이", "아빠", "엄마", "아버지"}
+NAMED_PERSON = re.compile(r"(아내|남편|신랑|와이프)(?!한테|에게|께)")
 ITEMS_AFTER_LIST = re.compile(r"(?:목록에|장보기에)\s+(.+?)\s*(?:좀\s+)?(?:넣어|추가|적어)")
 # "장보기"라는 말 없이 장보기 목록을 묻는 말 (비교용 글 기준: 공백 없음)
 SHOPPING_QUERY = re.compile(r"살거|살것|사야할거|사야할것|사야될거|사야돼|사야되|뭐사야|사올거")
@@ -130,6 +144,27 @@ def _strip_particle(token: str) -> str:
     return stem if len(stem) >= min_stem else token
 
 
+def _request_content(phrase: str) -> str:
+    """전해 달라는 말에서 부탁 내용만. '퇴근길에 약국 들러 달라고' → '퇴근길에 약국 들러',
+    '약국 들르라고' → '약국 들르기', '빨래하라고' → '빨래하기', '약을 먹으라고' → '약을 먹기'."""
+    phrase = phrase.strip()
+    asked = re.sub(r"\s*(?:해\s*)?(?:달라고|주라고)$", "", phrase)
+    if asked != phrase or not phrase.endswith("라고"):
+        return asked
+    stem = phrase.removesuffix("라고")
+    # '먹으라고'의 '으'는 받침 뒤에 붙는 소리라 뺀다(먹기). '들르라고'의 '르'는 그대로.
+    if stem.endswith("으") and len(stem) >= 2 and 0 <= ord(stem[-2]) - 0xAC00 <= 0xD7A3 - 0xAC00:
+        if (ord(stem[-2]) - 0xAC00) % 28:
+            stem = stem[:-1]
+    return f"{stem}기"
+
+
+def _content_words(content: str) -> list[str]:
+    """어느 부탁인지 가리키는 말('퇴근길에 약국 들러' → 퇴근길에, 약국, 들러). 사람 이름·한 글자는 뺀다."""
+    words = (_strip_particle(word) for word in content.split())
+    return [word for word in words if len(word) >= 2 and word not in REQUEST_PERSON_WORDS]
+
+
 def _extract_items(words: str) -> list[str]:
     match = ITEMS_AFTER_LIST.search(words)
     segment = match.group(1) if match else re.split(r"장\s*보기|장\s*볼|\s(?:좀\s+)?(?:넣어|추가|적어)", words)[0]
@@ -193,11 +228,22 @@ class FamilyTopics:
 
         - 보내기: "남편한테 ~ 달라고 부탁해줘" → 아내가 남편에게(보낸 사람은 받는 사람의 배우자)
         - 묻기: "남편한테 온 부탁 뭐 있어?", "나한테 온 부탁"(기본 사람)
-        - 끝내기: "남편이 (약국) 부탁 다 했어"
+        - 끝내기: "남편이 (약국) 부탁 다 했어", '부탁' 없이 "남편이 약국 다녀왔어"(남은 부탁 내용과 맞을 때만)
         """
-        if "부탁" not in text:
-            return None
         state = self._state
+        if "부탁" not in text:
+            if self._asking:
+                return None
+            relay = RELAY_TO_RECIPIENT.search(words)
+            after = None if relay else RELAY_RECIPIENT_AFTER.search(words)
+            if relay or after:
+                name, phrase = relay.groups() if relay else (after.group(2), after.group(1))
+                recipient = other_speaker(speaker) if name == "여보" else RECIPIENTS[name]
+                sender = speaker if name == "여보" else other_speaker(recipient)
+                return self._send_request(sender, recipient, _request_content(phrase))
+            if not any(word in text for word in REQUEST_DONE_WORDS):
+                return None
+            return self._finish_request(text, speaker, need_content=True)
         asking_me = any(word in text for word in ("나한테", "내게", "나에게"))
         sending = "부탁해" in text or "달라고" in text
         match = REQUEST_PATTERN.search(words)
@@ -220,24 +266,43 @@ class FamilyTopics:
             listed = ", ".join(f"{SPEAKER_LABELS[item.recipient]}에게 보낸 '{item.content}'" for item in sent)
             return f"{subject(label)} 보낸 부탁 중 남은 건 {len(sent)}건이에요. {copula(listed)}"
 
-        to_named = re.search(r"(아내|남편)(?:한테|에게)", text)
-        finisher = NAMED_SUBJECT.search(text)
-        if any(word in text for word in ("다했", "완료", "끝냈", "했다고")):
-            owner = PERSON_KEYS[finisher.group(1)] if finisher else speaker
-            pending = [item for item in state.requests if item.recipient == owner and not item.done]
-            if not pending:
-                return f"{SPEAKER_LABELS[owner]}에게 남은 부탁이 없어요."
-            finished = pending[-1]
-            finished.done = True
-            return f"'{finished.content}' 부탁을 끝낸 걸로 표시했어요."
+        # 받은 사람: "남편한테 온", "남편이 받은", "남편 부탁" 모두 남편
+        to_named = re.search(r"(아내|남편|신랑|와이프)", text)
+        if not self._asking and any(word in text.replace("부탁했", "") for word in REQUEST_DONE_WORDS):
+            return self._finish_request(text, speaker, need_content=False)
 
-        owner = PERSON_KEYS[to_named.group(1)] if to_named and not asking_me else speaker
+        owner = RECIPIENTS[to_named.group(1)] if to_named and not asking_me else speaker
         label = SPEAKER_LABELS[owner]
         received = [item for item in state.requests if item.recipient == owner and not item.done]
         if not received:
             return f"{label}에게 온 부탁이 없어요."
         listed = ", ".join(f"{subject(SPEAKER_LABELS[item.sender])} 부탁한 '{item.content}'" for item in received)
         return f"{label}에게 온 부탁은 {len(received)}건이에요. {copula(listed)}"
+
+    def _finish_request(self, text: str, speaker: str, *, need_content: bool) -> str | None:
+        """부탁 끝내기. 말한 내용(약국 등)과 맞는 남은 부탁을 먼저 찾는다.
+
+        사람을 말하면("남편이/남편은/남편") 그 사람이 받은 부탁 중에서, 안 말하면 모든 남은 부탁 중에서 찾는다.
+        내용이 맞는 게 없으면: need_content('부탁'이라는 말이 없음)면 None, 아니면 그 사람(없으면 말한 사람)의 마지막 부탁.
+        """
+        named = NAMED_PERSON.search(text)
+        owner = RECIPIENTS[named.group(1)] if named else None
+        pending = [
+            item for item in self._state.requests if not item.done and (owner is None or item.recipient == owner)
+        ]
+        matched = [item for item in pending if any(word in text for word in _content_words(item.content))]
+        if matched:
+            finished = matched[-1]
+        elif need_content:
+            return None
+        else:
+            owner = owner or speaker
+            pending = [item for item in pending if item.recipient == owner]
+            if not pending:
+                return f"{SPEAKER_LABELS[owner]}에게 남은 부탁이 없어요."
+            finished = pending[-1]
+        finished.done = True
+        return f"'{finished.content}' 부탁을 끝낸 걸로 표시했어요."
 
     def _send_request(self, speaker: str, recipient: str, content: str) -> str:
         content = content.removesuffix(" 좀").strip()
