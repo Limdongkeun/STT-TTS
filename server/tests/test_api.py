@@ -56,7 +56,7 @@ def test_health(client):
         "demoClock": "fixed",
         "sttHints": 0,
         "ttsChoices": [
-            {"engine": "prerecorded", "label": "JISOO 사전 녹음 (C1~C7·D1~D25)"},
+            {"engine": "prerecorded", "label": "JISOO 녹음 (C1~E2) · 입말"},
             {"engine": "mock", "label": "mock"},
         ],
     }
@@ -201,9 +201,12 @@ def test_prerecorded_answer_is_downloadable_and_labeled():
     from app.family_demo import FamilyDemoAnswerProvider
     from app.normalize import normalize_for_speech
 
+    from app.spoken_answers import load_spoken_answers, spoken_for
+
     client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
     text, _ = FamilyDemoAnswerProvider().answer("장보기 목록 뭐 남았어?")
-    response = client.post("/tts", json={"text": normalize_for_speech(text)})
+    spoken = spoken_for(text, load_spoken_answers())
+    response = client.post("/tts", json={"text": normalize_for_speech(spoken)})
     assert response.status_code == 200
     body = response.json()
     assert body["engine"] == "prerecorded"
@@ -214,40 +217,39 @@ def test_prerecorded_answer_is_downloadable_and_labeled():
 
 def test_prerecorded_rejects_a_different_answer():
     client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
-    response = client.post("/tts", json={"text": "장보기 목록은 사과예요."})
+    response = client.post("/tts", json={"text": "장보기 목록은 두부, 계란 2가지예요."})  # 입말이 아닌 원래 답
     assert response.status_code == 404
     assert "일치하는 사전 음성" in response.json()["detail"]
 
 
-def test_all_25_recordings_match_their_manifest():
+def test_all_35_recordings_match_their_manifest():
     import json
 
     from app.engines.prerecorded import DEFAULT_RECORDINGS_DIR, PrerecordedTtsEngine
 
     manifest = json.loads((DEFAULT_RECORDINGS_DIR / "manifest.json").read_text())
     engine = PrerecordedTtsEngine()
-    assert len(manifest["recordings"]) == 25
+    # 2026-11-12 입말 녹음: 시험 답 34개(C1~E2) + 모르는 질문 답
+    assert len(manifest["recordings"]) == 35
     for item in manifest["recordings"]:
         result = engine.synthesize(item["speechText"])
         assert result.sample_rate == 24000
         assert abs(result.duration_sec - item["durationSec"]) < 0.01
 
 
-def test_prerecorded_c1_to_c7_including_dynamic_dose_times():
+def test_prerecorded_plays_every_test_case_in_order():
+    """시험표 C1~E2 를 차례로 말하면(맥락 이어서) 지수 입말 녹음이 모두 있다. 모르는 질문도 녹음이 있다."""
     from app.test_sheet import TEST_CASES
 
     client = TestClient(create_app(make_settings(tts_engine="prerecorded", answer_provider="family-demo")))
     context = None
-    for case in TEST_CASES:
-        if not case["id"].startswith("C"):
-            continue
+    for case in [*TEST_CASES, {"id": "모름", "say": "오늘 날씨 어때?"}]:
         response = client.post("/ask", json={"text": case["say"], "context": context})
         assert response.status_code == 200
         answer = response.json()
         context = answer.get("context")
-        if case["id"] in ("C4", "C5"):
-            assert "시험 기록에 " in answer["answerText"]
-            assert "말씀하신 시각으로" in answer["speechText"]
+        if case["id"] == "C4":
+            assert "시험 기록에 " in answer["answerText"] and answer["speechText"].startswith("네, 두 시 반")
         audio = client.post("/tts", json={"text": answer["speechText"]})
         assert audio.status_code == 200, (case["id"], audio.text)
         assert client.get(audio.json()["audioUrl"]).content[:4] == b"RIFF"
@@ -258,7 +260,7 @@ def test_prerecorded_ignores_spacing_and_punctuation():
     from app.engines.prerecorded import PrerecordedTtsEngine, canonical_text
 
     engine = PrerecordedTtsEngine()
-    spaced = "남편에게 '퇴근 길에 약국 들러' 부탁을 보냈어요"
+    spaced = "네 남편한테 퇴근 길에 약국 들러 달라고 전했어요"
     assert engine.synthesize(spaced).sample_rate == 24000
     assert canonical_text(" 두부, 계란 ") == "두부계란"
 
@@ -268,11 +270,9 @@ def test_prerecorded_keys_are_unique_after_compacting():
 
     from app.engines.prerecorded import DEFAULT_RECORDINGS_DIR, canonical_text
 
-    texts = []
-    for folder in (DEFAULT_RECORDINGS_DIR, DEFAULT_RECORDINGS_DIR.parent / "c1-c7"):
-        manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
-        texts += [canonical_text(item["speechText"]) for item in manifest["recordings"]]
-    assert len(texts) == 32 and len(set(texts)) == 32
+    manifest = json.loads((DEFAULT_RECORDINGS_DIR / "manifest.json").read_text(encoding="utf-8"))
+    texts = [canonical_text(item["speechText"]) for item in manifest["recordings"]]
+    assert len(texts) == 35 and len(set(texts)) == 35
 
 
 def test_family_demo_answers_at_fixed_test_time_by_default():
@@ -312,9 +312,10 @@ def test_ask_returns_corrected_text_for_family_demo():
 def test_one_server_offers_107_when_url_is_set():
     client = TestClient(create_app(make_settings(tts_engine="prerecorded", tts107_url="http://107.test:5110")))
     choices = client.get("/health").json()["ttsChoices"]
-    assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "mock"]
+    assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", "mock"]
     assert choices[1]["label"] == "107 Qwen3-TTS · G 목소리 · 입말"
-    assert choices[0]["label"] == "JISOO 사전 녹음 (C1~C7·D1~D25)"  # 사전 녹음은 원래 문장
+    assert choices[2]["label"] == "107 Qwen3-TTS · H2 목소리 · 입말"
+    assert choices[0]["label"] == "JISOO 녹음 (C1~E2) · 입말"  # 2026-11-12부터 지수 녹음도 입말
 
 
 def test_tts_engine_can_be_chosen_per_request():
@@ -325,18 +326,29 @@ def test_tts_engine_can_be_chosen_per_request():
     assert client.post("/tts", json={"text": "아무 글이나 읽어 줘"}).status_code == 404
 
 
-@pytest.mark.parametrize("engine", ["qwen3-tts-107", "qwen3-tts", "elevenlabs", "../x"])
+@pytest.mark.parametrize("engine", ["qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts", "elevenlabs", "../x"])
 def test_unavailable_tts_engine_is_rejected(engine):
     client = TestClient(create_app(make_settings(tts_engine="mock")))
     response = client.post("/tts", json={"text": "안녕하세요", "engine": engine})
     assert response.status_code == 422
 
 
-def test_ask_shortens_dose_speech_only_for_chosen_prerecorded():
+def test_ask_reads_spoken_dose_answer_only_for_chosen_prerecorded():
     client = TestClient(create_app(make_settings(tts_engine="mock", answer_provider="family-demo")))
     first = client.post("/ask", json={"text": "애기 해열제 부르펜 계열 먹었는데 시간 체크해줘"}).json()
     context = first.get("context")
     spoken = client.post("/ask", json={"text": "30분 전에 먹였어", "context": context, "ttsEngine": "prerecorded"}).json()
     plain = client.post("/ask", json={"text": "30분 전에 먹였어", "context": context}).json()
-    assert spoken["speechText"].startswith("말씀하신 시각으로")
-    assert plain["speechText"].startswith("시험 기록에 ")
+    assert spoken["speechText"].startswith("네, 두 시 반으로 적어 뒀어요")
+    assert plain["speechText"].startswith("시험 기록에 ")  # mock 은 원래 문장
+
+
+def test_every_spoken_answer_has_a_jisoo_recording():
+    """입말 문장(spoken_answers.json)을 고치면 지수 녹음이 사라진다 → 다시 녹음해야 한다는 걸 테스트가 알려 준다."""
+    from app.engines.prerecorded import PrerecordedTtsEngine
+    from app.normalize import normalize_for_speech
+    from app.spoken_answers import UNKNOWN_SPOKEN, load_answer_samples
+
+    engine = PrerecordedTtsEngine()
+    for text in [*(sample["spoken"] for sample in load_answer_samples()), UNKNOWN_SPOKEN]:
+        assert engine.synthesize(normalize_for_speech(text)).duration_sec > 1, text

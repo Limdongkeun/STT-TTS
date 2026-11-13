@@ -26,6 +26,8 @@ import {
 import { STT_MODE_LABELS, type SttMode } from "./src/sttModes";
 import { usePhoneStt, type PhoneTurn } from "./src/usePhoneStt";
 import { useServerRecorder } from "./src/useServerRecorder";
+import { AnswerListenPanel } from "./src/AnswerListenPanel";
+import { NumberReadingPanel } from "./src/NumberReadingPanel";
 import { TestSheetPanel } from "./src/TestSheetPanel";
 import { describeAttempt, type TestCase } from "./src/testSheet";
 import { useTestSheet } from "./src/useTestSheet";
@@ -36,8 +38,9 @@ type Conversation = { emptyTurns: number; awaitingPlayback: boolean };
 
 type Timings = { sttMs?: number; askMs?: number; ttsMs?: number; totalMs?: number };
 
-/** 한 답의 소리 조각들(문장 단위). audios[i] 는 i번째 조각의 음성 주소, next 는 다음에 틀 조각. */
-type SpeechQueue = { audios: Promise<string>[]; next: number; urls: string[] };
+/** 한 답의 소리 조각들(문장 단위). audios[i] 는 i번째 조각의 음성 주소, next 는 다음에 틀 조각.
+ *  onChunk: 숫자 읽기 시험처럼 몇 번째 조각을 트는지 화면에 보여야 할 때. 있으면 끝나도 대화 모드로 넘어가지 않는다. */
+type SpeechQueue = { audios: Promise<string>[]; next: number; urls: string[]; onChunk?: (index: number) => void };
 
 /** 뒤 조각을 아무도 기다리지 않을 때 '처리 안 된 거부' 경고가 뜨지 않게 한다. */
 function quiet<T>(promise: Promise<T>): Promise<T> {
@@ -70,6 +73,10 @@ export default function App() {
   // 앱에서 고른 TTS(null = 서버 기본). 서버 하나로 합쳐 띄웠을 때 /health 의 ttsChoices 중에서 고른다.
   const [ttsChoice, setTtsChoice] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  // 숫자 읽기 시험에서 지금 읽는 조각 번호(없으면 null).
+  const [readingIndex, setReadingIndex] = useState<number | null>(null);
+  // readingIndex 가 어느 칸(답 듣기 / 숫자 읽기 시험)에서 넘긴 목록의 번호인지. 그 칸만 '읽는 중'을 보인다.
+  const [readingOwner, setReadingOwner] = useState<"answers" | "numbers">("numbers");
   // 맨 아래 시험표: 시험 중인 문장이 있으면 이번 턴을 자동으로 적는다.
   const testSheet = useTestSheet();
   const recordTurnRef = useRef(testSheet.recordTurn);
@@ -124,6 +131,7 @@ export default function App() {
   /** 답 소리를 멈춘다(남은 조각 포함). 말하기를 시작할 때 부른다 — 앞 답 소리가 녹음에 섞이지 않게. */
   const stopSpeech = useCallback(() => {
     speechQueueRef.current = null;
+    setReadingIndex(null);
     player.pause();
   }, [player]);
 
@@ -200,6 +208,7 @@ export default function App() {
         const chunks = splitTurn ? splitSpeech(answer.speechText) : [];
         const queue: SpeechQueue = { audios: [], next: 1, urls: [] };
         speechQueueRef.current = queue;
+        setReadingIndex(null);
         lastSpeechUrlsRef.current = queue.urls;
         queue.audios = fetchSequentially(
           chunks.length > 0 ? chunks : [answer.speechText],
@@ -367,10 +376,15 @@ export default function App() {
       if (!(error instanceof SpeechCancelledError)) {
         setNotice(`답 뒷부분 소리를 만들지 못했어요: ${error instanceof Error ? error.message : String(error)}`);
       }
+      if (queue.onChunk) {
+        setReadingIndex(null);
+        return;
+      }
       onSpeechFinished();
       return;
     }
     if (speechQueueRef.current !== queue) return;
+    queue.onChunk?.(index);
     queue.urls.push(url);
     player.replace({ uri: url });
     await waitUntilLoaded(() => player.isLoaded);
@@ -387,8 +401,49 @@ export default function App() {
       void playNextChunk(queue);
       return;
     }
+    if (queue?.onChunk) {
+      speechQueueRef.current = null;
+      setReadingIndex(null);
+      return;
+    }
     onSpeechFinished();
   }, [onSpeechFinished, playNextChunk, playback]);
+
+  /** 숫자 읽기 시험: 읽기 글들을 차례로 만들어 튼다(답 소리와 같은 길: 하나씩 만들고, 앞 것을 트는 동안 다음 것을 만든다). */
+  const playReadings = useCallback(async (readings: string[], owner: "answers" | "numbers") => {
+    if (readings.length === 0) return;
+    stopSpeech();
+    setReadingOwner(owner);
+    setNotice("");
+    const engine = ttsRequestEngineRef.current;
+    const queue: SpeechQueue = { audios: [], next: 1, urls: [], onChunk: setReadingIndex };
+    speechQueueRef.current = queue;
+    queue.audios = fetchSequentially(
+      readings,
+      (reading) => postTts(reading, engine),
+      () => speechQueueRef.current === queue,
+    ).map((audio) => quiet(audio.then((speech) => speech.fullAudioUrl)));
+    setReadingIndex(0);
+    let firstUrl: string;
+    try {
+      firstUrl = await queue.audios[0];
+    } catch (error) {
+      if (speechQueueRef.current !== queue) return;
+      speechQueueRef.current = null;
+      setReadingIndex(null);
+      if (!(error instanceof SpeechCancelledError)) {
+        setNotice(`숫자 읽기 소리를 만들지 못했어요: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      return;
+    }
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    await setIsAudioActiveAsync(true);
+    if (speechQueueRef.current !== queue) return;
+    queue.urls.push(firstUrl);
+    player.replace({ uri: firstUrl });
+    await waitUntilLoaded(() => player.isLoaded);
+    if (speechQueueRef.current === queue) player.play();
+  }, [player, stopSpeech]);
 
   /** '다시 듣기': 조각이 여럿이면 처음 조각부터 차례로 다시 튼다. */
   const replaySpeech = useCallback(async () => {
@@ -489,157 +544,166 @@ export default function App() {
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="dark" />
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>STT-TTS 시험</Text>
-        <Text style={styles.meta}>STT 서버: {sttServerUrl ?? "설정 안 됨"}</Text>
-        <Text style={styles.meta}>답·TTS 서버: {ttsServerUrl ?? "설정 안 됨"}</Text>
-        <Pressable accessibilityRole="button" accessibilityHint="눌러서 서버 상태를 다시 확인" onPress={() => void refreshServerInfo()}>
-          <Text style={[styles.serverInfo, serverInfo.kind === "error" && styles.error]}>
-            {describeServerInfo(serverInfo)} ↻
-          </Text>
-        </Pressable>
-
-        <View style={styles.modeRow}>
-          <Pressable
-            accessibilityRole="button"
-            disabled={stage !== "idle"}
-            onPress={onResetDemo}
-            style={[styles.modeButton, stage !== "idle" && styles.disabled]}
-          >
-            <Text style={styles.modeText}>시험 데이터 초기화</Text>
+      {/* 시험표(1번째 자식)가 보이는 동안은 그 위치를 지킨다: '이 문장 말하기'를 누르면 위쪽 칸(시험 중 띠·듣는 중·
+          인식한 말·답·걸린 시간)이 커졌다 작아졌다 해서 보던 카드가 밀렸다(2026-11-12 사용자 제보).
+          그래서 위쪽은 View 하나(0번째)로 묶어 자식 번호가 바뀌지 않게 한다. 맨 위를 볼 때는 평소처럼 움직인다. */}
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+      >
+        <View style={styles.top}>
+          <Text style={styles.title}>STT-TTS 시험</Text>
+          <Text style={styles.meta}>STT 서버: {sttServerUrl ?? "설정 안 됨"}</Text>
+          <Text style={styles.meta}>답·TTS 서버: {ttsServerUrl ?? "설정 안 됨"}</Text>
+          <Pressable accessibilityRole="button" accessibilityHint="눌러서 서버 상태를 다시 확인" onPress={() => void refreshServerInfo()}>
+            <Text style={[styles.serverInfo, serverInfo.kind === "error" && styles.error]}>
+              {describeServerInfo(serverInfo)} ↻
+            </Text>
           </Pressable>
-        </View>
-        {notice ? <Text style={styles.meta}>{notice}</Text> : null}
 
-        <View style={styles.modeRow}>
-          {(Object.keys(STT_MODE_LABELS) as SttMode[]).map((mode) => (
-            <Pressable
-              key={mode}
-              disabled={stage !== "idle"}
-              onPress={() => setSttMode(mode)}
-              style={[styles.modeButton, sttMode === mode && styles.modeButtonActive]}
-            >
-              <Text style={[styles.modeText, sttMode === mode && styles.modeTextActive]}>{STT_MODE_LABELS[mode]}</Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {ttsChoices.length > 1 ? (
           <View style={styles.modeRow}>
-            {ttsChoices.map((choice) => (
+            <Pressable
+              accessibilityRole="button"
+              disabled={stage !== "idle"}
+              onPress={onResetDemo}
+              style={[styles.modeButton, stage !== "idle" && styles.disabled]}
+            >
+              <Text style={styles.modeText}>시험 데이터 초기화</Text>
+            </Pressable>
+          </View>
+          {notice ? <Text style={styles.meta}>{notice}</Text> : null}
+
+          <View style={styles.modeRow}>
+            {(Object.keys(STT_MODE_LABELS) as SttMode[]).map((mode) => (
               <Pressable
-                key={choice.engine}
-                accessibilityRole="button"
-                accessibilityState={{ selected: activeTts.engine === choice.engine, disabled: stage !== "idle" }}
+                key={mode}
                 disabled={stage !== "idle"}
-                onPress={() => setTtsChoice(choice.engine)}
-                style={[styles.modeButton, activeTts.engine === choice.engine && styles.modeButtonActive]}
+                onPress={() => setSttMode(mode)}
+                style={[styles.modeButton, sttMode === mode && styles.modeButtonActive]}
               >
-                <Text style={[styles.modeText, activeTts.engine === choice.engine && styles.modeTextActive]}>
-                  TTS {ttsButtonLabel(choice.engine)}
-                </Text>
+                <Text style={[styles.modeText, sttMode === mode && styles.modeTextActive]}>{STT_MODE_LABELS[mode]}</Text>
               </Pressable>
             ))}
           </View>
-        ) : null}
 
-        {sttMode === "phone" ? (
-          <View>
-            <Pressable
-              accessibilityRole="switch"
-              accessibilityState={{ checked: conversationMode, disabled: stage !== "idle" }}
-              disabled={stage !== "idle"}
-              onPress={() => setConversationMode((enabled) => !enabled)}
-              style={[styles.modeButton, conversationMode && styles.modeButtonActive]}
-            >
-              <Text style={[styles.modeText, conversationMode && styles.modeTextActive]}>
-                대화 모드 {conversationMode ? "켜짐" : "꺼짐"}
-              </Text>
-            </Pressable>
-            <Text style={styles.meta}>말이 끝났다고 보는 쉬는 시간</Text>
+          {ttsChoices.length > 1 ? (
             <View style={styles.modeRow}>
-              {SILENCE_OPTIONS_MS.map((ms) => (
+              {ttsChoices.map((choice) => (
                 <Pressable
-                  key={ms}
+                  key={choice.engine}
                   accessibilityRole="button"
-                  accessibilityState={{ selected: ms === silenceMs, disabled: stage !== "idle" }}
+                  accessibilityState={{ selected: activeTts.engine === choice.engine, disabled: stage !== "idle" }}
                   disabled={stage !== "idle"}
-                  onPress={() => setSilenceMs(ms)}
-                  style={[styles.modeButton, ms === silenceMs && styles.modeButtonActive]}
+                  onPress={() => setTtsChoice(choice.engine)}
+                  style={[styles.modeButton, activeTts.engine === choice.engine && styles.modeButtonActive]}
                 >
-                  <Text style={[styles.modeText, ms === silenceMs && styles.modeTextActive]}>
-                    {formatSilenceLabel(ms)}
+                  <Text style={[styles.modeText, activeTts.engine === choice.engine && styles.modeTextActive]}>
+                    TTS {ttsButtonLabel(choice.engine)}
                   </Text>
                 </Pressable>
               ))}
             </View>
-          </View>
-        ) : null}
+          ) : null}
 
-        {testSheet.activeCase ? (
-          <View style={styles.testBanner}>
-            <Text style={styles.testBannerText}>
-              시험 중 {testSheet.activeCase.id} — “{testSheet.activeCase.say}”
-            </Text>
-            <Pressable accessibilityRole="button" onPress={() => testSheet.setActiveId(null)} style={styles.testBannerStop}>
-              <Text style={styles.testBannerStopText}>그만</Text>
+          {sttMode === "phone" ? (
+            <View>
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: conversationMode, disabled: stage !== "idle" }}
+                disabled={stage !== "idle"}
+                onPress={() => setConversationMode((enabled) => !enabled)}
+                style={[styles.modeButton, conversationMode && styles.modeButtonActive]}
+              >
+                <Text style={[styles.modeText, conversationMode && styles.modeTextActive]}>
+                  대화 모드 {conversationMode ? "켜짐" : "꺼짐"}
+                </Text>
+              </Pressable>
+              <Text style={styles.meta}>말이 끝났다고 보는 쉬는 시간</Text>
+              <View style={styles.modeRow}>
+                {SILENCE_OPTIONS_MS.map((ms) => (
+                  <Pressable
+                    key={ms}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: ms === silenceMs, disabled: stage !== "idle" }}
+                    disabled={stage !== "idle"}
+                    onPress={() => setSilenceMs(ms)}
+                    style={[styles.modeButton, ms === silenceMs && styles.modeButtonActive]}
+                  >
+                    <Text style={[styles.modeText, ms === silenceMs && styles.modeTextActive]}>
+                      {formatSilenceLabel(ms)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          ) : null}
+
+          {testSheet.activeCase ? (
+            <View style={styles.testBanner}>
+              <Text style={styles.testBannerText}>
+                시험 중 {testSheet.activeCase.id} — “{testSheet.activeCase.say}”
+              </Text>
+              <Pressable accessibilityRole="button" onPress={() => testSheet.setActiveId(null)} style={styles.testBannerStop}>
+                <Text style={styles.testBannerStopText}>그만</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          <Pressable
+            disabled={isBusy && !conversationActive}
+            onPress={conversationActive ? stopConversation : onMicPress}
+            style={[styles.micButton, (conversationActive || stage === "listening") && styles.micButtonActive, isBusy && !conversationActive && styles.disabled]}
+          >
+            <Text style={styles.micText}>{conversationActive ? "■ 대화 끝내기" : stage === "listening" ? "■ 말하기 끝" : "🎤 말하기"}</Text>
+          </Pressable>
+          <Text style={styles.stage}>
+            {stage === "listening" && sttMode === "phone"
+              ? "듣는 중… 말을 멈추면 자동으로 질문해요"
+              : STAGE_LABELS[stage]}
+          </Text>
+          {liveText ? <Text style={styles.live}>{liveText}</Text> : null}
+
+          <View style={styles.typedRow}>
+            <TextInput
+              value={typedQuestion}
+              onChangeText={setTypedQuestion}
+              placeholder="글로 바로 묻기 (STT 없이 시험)"
+              style={styles.input}
+            />
+            <Pressable disabled={stage !== "idle" || !typedQuestion.trim()} onPress={onTypedAsk} style={styles.askButton}>
+              <Text style={styles.askText}>묻기</Text>
             </Pressable>
           </View>
-        ) : null}
 
-        <Pressable
-          disabled={isBusy && !conversationActive}
-          onPress={conversationActive ? stopConversation : onMicPress}
-          style={[styles.micButton, (conversationActive || stage === "listening") && styles.micButtonActive, isBusy && !conversationActive && styles.disabled]}
-        >
-          <Text style={styles.micText}>{conversationActive ? "■ 대화 끝내기" : stage === "listening" ? "■ 말하기 끝" : "🎤 말하기"}</Text>
-        </Pressable>
-        <Text style={styles.stage}>
-          {stage === "listening" && sttMode === "phone"
-            ? "듣는 중… 말을 멈추면 자동으로 질문해요"
-            : STAGE_LABELS[stage]}
-        </Text>
-        {liveText ? <Text style={styles.live}>{liveText}</Text> : null}
-
-        <View style={styles.typedRow}>
-          <TextInput
-            value={typedQuestion}
-            onChangeText={setTypedQuestion}
-            placeholder="글로 바로 묻기 (STT 없이 시험)"
-            style={styles.input}
+          {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
+          <ResultBlock label="인식한 말" value={question} />
+          <ResultBlock label="답 (화면용)" value={answerText} />
+          <ResultBlock label="답 (읽기용)" value={speechText} />
+          <ResultBlock
+            label="걸린 시간"
+            value={
+              timings.totalMs === undefined
+                ? ""
+                : [
+                    timings.sttMs !== undefined ? `STT ${timings.sttMs}ms` : null,
+                    `답 ${timings.askMs}ms`,
+                    `TTS ${timings.ttsMs}ms`,
+                    `합계 ${timings.totalMs}ms`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+            }
           />
-          <Pressable disabled={stage !== "idle" || !typedQuestion.trim()} onPress={onTypedAsk} style={styles.askButton}>
-            <Text style={styles.askText}>묻기</Text>
-          </Pressable>
+          {canReplay && stage === "idle" ? (
+            <Pressable
+              onPress={() => void replaySpeech()}
+              style={styles.replayButton}
+            >
+              <Text style={styles.askText}>▶ 다시 듣기</Text>
+            </Pressable>
+          ) : null}
         </View>
-
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        <ResultBlock label="인식한 말" value={question} />
-        <ResultBlock label="답 (화면용)" value={answerText} />
-        <ResultBlock label="답 (읽기용)" value={speechText} />
-        <ResultBlock
-          label="걸린 시간"
-          value={
-            timings.totalMs === undefined
-              ? ""
-              : [
-                  timings.sttMs !== undefined ? `STT ${timings.sttMs}ms` : null,
-                  `답 ${timings.askMs}ms`,
-                  `TTS ${timings.ttsMs}ms`,
-                  `합계 ${timings.totalMs}ms`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")
-          }
-        />
-        {canReplay && stage === "idle" ? (
-          <Pressable
-            onPress={() => void replaySpeech()}
-            style={styles.replayButton}
-          >
-            <Text style={styles.askText}>▶ 다시 듣기</Text>
-          </Pressable>
-        ) : null}
 
         <TestSheetPanel
           sheet={testSheet}
@@ -649,6 +713,23 @@ export default function App() {
           ttsIsMock={activeTts.engine === "mock"}
           onChoose={chooseTestCase}
           onSave={() => void saveAndReset()}
+        />
+        <AnswerListenPanel
+          ttsEngine={activeTts.engine}
+          ttsLabel={activeTts.label}
+          busy={stage !== "idle" || conversationActive}
+          playingIndex={readingOwner === "answers" ? readingIndex : null}
+          onPlay={(readings) => void playReadings(readings, "answers")}
+          onStop={stopSpeech}
+        />
+        <NumberReadingPanel
+          device={testSheet.device}
+          ttsEngine={activeTts.engine}
+          ttsLabel={activeTts.label}
+          busy={stage !== "idle" || conversationActive}
+          playingIndex={readingOwner === "numbers" ? readingIndex : null}
+          onPlay={(readings) => void playReadings(readings, "numbers")}
+          onStop={stopSpeech}
         />
       </ScrollView>
     </SafeAreaView>
@@ -670,6 +751,7 @@ function ResultBlock({ label, value }: { label: string; value: string }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F7F8FA" },
   content: { padding: 20, gap: 12 },
+  top: { gap: 12 },
   title: { fontSize: 24, fontWeight: "700", color: "#111" },
   meta: { fontSize: 12, color: "#666" },
   serverInfo: { fontSize: 13, fontWeight: "600", color: "#1F4FD8" },

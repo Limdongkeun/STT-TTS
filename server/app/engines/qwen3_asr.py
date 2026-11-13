@@ -6,13 +6,16 @@
 모델은 처음 transcribe 를 부를 때 내려받고 불러온다.
 """
 
+import logging
 import threading
 from pathlib import Path
 
 from app.device import resolve_device, resolve_dtype
 from app.engines.base import SttResult
 from app.settings import Settings
-from app.stt_hints import hint_context, load_hint_words
+from app.stt_hints import echoes_hint_context, hint_context, load_hint_words
+
+logger = logging.getLogger(__name__)
 
 
 class Qwen3AsrEngine:
@@ -22,6 +25,7 @@ class Qwen3AsrEngine:
         self._settings = settings
         # 폰 STT 와 같은 힌트 낱말(공평 비교). STT_HINTS=off 면 넣지 않는다.
         words = load_hint_words() if settings.stt_hints == "on" else []
+        self._words = words
         self.hint_count = len(words)
         self._context = hint_context(words)
         self._model = None
@@ -45,4 +49,9 @@ class Qwen3AsrEngine:
         model = self._load()
         results = model.transcribe(audio=str(wav_path), context=self._context, language=self._settings.speech_language)
         first = results[0]
-        return SttResult(text=first.text.strip(), language=getattr(first, "language", None))
+        text = first.text.strip()
+        # 힌트 글을 따라 쓴 결과는 버린다 → 앱이 '인식된 말이 없어요. 다시 말해 주세요.'로 받는다(2026-11-12 D19).
+        if echoes_hint_context(text, self._words):
+            logger.warning("STT 결과가 힌트 글을 따라 써서 버림: %r", text[:60])
+            text = ""
+        return SttResult(text=text, language=getattr(first, "language", None))

@@ -51,13 +51,15 @@ def _ask(client, tts_engine):
     return client.post("/ask", json=body).json()
 
 
-def test_ask_reads_spoken_only_for_generated_tts():
+def test_ask_reads_spoken_for_generated_tts_and_jisoo_recordings():
+    """2026-11-12부터 지수 녹음도 입말로 녹음했다. mock 은 원래 문장."""
     client = TestClient(create_app(make_settings(tts_engine="prerecorded", answer_provider="family-demo", tts107_url=BASE)))
     generated = _ask(client, "qwen3-tts-107")
     recorded = _ask(client, None)
+    beep = _ask(client, "mock")
     assert generated["answerText"] == recorded["answerText"] == "이번 주 분리수거는 남편 차례예요. 아직 안 했어요."
-    assert generated["speechText"] == "이번 주 분리수거는 남편 차례인데요, 아직 안 했어요."
-    assert recorded["speechText"] == "이번 주 분리수거는 남편 차례예요. 아직 안 했어요."
+    assert generated["speechText"] == recorded["speechText"] == "이번 주 분리수거는 남편 차례인데요, 아직 안 했어요."
+    assert beep["speechText"] == "이번 주 분리수거는 남편 차례예요. 아직 안 했어요."
 
 
 def test_spoken_answers_off_keeps_original_and_label():
@@ -115,4 +117,32 @@ def test_ask_uses_rules_for_answers_outside_the_list():
     assert unknown["answerText"] == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
     assert unknown["speechText"] == UNKNOWN_SPOKEN
     recorded = client.post("/ask", json={"text": "오늘 날씨 어때?"}).json()
-    assert recorded["speechText"] == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
+    assert recorded["speechText"] == UNKNOWN_SPOKEN  # 지수 녹음도 이 문장으로 녹음했다
+    beep = client.post("/ask", json={"text": "오늘 날씨 어때?", "ttsEngine": "mock"}).json()
+    assert beep["speechText"] == "이 질문에 맞는 시험 답변이 준비돼 있지 않아요."
+
+
+# ── 답 듣기 칸 (/answer-samples, 2026-11-12) ──
+from app.spoken_answers import load_answer_samples  # noqa: E402
+
+
+def test_answer_samples_keep_file_order_and_fields():
+    samples = load_answer_samples()
+    assert len(samples) == 34
+    assert [sample["id"] for sample in samples[:2]] == ["C1", "C2"] and samples[-1]["id"] == "E2"
+    assert all(sample.keys() == {"id", "answer", "spoken"} for sample in samples)
+    # 입말 문장에는 아라비아 숫자가 없다(그대로 읽혀도 숫자를 틀리지 않게)
+    assert not any(char.isdigit() for sample in samples for char in sample["spoken"])
+
+
+def test_answer_samples_reject_bad_file(tmp_path):
+    path = tmp_path / "spoken.json"
+    path.write_text(json.dumps({"answers": [{"id": "C1", "answer": "답", "spoken": " "}]}, ensure_ascii=False))
+    with pytest.raises(ValueError):
+        load_answer_samples(path)
+
+
+def test_api_lists_answer_samples():
+    client = TestClient(create_app(make_settings(tts_engine="mock")))
+    samples = client.get("/answer-samples").json()["samples"]
+    assert samples[0]["id"] == "C1" and samples[0]["spoken"].startswith("다음 주")

@@ -96,6 +96,6 @@ npm run android:device   # 안드로이드 폰 USB 디버깅 켠 상태
 
 ## 이번 주 임시 음성 (C1~C7·D1~D25)
 
-서버 기본 TTS는 `prerecorded`다. `output/audio/d1-d25`와 `output/audio/c1-c7`의 지수 사전 음성을 답변과 일치할 때 재생한다. ElevenLabs API 호출이나 키가 필요하지 않다.
+서버 기본 TTS는 `prerecorded`다. `output/audio/jisoo-spoken`의 지수 녹음(시험 답 34개의 소리용 입말 문장과 모르는 질문 답, 2026-11-12 녹음)을 읽기용 글과 일치할 때 재생한다. 재생에는 ElevenLabs API 호출이나 키가 필요하지 않다.
 
-D1부터 순서대로 시험하면 녹음과 같은 답변을 받을 수 있다. 생성일(2026-11-05) 이후 날짜나 기록이 바뀌어 녹음과 달라지면 화면 답변과 “일치하는 사전 음성이 없습니다” 안내가 나온다. C1~C7도 재생한다. C4·C5는 화면에 정확한 시각을 표시하고, 음성은 “말씀하신 시각으로 기록/수정했어요”로 요약한다. 녹음 밖 답변은 안내가 나온다. 예전 삐 소리는 `TTS_ENGINE=mock`으로 선택한다.
+시험표 순서대로(C1~E2) 시험하면 녹음과 같은 답을 받는다. 답이 시험 답과 달라지면(순서가 바뀌거나 다른 시각을 말하면) 화면 답과 “일치하는 사전 음성이 없습니다” 안내가 나온다. 입말 문장(`server/app/data/spoken_answers.json`)을 고치면 녹음을 다시 해야 한다(`server/scripts/make_jisoo_spoken.py`, 사용자 허락 필요). 예전 삐 소리는 `TTS_ENGINE=mock`으로 선택한다.

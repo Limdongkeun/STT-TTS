@@ -9,8 +9,10 @@ from pathlib import Path
 
 from app.engines.base import TtsResult
 
-DEFAULT_RECORDINGS_DIR = Path(__file__).resolve().parents[3] / "output/audio/d1-d25"
-VOICE_LABEL = "JISOO 사전 녹음 (C1~C7·D1~D25)"
+# 2026-11-12 사용자 결정: 일레븐랩스 지수로 입말 문장(spoken_answers.json 34개 + 모르는 질문 답)을 다시 녹음했다
+# (server/scripts/make_jisoo_spoken.py). 11/05 원래 답 글 녹음(c1-c7·d1-d25)은 지웠다.
+DEFAULT_RECORDINGS_DIR = Path(__file__).resolve().parents[3] / "output/audio/jisoo-spoken"
+VOICE_LABEL = "JISOO 녹음 (C1~E2)"
 
 
 class RecordingUnavailableError(RuntimeError):
@@ -30,14 +32,10 @@ class PrerecordedTtsEngine:
 
     def __init__(self, directory: Path = DEFAULT_RECORDINGS_DIR) -> None:
         self._directory = directory.resolve()
-        directories = [self._directory]
-        if self._directory == DEFAULT_RECORDINGS_DIR.resolve():
-            directories.append(self._directory.parent / "c1-c7")
         self._recordings = {}
-        for folder in directories:
-            manifest = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
-            for item in manifest["recordings"]:
-                self._recordings[canonical_text(item["speechText"])] = (folder, item)
+        manifest = json.loads((self._directory / "manifest.json").read_text(encoding="utf-8"))
+        for item in manifest["recordings"]:
+            self._recordings[canonical_text(item["speechText"])] = (self._directory, item)
 
     def synthesize(self, text: str) -> TtsResult:
         recording = self._recordings.get(canonical_text(text))

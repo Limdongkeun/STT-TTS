@@ -4,14 +4,18 @@ import os
 from dataclasses import dataclass
 
 STT_ENGINES = ("mock", "qwen3-asr")
-TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded", "qwen3-tts-107")
+TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2")
+# 107 복제(run_clone) 엔진 → 목소리 견본 이름(app/data/voices/<이름>.json). 빈 글이면 TTS_107_VOICE(기본 g).
+# 2026-11-12 사용자 결정: 밝은 H2 목소리를 더하고 G 는 그대로 둔다(앱에서 고른다).
+TTS_107_ENGINES = {"qwen3-tts-107": "", "qwen3-tts-107-h2": "h2"}
 ANSWER_PROVIDERS = ("fixed", "family-demo")
 DTYPES = ("bfloat16", "float16", "float32")
 # fixed: 시험 시각(2026-11-05 15:00 KST)으로 답한다. 녹음·기대 답이 이 날짜 기준이라 날마다 결과가 같다.
 DEMO_CLOCKS = ("fixed", "real")
 # on: 서버 STT 에도 폰 STT 와 같은 힌트 낱말(app/data/stt_hints.json)을 넣는다. off 는 힌트 없이 비교할 때.
 STT_HINTS = ("on", "off")
-# on: 그때그때 만드는 TTS(107·맥 Qwen)는 시험 답을 입말 문장(app/data/spoken_answers.json)으로 읽는다. off 는 원래 문장.
+# on: 그때그때 만드는 TTS(107·맥 Qwen)와 지수 녹음은 시험 답을 입말 문장(app/data/spoken_answers.json)으로 읽는다.
+# off 는 원래 문장(지수 녹음은 입말로만 녹음해서 off 면 녹음이 없다).
 SPOKEN_ANSWERS = ("on", "off")
 
 
@@ -59,20 +63,20 @@ class Settings:
 
 # 서버 하나로 여러 TTS 를 고를 때 보여 주는 순서. 맥에서 모델을 돌리는 qwen3-tts 는 기본 엔진일 때만 고를 수 있다
 # (qwen-tts 는 qwen-asr 와 한 환경에 못 들어가서, 합친 서버(.venv-asr)에서는 쓰지 않는다).
-TTS_CHOICE_ORDER = ("prerecorded", "qwen3-tts-107", "qwen3-tts", "mock")
+TTS_CHOICE_ORDER = ("prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts", "mock")
 
 
 def tts_choices(settings: "Settings") -> tuple[str, ...]:
     """이 서버에서 앱이 요청마다 고를 수 있는 TTS 엔진들."""
     available = {settings.tts_engine, "prerecorded", "mock"}
     if settings.tts107_url:
-        available.add("qwen3-tts-107")
+        available.update(TTS_107_ENGINES)
     return tuple(name for name in TTS_CHOICE_ORDER if name in available)
 
 
 def _tts107_url(tts_engine: str) -> str:
     url = os.environ.get("TTS_107_URL", "").strip().rstrip("/")
-    if tts_engine == "qwen3-tts-107" and not url:
+    if tts_engine in TTS_107_ENGINES and not url:
         raise ValueError("TTS_ENGINE=qwen3-tts-107 이면 TTS_107_URL(107 시험 페이지 주소)이 필요합니다.")
     if url and not url.startswith(("http://", "https://")):
         raise ValueError(f"TTS_107_URL={url!r} 는 http:// 또는 https:// 로 시작해야 합니다.")

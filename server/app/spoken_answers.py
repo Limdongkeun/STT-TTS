@@ -13,8 +13,10 @@ from app.engines.prerecorded import canonical_text
 
 SPOKEN_PATH = Path(__file__).resolve().parent / "data" / "spoken_answers.json"
 MAX_SPOKEN_CHARS = 200
-# 그때그때 소리를 만드는 TTS 만 입말을 읽는다. 사전 녹음은 녹음과 글이 같아야 해서 원래 문장을 쓴다.
-SPOKEN_ENGINES = ("qwen3-tts-107", "qwen3-tts")
+# 그때그때 소리를 만드는 TTS. 앞뒤 조용한 부분을 자른다.
+SPOKEN_ENGINES = ("qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts")
+# 입말 문장을 읽는 TTS. 지수 녹음도 2026-11-12부터 입말 문장으로 녹음했다(소리 끝 자르기는 SPOKEN_ENGINES 만).
+SPOKEN_READERS = (*SPOKEN_ENGINES, "prerecorded")
 
 
 def load_spoken_answers(path: Path = SPOKEN_PATH) -> dict[str, str]:
@@ -32,6 +34,17 @@ def load_spoken_answers(path: Path = SPOKEN_PATH) -> dict[str, str]:
             raise ValueError(f"{item.get('id')}: 같은 화면 답이 두 번 있어요.")
         spoken[key] = text
     return spoken
+
+
+def load_answer_samples(path: Path = SPOKEN_PATH) -> list[dict[str, str]]:
+    """'답 듣기' 칸용 시험 답 목록 [{id, answer, spoken}] (파일 순서). 질문 없이 답 소리만 들어 볼 때 쓴다.
+    load_spoken_answers 와 같은 검사를 거친다(잘못된 파일이면 ValueError)."""
+    load_spoken_answers(path)
+    items = json.loads(path.read_text(encoding="utf-8"))["answers"]
+    return [
+        {"id": str(item["id"]), "answer": str(item["answer"]).strip(), "spoken": str(item["spoken"]).strip()}
+        for item in items
+    ]
 
 
 def spoken_for(answer_text: str, spoken: dict[str, str]) -> str | None:

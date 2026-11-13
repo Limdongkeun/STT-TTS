@@ -144,7 +144,8 @@ class SheetResult(BaseModel):
 def tts_label_for(engine: str, model_id: str) -> str:
     """'mock' 또는 'Qwen3-TTS-12Hz-1.7B-CustomVoice' (조직 이름은 뺀다)."""
     if engine == "prerecorded":
-        return "JISOO 사전 녹음 (C1~C7·D1~D25)"
+        # 2026-11-12부터 입말 녹음(C1~E2). 예전 저장본의 'JISOO 사전 녹음 (C1~C7·D1~D25)'은 원래 답 글 녹음이다.
+        return "JISOO 녹음 (C1~E2)"
     return model_id.rsplit("/", 1)[-1] if engine != "mock" and model_id else engine
 
 

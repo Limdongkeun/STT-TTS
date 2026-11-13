@@ -1,6 +1,8 @@
 /** 시험 서버 호출. 서버 응답 키는 camelCase. */
 
 import { isHealthResponse, type HealthResponse } from "./serverInfo";
+import type { AnswerSample } from "./answerSamples";
+import type { ReadingMarks, ReadingSample } from "./numberReading";
 import { DEFAULT_SPEAKER, type Speaker } from "./speaker";
 import type { Attempt, SheetResult, TestCase } from "./testSheet";
 import { readUploadResult } from "./uploadResult";
@@ -197,4 +199,32 @@ export async function postTts(text: string, engine?: string): Promise<TtsRespons
     throw error;
   }
   return { ...result, fullAudioUrl: joinUrl(baseUrl, result.audioUrl) };
+}
+
+/** 숫자 읽기 시험 문장 (말 없이 TTS 가 숫자를 읽는 것만 듣는다). reading 은 서버가 바꾼 읽기 글. */
+/** '답 듣기' 칸: 시험 답 34개(원래 답·소리용 입말). */
+export async function getAnswerSamples(): Promise<AnswerSample[]> {
+  const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
+  const body = await request<{ samples: AnswerSample[] }>(joinUrl(baseUrl, "/answer-samples"), { method: "GET" });
+  return body.samples;
+}
+
+export async function getReadingSamples(): Promise<ReadingSample[]> {
+  const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
+  const body = await request<{ samples: ReadingSample[] }>(joinUrl(baseUrl, "/reading-samples"), { method: "GET" });
+  return body.samples;
+}
+
+/** 숫자 읽기 시험의 ○/× 를 결과 파일로 남긴다. file 은 레포 기준 경로. */
+export function saveReadingResults(
+  device: string,
+  tts: string,
+  marks: ReadingMarks,
+): Promise<{ file: string; ok: number; bad: number }> {
+  const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
+  return request(joinUrl(baseUrl, `/reading-results/${encodeURIComponent(device)}`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tts, marks }),
+  });
 }

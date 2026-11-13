@@ -69,5 +69,6 @@ test("ttsChoicesOf: 예전 서버(목록 없음)·서버 모름은 빈 목록, �
   assert.deepEqual(activeTtsChoice(old, "prerecorded"), { engine: "mock", label: "" });
   assert.deepEqual(activeTtsChoice(null, null), { engine: undefined, label: "" });
   assert.equal(ttsButtonLabel("qwen3-tts-107"), "107 G 목소리");
+  assert.equal(ttsButtonLabel("qwen3-tts-107-h2"), "107 H2 목소리");
   assert.equal(ttsButtonLabel("새엔진"), "새엔진");
 });

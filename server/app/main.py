@@ -28,8 +28,10 @@ from app.engines import create_stt_engine, create_tts_engine
 from app.engines.qwen3_tts_107 import Tts107Error
 from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
-from app.settings import Settings, load_settings, tts_choices
-from app.spoken_answers import SPOKEN_ENGINES, load_spoken_answers, spoken_for, to_spoken_style
+from app.reading_samples import DEFAULT_READING_DIR, ReadingResults, load_reading_samples, save_reading_results
+from app.settings import TTS_107_ENGINES, Settings, load_settings, tts_choices
+from app.silence_trim import tail_for, trim_silence
+from app.spoken_answers import SPOKEN_ENGINES, SPOKEN_READERS, load_answer_samples, load_spoken_answers, spoken_for, to_spoken_style
 from app.stt_correction import correct_transcript
 from app.test_sheet import CASES_BY_ID, DEFAULT_RESULTS_DIR, TEST_CASES, SheetResult, SheetStore, is_valid_device, tts_label_for
 
@@ -60,7 +62,7 @@ class AskRequest(ApiModel):
     context: FamilyDemoContext | None = None
     # 말하는 사람(부부 공유 업무 시험). "내가", "나한테", "여보"를 이 사람 기준으로 푼다.
     speaker: Literal["wife", "husband"] = "wife"
-    # 앱이 고른 TTS 엔진(없으면 서버 기본). 사전 녹음일 때만 C4·C5 읽기용 글을 녹음에 맞춰 줄인다.
+    # 앱이 고른 TTS 엔진(없으면 서버 기본). 입말을 읽는 TTS(지수 녹음 포함)면 읽기용 글을 입말로 바꾼다.
     tts_engine: str | None = Field(default=None, max_length=40)
 
 
@@ -137,7 +139,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def reads_spoken(engine_name: str) -> bool:
         """이 TTS 가 시험 답을 입말 문장으로 읽는지."""
-        return bool(spoken_answers) and engine_name in SPOKEN_ENGINES
+        return bool(spoken_answers) and engine_name in SPOKEN_READERS
     # 앱이 요청마다 고르는 TTS. 기본 엔진 말고는 처음 고를 때 만든다(107 은 이때도 부르지 않는다).
     tts_engines = {settings.tts_engine: tts_engine}
 
@@ -151,7 +153,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def tts_record_label(name: str) -> str:
         """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글). 입말로 읽으면 '· 입말'을 붙여 따로 비교한다."""
-        label = getattr(pick_tts_engine(name), "label", name) if name == "qwen3-tts-107" else tts_label_for(
+        label = getattr(pick_tts_engine(name), "label", name) if name in TTS_107_ENGINES else tts_label_for(
             name, settings.tts_model_id
         )
         return f"{label} · 입말" if reads_spoken(name) else label
@@ -160,6 +162,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     work_dir = Path(tempfile.mkdtemp(prefix="stt-tts-"))
     sheet_store = SheetStore(Path(settings.test_results_dir) if settings.test_results_dir else DEFAULT_RESULTS_DIR)
+    # 숫자 읽기 시험 결과. 시험표 폴더를 바꿔 띄우면(테스트 등) 그 안에 둔다.
+    reading_dir = Path(settings.test_results_dir) / "number-reading" if settings.test_results_dir else DEFAULT_READING_DIR
+    reading_samples = load_reading_samples()
+    answer_samples = load_answer_samples()
     audio_store = AudioStore(work_dir)
 
     app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0")
@@ -227,15 +233,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             answer_text = answer_provider.answer(text)
         speech_text = answer_text
         chosen_tts = request.tts_engine or settings.tts_engine
-        # 화면 답은 그대로, 소리만 입말로(그때그때 만드는 TTS 일 때만). 시험 답 목록에 없으면 규칙으로 다듬는다.
+        # 화면 답은 그대로, 소리만 입말로(그때그때 만드는 TTS·지수 녹음). 시험 답 목록에 없으면 규칙으로 다듬는다.
         if reads_spoken(chosen_tts):
             speech_text = spoken_for(answer_text, spoken_answers) or to_spoken_style(answer_text)
-        if chosen_tts == "prerecorded" and context and context.dose_at and answer_text.startswith("시험 기록에 "):
-            action = "수정했어요" if "수정했어요." in answer_text else "기록했어요"
-            speech_text = (
-                f"말씀하신 시각으로 복용 시간을 {action}. "
-                "가상 일정에 등록된 다음 복용 예정 시각은 오후 9시예요."
-            )
         return AskResponse(
             answer_text=answer_text,
             speech_text=normalize_for_speech(speech_text),
@@ -261,10 +261,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             # 503: 107 TTS 를 지금 못 쓴다(회사 망 밖, 시험 페이지 꺼짐, 시간 초과). 앱은 이 안내를 보여 준다.
             logger.warning("tts107 failed: %s", exc)
             raise HTTPException(status_code=503, detail=str(exc)) from exc
-        audio_id = audio_store.save(result.wav_bytes)
+        wav_bytes, duration_sec = result.wav_bytes, result.duration_sec
+        # 그때그때 만드는 TTS 는 끝에 0.9초쯤 조용한 부분이 붙어 조각 사이 텀이 길었다 → 쉼표 조각 0.15초·문장 끝 0.3초만 남긴다.
+        if engine.name in SPOKEN_ENGINES:
+            wav_bytes, trimmed_sec = trim_silence(wav_bytes, keep_tail_sec=tail_for(text))
+            duration_sec = trimmed_sec or duration_sec
+        audio_id = audio_store.save(wav_bytes)
         return TtsResponse(
             audio_url=f"/audio/{audio_id}",
-            duration_sec=round(result.duration_sec, 3),
+            duration_sec=round(duration_sec, 3),
             sample_rate=result.sample_rate,
             engine=engine.name,
             elapsed_ms=_elapsed_ms(started),
@@ -330,6 +335,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def list_attempts(device: str) -> dict[str, list[dict]]:
         _check_device(device)
         return {"attempts": sheet_store.list_attempts(device)}
+
+    # ── 답 듣기 (질문 없이 시험 답 소리만 듣는다, 2026-11-12) ──
+    @app.get("/answer-samples")
+    def get_answer_samples() -> dict[str, list[dict[str, str]]]:
+        """시험 답 34개. 앱은 spoken(입말)을 고른 TTS 로 읽힌다(지수 녹음도 입말로 녹음했다)."""
+        return {"samples": answer_samples}
+
+    # ── 숫자 읽기 시험 (말 없이 TTS 가 숫자를 읽는 것만 듣는다) ──
+    @app.get("/reading-samples")
+    def get_reading_samples() -> dict[str, list[dict[str, str]]]:
+        return {"samples": reading_samples}
+
+    @app.post("/reading-results/{device}")
+    def post_reading_results(device: str, results: ReadingResults) -> dict[str, object]:
+        _check_device(device)
+        try:
+            return save_reading_results(reading_samples, results, device, reading_dir)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @app.post("/demo/reset")
     def reset_demo() -> dict[str, str]:

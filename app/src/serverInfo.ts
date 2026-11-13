@@ -19,6 +19,7 @@ export type TtsChoice = { engine: string; label: string };
 const TTS_BUTTON_LABELS: Record<string, string> = {
   prerecorded: "지수 녹음",
   "qwen3-tts-107": "107 G 목소리",
+  "qwen3-tts-107-h2": "107 H2 목소리",
   "qwen3-tts": "맥 Qwen TTS",
   mock: "삐 (mock)",
 };

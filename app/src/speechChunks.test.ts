@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { fetchSequentially, shouldSplitSpeech, SpeechCancelledError, splitSpeech } from "./speechChunks.ts";
+import {
+  fetchSequentially,
+  shouldSplitSpeech,
+  SpeechCancelledError,
+  splitLongFirstChunk,
+  splitSpeech,
+} from "./speechChunks.ts";
 
 test("splitSpeech: 문장 끝 부호에서 나누고 부호는 앞 문장에 남긴다", () => {
   assert.deepEqual(splitSpeech("다음 주 가족 일정은 두 건이에요. 화요일에 가족 식사, 토요일에 장보기가 있어요."), [
@@ -27,8 +33,38 @@ test("splitSpeech: 아주 짧은 조각은 옆 문장에 붙인다", () => {
   assert.deepEqual(splitSpeech("네."), ["네."]);
 });
 
+test("splitSpeech: 쉼표가 있는 긴 한 문장도 통째로 읽는다(2026-11-12 사용자 청취, C2·D21)", () => {
+  const d21 = "곧 끝나는 건 자동차 보험 십이월 삼일, 자동차 정기검사 이천이십칠년 이월 십사일, 남편 여권 이천이십칠년 오월 삼십일이에요.";
+  assert.deepEqual(splitSpeech(d21), [d21]);
+  const c2 = "소윤이는 수요일에 체험학습 가고요, 금요일엔 피아노 학원 가요.";
+  assert.deepEqual(splitSpeech(c2), [c2]);
+});
+
+test("splitSpeech: 어느 문장이든 쉼표에서 나누지 않는다", () => {
+  assert.deepEqual(splitSpeech("부탁이 하나 있어요. 이번 달 건 남편이 벌써 먹였고요, 다음은 십이월 일일이에요."), [
+    "부탁이 하나 있어요.",
+    "이번 달 건 남편이 벌써 먹였고요, 다음은 십이월 일일이에요.",
+  ]);
+});
+
+test("splitLongFirstChunk: 짧은 문장·앞이 너무 짧은 쉼표·뒤가 너무 짧은 쉼표·띄어쓰기 없는 쉼표", () => {
+  assert.deepEqual(splitLongFirstChunk("화요일에 가족 식사, 토요일에 장보기예요."), ["화요일에 가족 식사, 토요일에 장보기예요."]);
+  // 앞이 짧은 첫 쉼표('네,')는 건너뛰고 다음 쉼표에서 나눈다.
+  assert.deepEqual(splitLongFirstChunk("네, 우유랑 기저귀랑 두부를 넣었어요, 지금 목록은 모두 다섯 가지예요."), [
+    "네, 우유랑 기저귀랑 두부를 넣었어요,",
+    "지금 목록은 모두 다섯 가지예요.",
+  ]);
+  assert.deepEqual(splitLongFirstChunk("장보기 목록에 우유랑 기저귀랑 두부를 넣었어요, 네."), [
+    "장보기 목록에 우유랑 기저귀랑 두부를 넣었어요, 네.",
+  ]);
+  assert.deepEqual(splitLongFirstChunk("장보기 목록에 우유랑 기저귀랑 두부랑 계란을,넣었어요 모두요."), [
+    "장보기 목록에 우유랑 기저귀랑 두부랑 계란을,넣었어요 모두요.",
+  ]);
+});
+
 test("shouldSplitSpeech: 그때그때 만드는 TTS 만", () => {
   assert.equal(shouldSplitSpeech("qwen3-tts-107"), true);
+  assert.equal(shouldSplitSpeech("qwen3-tts-107-h2"), true);
   assert.equal(shouldSplitSpeech("qwen3-tts"), true);
   assert.equal(shouldSplitSpeech("prerecorded"), false);
   assert.equal(shouldSplitSpeech("mock"), false);

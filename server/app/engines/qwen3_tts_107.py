@@ -30,6 +30,8 @@ from app.engines.base import TtsResult
 VOICES_DIR = Path(__file__).resolve().parents[1] / "data" / "voices"
 VOICE_NAME_PATTERN = re.compile(r"^[a-z0-9-]{1,32}$")
 CLONE_API = "run_clone"
+# 목소리마다 엔진이 따로 있어도(G·H2) 107 은 한 번에 하나씩만 부른다.
+CALL_LOCK = threading.Lock()
 CONNECT_HINT = "회사 망에 있는지, 107 시험 페이지(:5110)가 켜져 있는지 확인하세요."
 
 
@@ -146,17 +148,18 @@ class Qwen3Tts107Engine:
         timeout_sec: float,
         http: Http | None = None,
         clock: Callable[[], float] = time.monotonic,
+        engine_name: str = "qwen3-tts-107",
     ) -> None:
+        self.name = engine_name
         self._base_url = base_url.rstrip("/")
         self._voice = voice
         self._timeout_sec = timeout_sec
         self._http = http or UrllibHttp()
         self._clock = clock
-        self._lock = threading.Lock()
         self.label = f"107 Qwen3-TTS · {voice.label}"
 
     def synthesize(self, text: str) -> TtsResult:
-        with self._lock:
+        with CALL_LOCK:
             try:
                 return self._synthesize(text)
             except Tts107Error:
