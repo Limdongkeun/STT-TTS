@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  activeTtsChoice, describeServerInfo, isHealthResponse, PHONE_STT_LABEL, sttLabelFor, ttsButtonLabel, ttsChoicesOf,
+  activeTtsChoice, describeServerInfo, isHealthResponse, PHONE_STT_LABEL, sttButtonLabel, sttChoicesOf, sttLabelFor,
+  ttsButtonLabel, ttsChoicesOf,
   type HealthResponse,
 } from "./serverInfo.ts";
 
@@ -71,4 +72,30 @@ test("ttsChoicesOf: 예전 서버(목록 없음)·서버 모름은 빈 목록, �
   assert.equal(ttsButtonLabel("qwen3-tts-107"), "107 G 목소리");
   assert.equal(ttsButtonLabel("qwen3-tts-107-h2"), "107 H2 목소리");
   assert.equal(ttsButtonLabel("새엔진"), "새엔진");
+});
+
+test("sttChoicesOf·sttLabelFor: 서버가 준 STT 고르기 목록(2026-11-16 LFM3)", () => {
+  const health = {
+    ...HEALTH, sttEngine: "qwen3-asr",
+    sttChoices: [
+      { engine: "qwen3-asr", label: "Qwen3-ASR-1.7B · 힌트 42" },
+      { engine: "lfm3-asr", label: "LFM3-Audio-2B" },
+      { engine: 3, label: "모양이 틀림" },
+    ],
+  } as unknown as HealthResponse;
+  assert.deepEqual(sttChoicesOf(health).map((choice) => choice.engine), ["qwen3-asr", "lfm3-asr"]);
+  assert.deepEqual(sttChoicesOf(HEALTH), []);
+  assert.equal(sttLabelFor("server", health, "lfm3-asr"), "LFM3-Audio-2B");
+  // 고르지 않았거나 목록에 없는 엔진이면 기본(첫째)
+  assert.equal(sttLabelFor("server", health, null), "Qwen3-ASR-1.7B · 힌트 42");
+  assert.equal(sttLabelFor("server", health, "whisper"), "Qwen3-ASR-1.7B · 힌트 42");
+  assert.equal(sttLabelFor("phone", health, "lfm3-asr"), PHONE_STT_LABEL);
+});
+
+test("버튼 이름: LFM3 STT·TTS", () => {
+  assert.equal(sttButtonLabel("lfm3-asr"), "서버 LFM3");
+  assert.equal(sttButtonLabel("qwen3-asr"), "서버 Qwen3-ASR");
+  assert.equal(sttButtonLabel("whisper"), "서버 whisper");
+  assert.equal(ttsButtonLabel("lfm3-tts-female"), "LFM3 여자");
+  assert.equal(ttsButtonLabel("lfm3-tts-male"), "LFM3 남자");
 });

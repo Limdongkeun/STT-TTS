@@ -181,6 +181,36 @@ def test_api_shares_records_between_speakers_and_resets():
     assert post("나한테 온 부탁 뭐 있어", "husband") == "남편에게 온 부탁이 없어요."
 
 
+def test_api_preview_answers_without_changing_records():
+    client = TestClient(create_app(make_settings(answer_provider="family-demo")))
+    assert client.get("/health").json()["askPreview"] is True
+
+    def post(text: str, speaker: str, preview: bool = False) -> str:
+        response = client.post("/ask", json={"text": text, "speaker": speaker, "preview": preview})
+        assert response.status_code == 200
+        return response.json()["answerText"]
+
+    # 미리보기는 실제와 같은 답을 주지만 부탁·장보기 기록은 그대로다.
+    assert post("남편한테 우유 사 달라고 부탁해줘", "wife", preview=True) == "남편에게 '우유 사' 부탁을 보냈어요."
+    assert "우유 사" not in post("나한테 온 부탁 뭐 있어", "husband")
+    before = post("장보기 뭐 남았어", "wife")
+    post("두부 샀어", "wife", preview=True)
+    assert post("장보기 뭐 남았어", "wife") == before
+    # 미리보기 뒤 같은 말을 진짜로 하면 한 번만 기록된다.
+    assert post("남편한테 우유 사 달라고 부탁해줘", "wife") == "남편에게 '우유 사' 부탁을 보냈어요."
+    assert post("나한테 온 부탁 뭐 있어", "husband").count("우유 사") == 1
+
+
+def test_preview_keeps_records_when_a_handler_fails():
+    provider = FamilyDemoAnswerProvider()
+    now = datetime(2026, 11, 5, 15, 0, tzinfo=KST)
+    kept = provider._topics._state
+    provider._topics._requests = lambda *args: (_ for _ in ()).throw(RuntimeError("boom"))
+    with pytest.raises(RuntimeError):
+        provider.answer("남편한테 우유 사 달라고 부탁해줘", preview=True, now=now)
+    assert provider._topics._state is kept
+
+
 def test_api_rejects_unknown_speaker():
     client = TestClient(create_app(make_settings(answer_provider="family-demo")))
     assert client.post("/ask", json={"text": "장보기 뭐 남았어", "speaker": "grandma"}).status_code == 422

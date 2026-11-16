@@ -17,11 +17,13 @@ import {
   isDone,
   isValidDevice,
   isVisible,
+  matchCase,
   nextCase,
   recordTurn,
   referenceText,
   resultOf,
   secondsText,
+  sheetPreviewRows,
   summarize,
   timingPatch,
   type Attempt,
@@ -219,4 +221,38 @@ test("changedCorrection: 보정으로 글자가 달라졌을 때만", () => {
 test("recordTurn: 이 턴을 읽은 TTS 이름을 적는다", () => {
   const recorded = recordTurn(EMPTY_RESULT, CASE_A, "말", "답", "폰 기본 STT", "quiet", "", "107 Qwen3-TTS · G 목소리");
   assert.equal(recorded.tts, "107 Qwen3-TTS · G 목소리");
+});
+
+test("matchCase: 답이 기대 답과 같으면 말이 달라도 그 문장", () => {
+  // 바꿔 말해서 대본과 멀어도 답으로 찾는다.
+  assert.equal(matchCase([CASE_A, CASE_B], ["마트에서 뭐 사야 돼"], "장보기 목록은 두부, 계란 2가지예요.")?.id, "D1");
+});
+
+test("matchCase: 답이 바뀌는 문장은 말이나 답이 가까운 문장", () => {
+  assert.equal(matchCase([CASE_A, CASE_B], ["내일 하원 누가 가"], "11월 7일 토요일 하원은 남편이 가요.")?.id, "D9");
+  assert.equal(matchCase([CASE_A, CASE_B], ["장보기 뭐 남았지"], "장보기 목록은 두부, 계란, 우유 3가지예요.")?.id, "D1");
+  // 보정 뒤 글이 더 가까우면 그것으로 찾는다.
+  assert.equal(matchCase([CASE_A, CASE_B], ["내 일하 원 누가가", "내일 하원 누가 가"], "")?.id, "D9");
+});
+
+test("matchCase: 이번 주·다음 주처럼 비슷한 말은 답으로 가른다", () => {
+  const thisWeek: TestCase = { ...CASE_A, id: "C2", say: "소윤이 이번 주 학교 학원 일정 뭐야?", expect: "소윤이는 수요일에 체험학습이 있어요." };
+  const nextWeek: TestCase = { ...CASE_A, id: "C7", say: "소윤이 다음 주 학교 학원 일정 뭐야?", expect: "이번 주 일정만 준비돼 있어요." };
+  assert.equal(matchCase([thisWeek, nextWeek], ["소윤이 이번 주 학교 학원 일정 뭐야"], "이번 주 일정만 준비돼 있어요.")?.id, "C7");
+});
+
+test("matchCase: 시험표에 없는 말·빈 말은 null", () => {
+  assert.equal(matchCase([CASE_A, CASE_B], ["오늘 날씨 어때"], "잘 모르겠어요. 다시 말해 주세요."), null);
+  assert.equal(matchCase([CASE_A, CASE_B], [""], ""), null);
+  assert.equal(matchCase([], ["장보기 목록 뭐 남았어"], "장보기 목록은 두부, 계란 2가지예요."), null);
+});
+
+test("sheetPreviewRows: 순서대로, 말한 문장 표시, 안 한 것만", () => {
+  const results = { D1: { ...EMPTY_RESULT, recognized: "장보기 목록 뭐 남았어" }, D9: { ...EMPTY_RESULT, recognized: "  " } };
+  assert.deepEqual(sheetPreviewRows([CASE_A, CASE_B], results, false), [
+    { id: "D1", say: CASE_A.say, said: true },
+    { id: "D9", say: CASE_B.say, said: false },
+  ]);
+  assert.deepEqual(sheetPreviewRows([CASE_A, CASE_B], results, true).map((row) => row.id), ["D9"]);
+  assert.deepEqual(sheetPreviewRows([], {}, false), []);
 });

@@ -76,6 +76,12 @@ function splitSentences(text: string): string[] {
 }
 
 /** 소리를 그때그때 만드는 TTS 만 나눈다. 엔진을 모르면(서버 상태 확인 실패) 나누지 않는다. */
+/** 답 소리를 만들 조각들: 나눠 읽는 TTS 면 문장마다, 아니면 통째로 하나. */
+export function speechPieces(speechText: string, split: boolean): string[] {
+  const chunks = split ? splitSpeech(speechText) : [];
+  return chunks.length > 0 ? chunks : [speechText];
+}
+
 export function shouldSplitSpeech(ttsEngine: string | undefined): boolean {
   return ttsEngine === "qwen3-tts-107" || ttsEngine === "qwen3-tts-107-h2" || ttsEngine === "qwen3-tts";
 }

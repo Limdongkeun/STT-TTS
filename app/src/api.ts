@@ -74,12 +74,15 @@ async function request<T>(url: string, init: RequestInit, timeoutMs: number = RE
 
 /** 녹음 파일 하나를 multipart 필드 audio 로 올린다.
  * 전역 fetch(Expo)는 {uri,name,type} 파일을 못 보내서 XMLHttpRequest 를 쓴다(uploadResult.ts 참고). */
-function uploadAudio<T>(url: string, method: "POST" | "PUT", recordingUri: string): Promise<T> {
+function uploadAudio<T>(
+  url: string, method: "POST" | "PUT", recordingUri: string, fields: Record<string, string> = {},
+): Promise<T> {
   const name = audioFileName(recordingUri);
   const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
   const form = new FormData();
   // React Native 의 FormData 는 {uri,name,type} 객체를 파일로 보낸다.
   form.append("audio", file as unknown as Blob);
+  for (const [key, value] of Object.entries(fields)) form.append(key, value);
   return new Promise<T>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
@@ -109,20 +112,22 @@ export async function getHealth(target: "tts" | "stt" = "tts"): Promise<HealthRe
   return body;
 }
 
-export function postStt(recordingUri: string): Promise<SttResponse> {
+/** engine: 고른 서버 STT(/health 의 sttChoices 안). 없으면 서버 기본. */
+export function postStt(recordingUri: string, engine?: string): Promise<SttResponse> {
   const baseUrl = requireUrl(sttServerUrl, "STT 서버");
-  return uploadAudio<SttResponse>(joinUrl(baseUrl, "/stt"), "POST", recordingUri);
+  return uploadAudio<SttResponse>(joinUrl(baseUrl, "/stt"), "POST", recordingUri, engine ? { engine } : {});
 }
 
-/** ttsEngine: 앱에서 고른 TTS(서버가 사전 녹음일 때만 읽기용 글을 녹음에 맞춘다). 없으면 서버 기본. */
+/** ttsEngine: 앱에서 고른 TTS(서버가 사전 녹음일 때만 읽기용 글을 녹음에 맞춘다). 없으면 서버 기본.
+ *  preview: 기록을 바꾸지 않고 답만 받는다(대화 모드가 말하는 중에 미리 만들 때). /health 의 askPreview 가 true 인 서버에만 보낸다. */
 export function postAsk(
-  text: string, context?: AskContext, speaker: Speaker = DEFAULT_SPEAKER, ttsEngine?: string,
+  text: string, context?: AskContext, speaker: Speaker = DEFAULT_SPEAKER, ttsEngine?: string, preview = false,
 ): Promise<AskResponse> {
   const baseUrl = requireUrl(ttsServerUrl, "TTS 서버");
   return request<AskResponse>(joinUrl(baseUrl, "/ask"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text, context, speaker, ttsEngine }),
+    body: JSON.stringify(preview ? { text, context, speaker, ttsEngine, preview } : { text, context, speaker, ttsEngine }),
   });
 }
 

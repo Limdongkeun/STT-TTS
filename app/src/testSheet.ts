@@ -293,6 +293,45 @@ export function secondsText(ms: number): string {
   return `${(ms / 1000).toFixed(1)}초`;
 }
 
+/** 대화 화면의 작은 시험표 창 한 줄. said: 이 문장에 말한 턴이 적혀 있는지. */
+export type SheetPreviewRow = { id: string; say: string; said: boolean };
+
+/** 대화 화면의 작은 시험표 창(2026-11-13 사용자 요청): 시험표 순서대로, onlyTodo 면 아직 말하지 않은 문장만. */
+export function sheetPreviewRows(
+  cases: TestCase[], results: Record<string, SheetResult>, onlyTodo: boolean,
+): SheetPreviewRow[] {
+  return cases
+    .map((testCase) => ({ id: testCase.id, say: testCase.say, said: Boolean(results[testCase.id]?.recognized?.trim()) }))
+    .filter((row) => !onlyTodo || !row.said);
+}
+
+/** 대화 모드에서 시험표 칸을 고를 때, 말·답이 이만큼은 비슷해야 그 문장으로 본다(글자 오류율). */
+export const MATCH_MAX_CER = 0.4;
+
+/** 대화 모드(2026-11-13 사용자 요청): 순서 없이 한 말을 시험표의 어느 문장인지 찾는다. 없으면 null.
+ *  1) 서버 답이 그 문장의 기대 답과 글자가 같으면 그 문장(이번 주·다음 주처럼 말이 비슷해도 답으로 가른다).
+ *  2) 아니면 들은 말(보정 전·후)과 대본, 서버 답과 기대 답 중 가장 가까운 문장을 고른다.
+ *     날짜·장보기 목록처럼 답이 바뀌는 문장은 2)로 찾는다. 가장 가까워도 MATCH_MAX_CER 보다 멀면 없음. */
+export function matchCase(cases: TestCase[], heard: string[], answer: string): TestCase | null {
+  const answerKey = compact(answer);
+  const sameAnswer = answerKey ? cases.filter((testCase) => compact(testCase.expect) === answerKey) : [];
+  if (sameAnswer.length === 1) return sameAnswer[0];
+  let best: TestCase | null = null;
+  let bestCer = Number.POSITIVE_INFINITY;
+  for (const testCase of sameAnswer.length > 1 ? sameAnswer : cases) {
+    const scores = [
+      ...heard.map((text) => charErrorRate(testCase.say, text)),
+      charErrorRate(testCase.expect, answer),
+    ].filter((score): score is number => score !== null);
+    const score = Math.min(...scores);
+    if (score < bestCer) {
+      best = testCase;
+      bestCer = score;
+    }
+  }
+  return bestCer <= MATCH_MAX_CER ? best : null;
+}
+
 export function nextCase(cases: TestCase[], currentId: string): TestCase | null {
   const index = cases.findIndex((testCase) => testCase.id === currentId);
   return index >= 0 && index + 1 < cases.length ? cases[index + 1] : null;

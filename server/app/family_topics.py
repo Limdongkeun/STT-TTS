@@ -5,6 +5,7 @@
 "내가 …했어" 또는 "…했다고 체크해줘"처럼 말해야 한다(질문과 구분).
 """
 
+import copy
 import re
 import threading
 from datetime import date, datetime, timedelta
@@ -188,11 +189,12 @@ class FamilyTopics:
             self._state = FamilyRecords()
 
     def answer(
-        self, question: str, text: str, speaker: str, now: datetime, *, last_topic: str = ""
+        self, question: str, text: str, speaker: str, now: datetime, *, last_topic: str = "", preview: bool = False
     ) -> tuple[str | None, str]:
         """(답, 답한 주제 이름). 맞는 주제가 없으면 (None, ""). text 는 compact_question 결과.
 
         last_topic 은 바로 앞 턴에 답한 주제(예: "shopping"): 주제 말이 빠진 말을 푸는 데 쓴다.
+        preview 면 기록을 바꾸지 않고 답만 만든다(대화 모드가 말하는 중에 미리 답을 만들 때, 2026-11-16).
         """
         words = spaced_words(question)
         today = now.date()
@@ -216,10 +218,17 @@ class FamilyTopics:
         with self._lock:
             self._asking = asking
             self._last_topic = last_topic
-            for handler in handlers:
-                reply = handler(text, words, speaker, today)
-                if reply:
-                    return reply, handler.__name__.lstrip("_")
+            kept = self._state
+            if preview:
+                # 복사본에 답하고 버린다: 덜 끝난 말로 부탁·장보기·지출 같은 기록이 바뀌지 않게.
+                self._state = copy.deepcopy(kept)
+            try:
+                for handler in handlers:
+                    reply = handler(text, words, speaker, today)
+                    if reply:
+                        return reply, handler.__name__.lstrip("_")
+            finally:
+                self._state = kept
         return None, ""
 
     # 6. 부탁 주고받기

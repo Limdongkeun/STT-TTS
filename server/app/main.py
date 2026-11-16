@@ -12,11 +12,12 @@ import tempfile
 import time
 import uuid
 from collections import OrderedDict
+from contextlib import asynccontextmanager
 from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -25,11 +26,14 @@ from app.answers import create_answer_provider
 from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
+from app.engines.lfm3 import Lfm3Error
 from app.engines.qwen3_tts_107 import Tts107Error
 from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
 from app.reading_samples import DEFAULT_READING_DIR, ReadingResults, load_reading_samples, save_reading_results
-from app.settings import TTS_107_ENGINES, Settings, load_settings, tts_choices
+from app.settings import (
+    LFM3_STT_ENGINE, LFM3_TTS_ENGINES, TTS_107_ENGINES, Settings, load_settings, stt_choices, tts_choices,
+)
 from app.silence_trim import tail_for, trim_silence
 from app.spoken_answers import SPOKEN_ENGINES, SPOKEN_READERS, load_answer_samples, load_spoken_answers, spoken_for, to_spoken_style
 from app.stt_correction import correct_transcript
@@ -64,6 +68,8 @@ class AskRequest(ApiModel):
     speaker: Literal["wife", "husband"] = "wife"
     # 앱이 고른 TTS 엔진(없으면 서버 기본). 입말을 읽는 TTS(지수 녹음 포함)면 읽기용 글을 입말로 바꾼다.
     tts_engine: str | None = Field(default=None, max_length=40)
+    # 미리보기: 기록을 바꾸지 않고 답만 만든다. 대화 모드가 말이 끝나기 전에 답·소리를 미리 만들 때 쓴다(2026-11-16).
+    preview: bool = False
 
 
 class AskResponse(ApiModel):
@@ -135,6 +141,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     stt_engine = create_stt_engine(settings)
     tts_engine = create_tts_engine(settings)
     choices = tts_choices(settings)
+    stt_names = stt_choices(settings)
+    # 앱이 요청마다 고르는 서버 STT(버튼 방식). 기본 말고는 처음 고를 때 만든다.
+    stt_engines = {settings.stt_engine: stt_engine}
+
+    def pick_stt_engine(name: str | None):
+        key = name or settings.stt_engine
+        if key not in stt_names:
+            raise HTTPException(status_code=422, detail=f"이 서버에서 고를 수 없는 STT예요: {key[:40]}")
+        if key not in stt_engines:
+            stt_engines[key] = create_stt_engine(replace(settings, stt_engine=key))
+        return stt_engines[key]
+
+    def stt_record_label(name: str) -> str:
+        """저장본·시험표에 적는 서버 STT 이름(앱 sttLabelFor 와 같은 글: 'Qwen3-ASR-1.7B · 힌트 42')."""
+        if name == LFM3_STT_ENGINE:
+            return getattr(pick_stt_engine(name), "label", name)
+        if name == "mock":
+            return "서버 mock STT"
+        model = settings.asr_model_id.rsplit("/", 1)[-1] or f"서버 {name}"
+        hints = getattr(stt_engine, "hint_count", 0)
+        return f"{model} · 힌트 {hints}" if hints else model
     spoken_answers = load_spoken_answers() if settings.spoken_answers == "on" else {}
 
     def reads_spoken(engine_name: str) -> bool:
@@ -153,7 +180,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def tts_record_label(name: str) -> str:
         """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글). 입말로 읽으면 '· 입말'을 붙여 따로 비교한다."""
-        label = getattr(pick_tts_engine(name), "label", name) if name in TTS_107_ENGINES else tts_label_for(
+        own_label = name in TTS_107_ENGINES or name in LFM3_TTS_ENGINES
+        label = getattr(pick_tts_engine(name), "label", name) if own_label else tts_label_for(
             name, settings.tts_model_id
         )
         return f"{label} · 입말" if reads_spoken(name) else label
@@ -168,7 +196,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     answer_samples = load_answer_samples()
     audio_store = AudioStore(work_dir)
 
-    app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0")
+    lfm3_runtime = None
+    if settings.lfm3_dir:
+        from app.engines.lfm3 import get_runtime
+
+        lfm3_runtime = get_runtime(settings.lfm3_dir, settings.lfm3_port)
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        # 8002 가 켜질 때 LFM3(llama-server)도 함께 띄운다(모델을 읽는 데 몇 초 걸려서 미리). 8002 가 끝나면 끈다.
+        # 앱을 만들기만 할 때(테스트 import)는 띄우지 않는다.
+        if lfm3_runtime is not None:
+            try:
+                lfm3_runtime.start()
+            except Lfm3Error as exc:
+                logger.warning("LFM3 를 띄우지 못함: %s", exc)
+        yield
+        if lfm3_runtime is not None:
+            lfm3_runtime.stop()
+
+    app = FastAPI(title="STT-TTS 시험 서버", version="0.1.0", lifespan=lifespan)
 
     def tts_model_label() -> str:
         """/health·저장본에 적는 TTS 이름. mock 은 빈 글."""
@@ -192,11 +239,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "sttHints": getattr(stt_engine, "hint_count", 0),
             # 앱 버튼으로 고를 수 있는 TTS(서버 하나로 합쳐 띄울 때). label 은 시험표에 적히는 이름.
             "ttsChoices": [{"engine": name, "label": tts_record_label(name)} for name in choices],
+            # 버튼 방식에서 고를 수 있는 서버 STT(첫째가 기본). label 은 시험표에 적히는 이름.
+            "sttChoices": [{"engine": name, "label": stt_record_label(name)} for name in stt_names],
+            # /ask 의 preview(기록을 바꾸지 않는 미리 답)를 아는 서버. 앱은 이게 true 일 때만 미리 묻는다.
+            "askPreview": True,
         }
 
     @app.post("/stt", response_model=SttResponse)
-    def speech_to_text(audio: UploadFile = File(...)) -> SttResponse:
+    def speech_to_text(
+        audio: UploadFile = File(...), engine: str | None = Form(default=None, max_length=40)
+    ) -> SttResponse:
         started = time.perf_counter()
+        chosen_stt = pick_stt_engine(engine)
         try:
             suffix = normalize_suffix(audio.filename)
         except AudioConversionError as exc:
@@ -209,11 +263,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 wav_path = to_wav16k(source, Path(job_dir) / "input16k.wav")
             except AudioConversionError as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
-            result = stt_engine.transcribe(wav_path)
+            try:
+                result = chosen_stt.transcribe(wav_path)
+            except Lfm3Error as exc:
+                logger.warning("lfm3 stt failed: %s", exc)
+                raise HTTPException(status_code=503, detail=str(exc)) from exc
         return SttResponse(
             text=result.text,
             language=result.language,
-            engine=stt_engine.name,
+            engine=chosen_stt.name,
             elapsed_ms=_elapsed_ms(started),
         )
 
@@ -222,13 +280,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         started = time.perf_counter()
         text = request.text.strip()
         # 시험용: 폰 STT 가 보낸 글을 repr 로 남겨 보이지 않는 문자(예: ​)도 확인한다.
-        logger.info("ask question=%r", text[:LOGGED_QUESTION_CHARS])
+        logger.info("ask%s question=%r", " preview" if request.preview else "", text[:LOGGED_QUESTION_CHARS])
         context = None
         corrected_text = None
         if isinstance(answer_provider, FamilyDemoAnswerProvider):
             corrected_text = correct_transcript(compact_question(text))
             demo_now = DEMO_NOW if settings.demo_clock == "fixed" else None
-            answer_text, context = answer_provider.answer(text, request.context, speaker=request.speaker, now=demo_now)
+            answer_text, context = answer_provider.answer(
+                text, request.context, speaker=request.speaker, now=demo_now, preview=request.preview
+            )
         else:
             answer_text = answer_provider.answer(text)
         speech_text = answer_text
@@ -257,9 +317,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except RecordingUnavailableError as exc:
             # 404: 이 답의 녹음이 없다(앱은 오류 대신 화면 답만 보여 준다). 422 는 요청 모양 오류로 남겨 둔다.
             raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except Tts107Error as exc:
-            # 503: 107 TTS 를 지금 못 쓴다(회사 망 밖, 시험 페이지 꺼짐, 시간 초과). 앱은 이 안내를 보여 준다.
-            logger.warning("tts107 failed: %s", exc)
+        except (Tts107Error, Lfm3Error) as exc:
+            # 503: 107 TTS·LFM3 를 지금 못 쓴다(회사 망 밖, 시험 페이지 꺼짐, 시간 초과). 앱은 이 안내를 보여 준다.
+            logger.warning("tts failed: %s", exc)
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         wav_bytes, duration_sec = result.wav_bytes, result.duration_sec
         # 그때그때 만드는 TTS 는 끝에 0.9초쯤 조용한 부분이 붙어 조각 사이 텀이 길었다 → 쉼표 조각 0.15초·문장 끝 0.3초만 남긴다.

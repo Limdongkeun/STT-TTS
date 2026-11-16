@@ -12,6 +12,7 @@ import {
   describeAttempt,
   hasRecords,
   isValidDevice,
+  matchCase,
   nextCase,
   recordTurn as buildRecord,
   resultOf,
@@ -25,6 +26,10 @@ import {
 
 const PLAYBACK_FAILED_NOTE = "재생 안 됨";
 const PLAYBACK_RETRIED_NOTE = "다시 틀어서 남";
+/** 대화 화면에서 답을 읽는 중에 끊었다(말로 끼어듦 / 얼굴을 눌러 끊음). 잘못 끊긴 턴을 찾을 수 있게 남긴다. */
+const INTERRUPTED_NOTES = { voice: "말로 끊음", tap: "눌러서 끊음" } as const;
+/** 대화 모드: 말하는 중에 미리 만든 답 소리를 그대로 썼다(말 끝→소리가 줄었는지 셀 수 있게). */
+const PREFETCHED_NOTE = "미리 만든 답";
 /** 소리 파일을 달라고 했는데 폰 STT 가 주지 않았다. */
 const AUDIO_MISSING_NOTE = "소리 파일 없음";
 const MAX_AUDIO_ERROR_CHARS = 80;
@@ -160,29 +165,52 @@ export function useTestSheet() {
     [addNote, update],
   );
 
+  /** 이번 턴(인식한 말·답)을 그 문장 칸에 적는다. 문장이 없으면 아무것도 적지 않는다. */
+  const recordInto = useCallback(
+    (
+      caseId: string | null, recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null,
+      corrected: string, tts: string,
+    ): TestCase | null => {
+      const testCase = casesRef.current.find((item) => item.id === caseId);
+      // 적을 문장이 없던 턴이면 지난 문장에 '녹음 없음'이 잘못 적히지 않게 비운다.
+      lastRecordedRef.current = testCase ? testCase.id : null;
+      if (!testCase) return null;
+      update(
+        testCase.id,
+        buildRecord(
+          resultOf(resultsRef.current, testCase.id), testCase, recognized, answer, stt, conditionRef.current, corrected, tts,
+        ),
+      );
+      if (phoneTurn?.audioUri) attachAudio(testCase.id, phoneTurn.audioUri, recognized);
+      else if (phoneTurn?.audioRequested) addNote(testCase.id, AUDIO_MISSING_NOTE);
+      return testCase;
+    },
+    [addNote, attachAudio, update],
+  );
+
   /** 시험 중인 문장에 이번 턴(인식한 말·답)을 적고 다음 문장으로 넘어간다. 다음 문장을 돌려준다. */
   const recordTurn = useCallback(
     (
       recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null, corrected = "", tts = "",
     ): TestCase | null => {
       const caseId = activeIdRef.current;
-      const testCase = casesRef.current.find((item) => item.id === caseId);
-      // 시험 중인 문장이 없던 턴이면 지난 문장에 '녹음 없음'이 잘못 적히지 않게 비운다.
-      lastRecordedRef.current = caseId && testCase ? caseId : null;
-      if (!caseId || !testCase) return null;
-      update(
-        caseId,
-        buildRecord(
-          resultOf(resultsRef.current, caseId), testCase, recognized, answer, stt, conditionRef.current, corrected, tts,
-        ),
-      );
-      if (phoneTurn?.audioUri) attachAudio(caseId, phoneTurn.audioUri, recognized);
-      else if (phoneTurn?.audioRequested) addNote(caseId, AUDIO_MISSING_NOTE);
+      if (!recordInto(caseId, recognized, answer, stt, phoneTurn, corrected, tts) || !caseId) return null;
       const following = nextCase(casesRef.current, caseId);
       setActiveId(following?.id ?? null);
       return following;
     },
-    [addNote, attachAudio, setActiveId, update],
+    [recordInto, setActiveId],
+  );
+
+  /** 대화 모드: 순서 없이 한 말을 맞는 문장 칸에 적는다. 적은 문장을 돌려주고, 시험표에 없는 말이면 null. */
+  const recordMatchedTurn = useCallback(
+    (
+      recognized: string, answer: string, stt: string, phoneTurn: PhoneTurn | null = null, corrected = "", tts = "",
+    ): TestCase | null => {
+      const matched = matchCase(casesRef.current, [recognized, corrected], answer);
+      return recordInto(matched?.id ?? null, recognized, answer, stt, phoneTurn, corrected, tts);
+    },
+    [recordInto],
   );
 
   /** 방금 적은 문장의 답에 녹음이 없을 때: 들린 답을 '녹음 없음'으로 적는다(판단할 소리가 없음). */
@@ -201,6 +229,17 @@ export function useTestSheet() {
   const markPlaybackRetried = useCallback(() => {
     const caseId = lastRecordedRef.current;
     if (caseId) addNote(caseId, PLAYBACK_RETRIED_NOTE);
+  }, [addNote]);
+
+  /** 방금 적은 문장의 답 소리를 중간에 끊었을 때: 메모에 어떻게 끊었는지 더한다. */
+  const markInterrupted = useCallback((how: keyof typeof INTERRUPTED_NOTES) => {
+    const caseId = lastRecordedRef.current;
+    if (caseId) addNote(caseId, INTERRUPTED_NOTES[how]);
+  }, [addNote]);
+
+  const markPrefetched = useCallback(() => {
+    const caseId = lastRecordedRef.current;
+    if (caseId) addNote(caseId, PREFETCHED_NOTE);
   }, [addNote]);
 
   /** 방금 적은 문장에 걸린 시간을 적는다(답 소리가 나기 시작한 뒤, 또는 녹음이 없어 화면 답만 보인 뒤). */
@@ -280,9 +319,12 @@ export function useTestSheet() {
     setActiveId,
     update,
     recordTurn,
+    recordMatchedTurn,
     markNoRecording,
     markPlaybackFailed,
     markPlaybackRetried,
+    markInterrupted,
+    markPrefetched,
     recordTimings,
     save,
     clearSheet,

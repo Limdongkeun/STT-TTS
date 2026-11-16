@@ -1,10 +1,20 @@
 """STT·TTS 엔진. 설정값으로 골라 쓴다."""
 
 from app.engines.base import SttEngine, SttResult, TtsEngine, TtsResult
-from app.settings import TTS_107_ENGINES, Settings
+from app.settings import LFM3_STT_ENGINE, LFM3_TTS_ENGINES, TTS_107_ENGINES, Settings
+
+
+def _lfm3_runtime(settings: Settings):
+    from app.engines.lfm3 import get_runtime
+
+    return get_runtime(settings.lfm3_dir, settings.lfm3_port)
 
 
 def create_stt_engine(settings: Settings) -> SttEngine:
+    if settings.stt_engine == LFM3_STT_ENGINE:
+        from app.engines.lfm3 import Lfm3SttEngine
+
+        return Lfm3SttEngine(_lfm3_runtime(settings), settings.speech_language)
     if settings.stt_engine == "qwen3-asr":
         from app.engines.qwen3_asr import Qwen3AsrEngine
 
@@ -30,6 +40,10 @@ def create_tts_engine(settings: Settings) -> TtsEngine:
         return Qwen3Tts107Engine(
             settings.tts107_url, voice, settings.tts107_timeout_sec, engine_name=settings.tts_engine
         )
+    if settings.tts_engine in LFM3_TTS_ENGINES:
+        from app.engines.lfm3 import Lfm3TtsEngine
+
+        return Lfm3TtsEngine(_lfm3_runtime(settings), settings.tts_engine)
     from app.engines.mock import MockTtsEngine
 
     return MockTtsEngine()

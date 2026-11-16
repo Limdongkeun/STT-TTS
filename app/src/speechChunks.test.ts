@@ -4,6 +4,7 @@ import { test } from "node:test";
 import {
   fetchSequentially,
   shouldSplitSpeech,
+  speechPieces,
   SpeechCancelledError,
   splitLongFirstChunk,
   splitSpeech,
@@ -111,4 +112,12 @@ test("fetchSequentially: 멈추면 남은 조각을 부르지 않는다", async 
   assert.equal(await results[0], "a");
   await assert.rejects(results[1], SpeechCancelledError);
   assert.deepEqual(called, ["a"]);
+});
+
+test("speechPieces: 나눠 읽으면 문장마다, 아니면 통째로 하나", () => {
+  const text = "가스비는 냈어요. 남은 건 없어요.";
+  assert.equal(speechPieces(text, true).length, 2);
+  assert.deepEqual(speechPieces(text, true), splitSpeech(text));
+  assert.deepEqual(speechPieces("가스비는 냈어요. 남은 건 없어요.", false), ["가스비는 냈어요. 남은 건 없어요."]);
+  assert.deepEqual(speechPieces("", true), [""]);
 });

@@ -57,14 +57,18 @@ class FamilyDemoAnswerProvider:
         *,
         speaker: str = "wife",
         now: datetime | None = None,
+        preview: bool = False,
     ) -> tuple[str, FamilyDemoContext | None]:
+        """preview: 기록(부탁·장보기 등)을 바꾸지 않고 답만 만든다. 복용 시각 대화는 앱이 context 를 들고 다녀 원래 기록이 없다."""
         compact = compact_question(question)
         text = correct_transcript(compact)
         if text != compact:
             logger.info("ask corrected %r -> %r", compact, text)
         current = (now if now is not None else datetime.now(KST)).astimezone(KST)
         last_topic = context.last_topic if context else ""
-        topic_reply, topic_name = self._topics.answer(question, text, speaker, current, last_topic=last_topic)
+        topic_reply, topic_name = self._topics.answer(
+            question, text, speaker, current, last_topic=last_topic, preview=preview
+        )
         if topic_reply:
             return topic_reply, FamilyDemoContext(last_topic=topic_name)
 

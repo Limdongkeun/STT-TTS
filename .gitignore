@@ -12,3 +12,6 @@ results/*
 
 # 사전 음성 묶음(zip)은 폴더 안 WAV·MP3와 같은 내용이라 올리지 않는다
 output/audio/*.zip
+
+# LFM3-Audio(llama.cpp 실행 파일·모델 1.4GB)는 맥에만 둔다
+server/.lfm3/

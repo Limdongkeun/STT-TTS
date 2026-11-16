@@ -178,23 +178,25 @@ def test_factory_builds_107_engine_without_calling_107():
 
 
 def test_factory_builds_h2_engine_with_its_own_voice():
-    """2026-11-12: H2 목소리를 따로 고를 수 있다. TTS_107_VOICE 를 바꿔도 H2 엔진은 h2 견본을 쓴다."""
+    """2026-11-12: H2 목소리를 따로 고를 수 있다. TTS_107_VOICE 를 바꿔도 H2 엔진은 H2 견본을 쓴다.
+    2026-11-16: H2 엔진의 견본은 답하는 말투(h2-d)다. 처음 h2 견본도 남아 있다."""
     engine = create_tts_engine(make_settings(tts_engine="qwen3-tts-107-h2", tts107_url=BASE, tts107_voice="g"))
-    assert (engine.name, engine.label) == ("qwen3-tts-107-h2", "107 Qwen3-TTS · H2 목소리")
-    voice = load_voice("h2")
-    assert voice.ref_text.startswith("안녕하세요!") and voice.wav_bytes[:4] == b"RIFF"
+    assert (engine.name, engine.label) == ("qwen3-tts-107-h2", "107 Qwen3-TTS · H2-D 목소리")
+    voice = load_voice("h2-d")
+    assert voice.ref_text.startswith("남편에게 부탁을 보냈어요.") and voice.wav_bytes[:4] == b"RIFF"
+    assert load_voice("h2").ref_text.startswith("안녕하세요!")
 
 
 def test_h2_engine_sends_h2_sample_and_shares_one_lock():
     from app.engines import qwen3_tts_107
 
     http = FakeHttp()
-    engine = Qwen3Tts107Engine(BASE, load_voice("h2"), 30, http=http, engine_name="qwen3-tts-107-h2")
+    engine = Qwen3Tts107Engine(BASE, load_voice("h2-d"), 30, http=http, engine_name="qwen3-tts-107-h2")
     engine.synthesize("소윤이는 수요일에 체험학습 가고요.")
     upload = next(call for call in http.calls if call[0] == "upload")
     clone = next(call for call in http.calls if call[0] == "call")
-    assert upload[2] == "h2.wav"
-    assert clone[2]["data"][1] == load_voice("h2").ref_text
+    assert upload[2] == "h2-d.wav"
+    assert clone[2]["data"][1] == load_voice("h2-d").ref_text
     # G·H2 엔진이 따로 있어도 107 은 한 번에 하나씩(잠금 하나를 같이 쓴다)
     assert not hasattr(engine, "_lock") and hasattr(qwen3_tts_107.CALL_LOCK, "acquire")
 

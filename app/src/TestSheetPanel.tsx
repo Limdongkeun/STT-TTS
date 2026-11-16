@@ -55,6 +55,8 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
   const [filter, setFilter] = useState<SheetFilter>("all");
   const [deviceDraft, setDeviceDraft] = useState<string | null>(null);
   const [showAllAttempts, setShowAllAttempts] = useState(false);
+  // 시험표가 길어서 아래 '답 듣기'·'숫자 읽기 시험'까지 내려가기 힘들다(2026-11-13 사용자 요청): 제목을 눌러 접는다.
+  const [open, setOpen] = useState(true);
   const { done, bad, total, avgCer } = summarize(sheet.cases, sheet.results, requireHeard);
 
   const toggle = (caseId: string, key: CheckKey, value: Mark) => {
@@ -73,10 +75,26 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
     </Pressable>
   );
 
+  const titleButton = (
+    <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}>
+      <Text style={styles.title}>{open ? "▼" : "▶"} 시험표</Text>
+    </Pressable>
+  );
+  if (!open) {
+    return (
+      <View style={styles.sheet}>
+        {titleButton}
+        <Text style={styles.meta}>
+          끝낸 문장 {done}/{total} · × 있는 문장 {bad} · 눌러서 펼치기
+        </Text>
+      </View>
+    );
+  }
+
   let lastGroup = "";
   return (
     <View style={styles.sheet}>
-      <Text style={styles.title}>시험표</Text>
+      {titleButton}
       <Text style={styles.meta}>지금 STT: {sttLabel} (맨 위 STT 고르기로 바꿔요. 저장본은 같은 STT끼리 비교해요)</Text>
       <Text style={styles.meta}>시험 환경 (말한 턴마다 같이 적혀요)</Text>
       <View style={styles.row}>

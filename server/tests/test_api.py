@@ -59,6 +59,8 @@ def test_health(client):
             {"engine": "prerecorded", "label": "JISOO 녹음 (C1~E2) · 입말"},
             {"engine": "mock", "label": "mock"},
         ],
+        "sttChoices": [{"engine": "mock", "label": "서버 mock STT"}],
+        "askPreview": True,
     }
 
 
@@ -289,9 +291,9 @@ def test_family_demo_real_clock_uses_now(monkeypatch):
     seen = []
     original = family_demo.FamilyDemoAnswerProvider.answer
 
-    def spy(self, question, context=None, *, speaker="wife", now=None):
+    def spy(self, question, context=None, *, speaker="wife", now=None, preview=False):
         seen.append(now)
-        return original(self, question, context, speaker=speaker, now=now)
+        return original(self, question, context, speaker=speaker, now=now, preview=preview)
 
     monkeypatch.setattr(family_demo.FamilyDemoAnswerProvider, "answer", spy)
     for clock, expected in (("fixed", family_demo.DEMO_NOW), ("real", None)):
@@ -312,18 +314,26 @@ def test_ask_returns_corrected_text_for_family_demo():
 def test_one_server_offers_107_when_url_is_set():
     client = TestClient(create_app(make_settings(tts_engine="prerecorded", tts107_url="http://107.test:5110")))
     choices = client.get("/health").json()["ttsChoices"]
-    assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", "mock"]
+    assert [choice["engine"] for choice in choices] == ["prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2"]
     assert choices[1]["label"] == "107 Qwen3-TTS · G 목소리 · 입말"
-    assert choices[2]["label"] == "107 Qwen3-TTS · H2 목소리 · 입말"
+    assert choices[2]["label"] == "107 Qwen3-TTS · H2-D 목소리 · 입말"
     assert choices[0]["label"] == "JISOO 녹음 (C1~E2) · 입말"  # 2026-11-12부터 지수 녹음도 입말
 
 
 def test_tts_engine_can_be_chosen_per_request():
-    client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
-    beep = client.post("/tts", json={"text": "아무 글이나 읽어 줘", "engine": "mock"})
+    client = TestClient(create_app(make_settings(tts_engine="mock")))
+    recorded = client.post("/tts", json={"text": "아무 글이나 읽어 줘", "engine": "prerecorded"})
+    # 사전 녹음을 골랐다: 녹음 없는 글이면 404 그대로
+    assert recorded.status_code == 404
+    beep = client.post("/tts", json={"text": "아무 글이나 읽어 줘"})
     assert (beep.status_code, beep.json()["engine"]) == (200, "mock")
-    # 기본(사전 녹음)은 녹음 없는 글이면 404 그대로
-    assert client.post("/tts", json={"text": "아무 글이나 읽어 줘"}).status_code == 404
+
+
+def test_beep_is_offered_only_as_server_default():
+    """2026-11-16 사용자: 삐(mock) 버튼은 뺀다. 서버 기본이 삐일 때(시험용)만 남는다."""
+    client = TestClient(create_app(make_settings(tts_engine="prerecorded")))
+    assert [choice["engine"] for choice in client.get("/health").json()["ttsChoices"]] == ["prerecorded"]
+    assert client.post("/tts", json={"text": "아무 글이나", "engine": "mock"}).status_code == 422
 
 
 @pytest.mark.parametrize("engine", ["qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts", "elevenlabs", "../x"])
