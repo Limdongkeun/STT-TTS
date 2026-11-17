@@ -15,3 +15,5 @@ output/audio/*.zip
 
 # LFM3-Audio(llama.cpp 실행 파일·모델 1.4GB)는 맥에만 둔다
 server/.lfm3/
+# Qwen3-TTS 0.6B H2-D 학습(모델·데이터·저장본, 맥에만)
+server/.train/

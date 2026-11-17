@@ -50,7 +50,9 @@
           }
         }
       ],
-      "expo-asset"
-    ]
+      "expo-asset",
+      "expo-router"
+    ],
+    "scheme": "stttts"
   }
 }

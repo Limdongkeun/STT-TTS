@@ -1,0 +1,11 @@
+# 메인 화면이 뜨는지(2026-11-17, expo/examples with-maestro 방식). 실행: maestro test maestro/home.yml
+appId: com.uptive.stttts
+---
+- launchApp:
+    permissions:
+      all: allow
+- assertVisible:
+    id: main-title
+- assertVisible: "💬 대화 모드"
+- assertVisible:
+    id: mic-button

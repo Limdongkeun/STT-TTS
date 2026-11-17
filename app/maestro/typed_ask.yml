@@ -1,0 +1,16 @@
+# 글로 묻기 → 답이 보이는지. 8002(답 서버)가 켜져 있어야 한다.
+appId: com.uptive.stttts
+---
+- launchApp:
+    permissions:
+      all: allow
+- tapOn:
+    id: typed-question
+- inputText: "가스비 얼마 내야 돼?"
+- hideKeyboard
+- tapOn:
+    id: typed-ask
+- extendedWaitUntil:
+    visible: "답 \\(화면용\\)"
+    timeout: 20000
+- assertVisible: ".*가스비.*원.*"

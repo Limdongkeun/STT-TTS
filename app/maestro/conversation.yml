@@ -1,0 +1,17 @@
+# 대화 모드 화면을 열고 끝내면 메인으로 돌아오는지(Expo Router 화면 나누기 확인).
+# 시뮬레이터에는 마이크가 없어 듣기·답은 보지 않는다.
+appId: com.uptive.stttts
+---
+- launchApp:
+    permissions:
+      all: allow
+- tapOn:
+    id: start-conversation
+- assertVisible:
+    id: conversation-end
+- assertVisible:
+    id: conversation-face
+- tapOn:
+    id: conversation-end
+- assertVisible:
+    id: main-title

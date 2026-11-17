@@ -1,4 +1,5 @@
 /** 앱 맨 아래 시험표 화면. 문장 카드에서 "이 문장 시험"을 누르고 말하면 결과가 자동으로 적힌다.
+ *  문장 카드는 옆으로 넘겨 본다(CaseCarousel, 2026-11-17 사용자: 밑으로 계속 늘어나서 불편).
  *  (파일 이름을 Panel 로 둔 까닭: testSheet.ts 와 대소문자만 다르면 macOS 에서 같은 파일로 잡힌다.) */
 
 import { useState } from "react";
@@ -27,6 +28,7 @@ import {
   type SheetFilter,
   type TestCase,
 } from "./testSheet";
+import { CaseCarousel } from "./components/CaseCarousel";
 import type { TestSheetState } from "./useTestSheet";
 
 const FILTERS: [SheetFilter, string][] = [
@@ -91,7 +93,6 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
     );
   }
 
-  let lastGroup = "";
   return (
     <View style={styles.sheet}>
       {titleButton}
@@ -182,126 +183,129 @@ export function TestSheetPanel({ sheet, stage, liveText, sttLabel, ttsIsMock, on
         </Pressable>
       ) : null}
 
-      {sheet.cases.map((testCase) => {
-        const result = resultOf(sheet.results, testCase.id);
-        if (!isVisible(result, filter, requireHeard)) return null;
-        const spoken = result.spoken?.trim() ?? "";
-        const cer = charErrorRate(referenceText(testCase, result), result.recognized);
-        const corrected = changedCorrection(result);
-        const active = sheet.activeId === testCase.id;
-        const listening = active && stage === "listening";
-        const disabled = stage === "busy" || (stage === "listening" && !active);
-        const header = testCase.group !== lastGroup ? <Text style={styles.group}>{testCase.group}</Text> : null;
-        lastGroup = testCase.group;
-        return (
-          <View key={testCase.id} style={styles.cardWrap}>
-            {header}
-            <View
-              style={[
-                styles.card,
-                isDone(result, requireHeard) && !hasBad(result, requireHeard) && styles.cardDone,
-                hasBad(result, requireHeard) && styles.cardBad,
-                active && styles.cardActive,
-              ]}
-            >
-              <View style={styles.row}>
-                <Text style={styles.caseId}>{testCase.id}</Text>
-                {testCase.chain ? <Text style={styles.meta}>{testCase.chain}</Text> : null}
-              </View>
-              <Text style={styles.say}>“{testCase.say}”</Text>
-              <Text style={styles.expect}>
-                기대 답: {testCase.expect}
-                {testCase.dateDependent ? " (날짜에 따라 달라요)" : ""}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                disabled={disabled}
-                onPress={() => onChoose(testCase)}
-                style={[styles.chooseButton, listening && styles.chooseButtonActive, disabled && styles.dim]}
+      <CaseCarousel
+        items={sheet.cases.filter((testCase) => isVisible(resultOf(sheet.results, testCase.id), filter, requireHeard))}
+        activeId={sheet.activeId}
+        toneOf={(testCase) => {
+          const result = resultOf(sheet.results, testCase.id);
+          if (hasBad(result, requireHeard)) return "bad";
+          return isDone(result, requireHeard) ? "done" : "todo";
+        }}
+        renderCard={(testCase) => {
+          const result = resultOf(sheet.results, testCase.id);
+          const spoken = result.spoken?.trim() ?? "";
+          const cer = charErrorRate(referenceText(testCase, result), result.recognized);
+          const corrected = changedCorrection(result);
+          const active = sheet.activeId === testCase.id;
+          const listening = active && stage === "listening";
+          const disabled = stage === "busy" || (stage === "listening" && !active);
+          return (
+              <View
+                style={[
+                  styles.card,
+                  isDone(result, requireHeard) && !hasBad(result, requireHeard) && styles.cardDone,
+                  hasBad(result, requireHeard) && styles.cardBad,
+                  active && styles.cardActive,
+                ]}
               >
-                <Text style={[styles.chooseText, listening && styles.chooseTextActive]}>
-                  {listening ? "■ 말하기 끝" : active && stage === "busy" ? "답 찾는 중…" : "🎤 이 문장 말하기"}
+                <View style={styles.row}>
+                  <Text style={styles.caseId}>{testCase.id}</Text>
+                  {testCase.chain ? <Text style={styles.meta}>{testCase.chain}</Text> : null}
+                </View>
+                <Text style={styles.say}>“{testCase.say}”</Text>
+                <Text style={styles.expect}>
+                  기대 답: {testCase.expect}
+                  {testCase.dateDependent ? " (날짜에 따라 달라요)" : ""}
                 </Text>
-              </Pressable>
-              {listening ? <Text style={styles.live}>{liveText || "듣는 중… 문장을 소리 내어 말하세요"}</Text> : null}
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={disabled}
+                  onPress={() => onChoose(testCase)}
+                  style={[styles.chooseButton, listening && styles.chooseButtonActive, disabled && styles.dim]}
+                >
+                  <Text style={[styles.chooseText, listening && styles.chooseTextActive]}>
+                    {listening ? "■ 말하기 끝" : active && stage === "busy" ? "답 찾는 중…" : "🎤 이 문장 말하기"}
+                  </Text>
+                </Pressable>
+                {listening ? <Text style={styles.live}>{liveText || "듣는 중… 문장을 소리 내어 말하세요"}</Text> : null}
 
-              <Text style={styles.label}>인식한 말</Text>
-              <TextInput
-                value={result.recognized}
-                onChangeText={(value) => sheet.update(testCase.id, { recognized: value }, 600)}
-                placeholder="말하면 자동으로 적혀요"
-                style={styles.input}
-                accessibilityLabel={`${testCase.id} 인식한 말`}
-              />
-              {corrected ? <Text style={styles.meta}>서버 보정 뒤: {corrected}</Text> : null}
-              <Text style={styles.label}>실제로 말한 문장 (대본과 다르게 말했을 때만)</Text>
-              <TextInput
-                value={result.spoken ?? ""}
-                onChangeText={(value) => sheet.update(testCase.id, { spoken: value }, 600)}
-                placeholder="비우면 대본 문장과 비교해요"
-                maxLength={MAX_SPOKEN_CHARS}
-                style={styles.input}
-                accessibilityLabel={`${testCase.id} 실제로 말한 문장`}
-              />
-              {cer !== null ? (
-                <Text style={[styles.accuracy, cer > 0 && styles.answerDiff]}>
-                  인식 정확도 {accuracyText(cer)} ({spoken ? "실제로 말한 문장" : "대본"}과 글자 비교, 띄어쓰기 빼고)
-                </Text>
-              ) : null}
-              {result.answer ? (
-                <Text style={[styles.answer, result.answer.trim() !== testCase.expect.trim() && styles.answerDiff]}>
-                  화면 답: {result.answer}
-                </Text>
-              ) : null}
-              {turnMeta(result.condition, result.replyMs, result.askMs, result.ttsMs)}
+                <Text style={styles.label}>인식한 말</Text>
+                <TextInput
+                  value={result.recognized}
+                  onChangeText={(value) => sheet.update(testCase.id, { recognized: value }, 600)}
+                  placeholder="말하면 자동으로 적혀요"
+                  style={styles.input}
+                  accessibilityLabel={`${testCase.id} 인식한 말`}
+                />
+                {corrected ? <Text style={styles.meta}>서버 보정 뒤: {corrected}</Text> : null}
+                <Text style={styles.label}>실제로 말한 문장 (대본과 다르게 말했을 때만)</Text>
+                <TextInput
+                  value={result.spoken ?? ""}
+                  onChangeText={(value) => sheet.update(testCase.id, { spoken: value }, 600)}
+                  placeholder="비우면 대본 문장과 비교해요"
+                  maxLength={MAX_SPOKEN_CHARS}
+                  style={styles.input}
+                  accessibilityLabel={`${testCase.id} 실제로 말한 문장`}
+                />
+                {cer !== null ? (
+                  <Text style={[styles.accuracy, cer > 0 && styles.answerDiff]}>
+                    인식 정확도 {accuracyText(cer)} ({spoken ? "실제로 말한 문장" : "대본"}과 글자 비교, 띄어쓰기 빼고)
+                  </Text>
+                ) : null}
+                {result.answer ? (
+                  <Text style={[styles.answer, result.answer.trim() !== testCase.expect.trim() && styles.answerDiff]}>
+                    화면 답: {result.answer}
+                  </Text>
+                ) : null}
+                {turnMeta(result.condition, result.replyMs, result.askMs, result.ttsMs)}
 
-              <View style={styles.checks}>
-                {CHECKS.map(([key, label]) => {
-                  const mockSkipped = key === "heard" && !requireHeard;
-                  const noRecording = key === "heard" && result.heard === "-";
-                  const skipped = mockSkipped || noRecording;
-                  return (
-                  <View key={key} style={[styles.check, skipped && styles.dim]}>
-                    <Text style={styles.label}>
-                      {mockSkipped ? `${label} (mock 생략)` : noRecording ? `${label} (녹음 없음)` : label}
-                    </Text>
-                    <View style={styles.pair}>
-                      {(["o", "x"] as const).map((value) => {
-                        const on = result[key] === value;
-                        return (
-                          <Pressable
-                            key={value}
-                            accessibilityRole="button"
-                            accessibilityState={{ selected: on, disabled: skipped }}
-                            disabled={skipped}
-                            accessibilityLabel={`${testCase.id} ${label} ${value === "o" ? "맞음" : "틀림"}`}
-                            onPress={() => toggle(testCase.id, key, value)}
-                            style={[styles.mark, on && (value === "o" ? styles.markOk : styles.markBad)]}
-                          >
-                            <Text style={[styles.markText, on && (value === "o" ? styles.markTextOk : styles.markTextBad)]}>
-                              {value === "o" ? "○" : "×"}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
+                <View style={styles.checks}>
+                  {CHECKS.map(([key, label]) => {
+                    const mockSkipped = key === "heard" && !requireHeard;
+                    const noRecording = key === "heard" && result.heard === "-";
+                    const skipped = mockSkipped || noRecording;
+                    return (
+                    <View key={key} style={[styles.check, skipped && styles.dim]}>
+                      <Text style={styles.label}>
+                        {mockSkipped ? `${label} (mock 생략)` : noRecording ? `${label} (녹음 없음)` : label}
+                      </Text>
+                      <View style={styles.pair}>
+                        {(["o", "x"] as const).map((value) => {
+                          const on = result[key] === value;
+                          return (
+                            <Pressable
+                              key={value}
+                              accessibilityRole="button"
+                              accessibilityState={{ selected: on, disabled: skipped }}
+                              disabled={skipped}
+                              accessibilityLabel={`${testCase.id} ${label} ${value === "o" ? "맞음" : "틀림"}`}
+                              onPress={() => toggle(testCase.id, key, value)}
+                              style={[styles.mark, on && (value === "o" ? styles.markOk : styles.markBad)]}
+                            >
+                              <Text style={[styles.markText, on && (value === "o" ? styles.markTextOk : styles.markTextBad)]}>
+                                {value === "o" ? "○" : "×"}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
                     </View>
-                  </View>
-                  );
-                })}
-              </View>
+                    );
+                  })}
+                </View>
 
-              <Text style={styles.label}>메모 (틀린 낱말 → 보정 후보)</Text>
-              <TextInput
-                value={result.note}
-                onChangeText={(value) => sheet.update(testCase.id, { note: value }, 600)}
-                placeholder="예: 소윤 → 소연"
-                style={styles.input}
-                accessibilityLabel={`${testCase.id} 메모`}
-              />
-            </View>
-          </View>
-        );
-      })}
+                <Text style={styles.label}>메모 (틀린 낱말 → 보정 후보)</Text>
+                <TextInput
+                  value={result.note}
+                  onChangeText={(value) => sheet.update(testCase.id, { note: value }, 600)}
+                  placeholder="예: 소윤 → 소연"
+                  style={styles.input}
+                  accessibilityLabel={`${testCase.id} 메모`}
+                />
+              </View>
+          );
+        }}
+      />
       {saveButton}
     </View>
   );
@@ -371,7 +375,6 @@ const styles = StyleSheet.create({
   smallText: { fontSize: 13, color: "#333" },
   smallTextActive: { color: "#1F4FD8", fontWeight: "700" },
   group: { marginTop: 8, fontSize: 15, fontWeight: "700", color: "#111" },
-  cardWrap: { gap: 6 },
   card: { backgroundColor: "#FFF", borderRadius: 12, padding: 12, gap: 6, borderWidth: 1, borderColor: "#E1E4EA" },
   cardDone: { borderColor: "#1D7A46" },
   cardBad: { borderColor: "#B3261E" },
