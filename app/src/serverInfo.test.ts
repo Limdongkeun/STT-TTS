@@ -39,19 +39,15 @@ test("sttLabelFor: 폰 기본 STT / 서버 모델 이름 / 확인 안 됨", () =
   assert.equal(sttLabelFor("phone", null), PHONE_STT_LABEL);
   assert.equal(sttLabelFor("server", null), "서버 STT(모델 확인 안 됨)");
   assert.equal(sttLabelFor("server", HEALTH), "서버 mock STT");
-  assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B" }), "Qwen3-ASR-1.7B");
-  assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "" }), "서버 qwen3-asr");
-  // 힌트를 쓰면 이름에 붙여 힌트 없는 저장본과 따로 비교한다.
   assert.equal(
-    sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B", sttHints: 42 }),
-    "Qwen3-ASR-1.7B · 힌트 42",
+    sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr-ko", sttModel: "TeamUNIVA/qwen3_asr_1.7b_ko" }), "qwen3_asr_1.7b_ko",
   );
-  assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr", sttModel: "Qwen/Qwen3-ASR-1.7B", sttHints: 0 }), "Qwen3-ASR-1.7B");
+  assert.equal(sttLabelFor("server", { ...HEALTH, sttEngine: "qwen3-asr-ko", sttModel: "" }), "서버 qwen3-asr-ko");
 });
 
 test("ttsChoicesOf / activeTtsChoice: 고른 TTS 가 서버 목록에 있을 때만 쓴다", () => {
   const health = {
-    status: "ok", sttEngine: "qwen3-asr", ttsEngine: "prerecorded", answerProvider: "family-demo",
+    status: "ok", sttEngine: "qwen3-asr-ko", ttsEngine: "prerecorded", answerProvider: "family-demo",
     ttsChoices: [
       { engine: "prerecorded", label: "JISOO 사전 녹음 (C1~C7·D1~D25)" },
       { engine: "qwen3-tts-107", label: "107 Qwen3-TTS · G 목소리" },
@@ -76,26 +72,28 @@ test("ttsChoicesOf: 예전 서버(목록 없음)·서버 모름은 빈 목록, �
 
 test("sttChoicesOf·sttLabelFor: 서버가 준 STT 고르기 목록(2026-11-16 LFM3)", () => {
   const health = {
-    ...HEALTH, sttEngine: "qwen3-asr",
+    ...HEALTH, sttEngine: "qwen3-asr-ko",
     sttChoices: [
-      { engine: "qwen3-asr", label: "Qwen3-ASR-1.7B · 힌트 42" },
+      { engine: "qwen3-asr-ko", label: "Qwen3-ASR-1.7B-ko (UNIVA)" },
       { engine: "lfm3-asr", label: "LFM3-Audio-2B" },
       { engine: 3, label: "모양이 틀림" },
     ],
   } as unknown as HealthResponse;
-  assert.deepEqual(sttChoicesOf(health).map((choice) => choice.engine), ["qwen3-asr", "lfm3-asr"]);
+  assert.deepEqual(sttChoicesOf(health).map((choice) => choice.engine), ["qwen3-asr-ko", "lfm3-asr"]);
   assert.deepEqual(sttChoicesOf(HEALTH), []);
   assert.equal(sttLabelFor("server", health, "lfm3-asr"), "LFM3-Audio-2B");
   // 고르지 않았거나 목록에 없는 엔진이면 기본(첫째)
-  assert.equal(sttLabelFor("server", health, null), "Qwen3-ASR-1.7B · 힌트 42");
-  assert.equal(sttLabelFor("server", health, "whisper"), "Qwen3-ASR-1.7B · 힌트 42");
+  assert.equal(sttLabelFor("server", health, null), "Qwen3-ASR-1.7B-ko (UNIVA)");
+  assert.equal(sttLabelFor("server", health, "whisper"), "Qwen3-ASR-1.7B-ko (UNIVA)");
   assert.equal(sttLabelFor("phone", health, "lfm3-asr"), PHONE_STT_LABEL);
 });
 
 test("버튼 이름: LFM3 STT·TTS", () => {
   assert.equal(sttButtonLabel("lfm3-asr"), "서버 LFM3");
-  assert.equal(sttButtonLabel("qwen3-asr"), "서버 Qwen3-ASR");
+  assert.equal(sttButtonLabel("qwen3-asr-ko"), "서버 Qwen 한국어");
   assert.equal(sttButtonLabel("whisper"), "서버 whisper");
   assert.equal(ttsButtonLabel("lfm3-tts-female"), "LFM3 여자");
   assert.equal(ttsButtonLabel("lfm3-tts-male"), "LFM3 남자");
+  assert.equal(ttsButtonLabel("elevenlabs-v4-turbo-female"), "ElevenLabs 여자");
+  assert.equal(ttsButtonLabel("elevenlabs-v4-turbo-male"), "ElevenLabs 남자");
 });

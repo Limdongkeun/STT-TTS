@@ -16,10 +16,10 @@ def test_defaults(monkeypatch):
 
 
 def test_real_engines_selectable(monkeypatch):
-    monkeypatch.setenv("STT_ENGINE", "qwen3-asr")
+    monkeypatch.setenv("STT_ENGINE", "qwen3-asr-ko")
     monkeypatch.setenv("TTS_ENGINE", "qwen3-tts")
     settings = load_settings()
-    assert (settings.stt_engine, settings.tts_engine) == ("qwen3-asr", "qwen3-tts")
+    assert (settings.stt_engine, settings.tts_engine) == ("qwen3-asr-ko", "qwen3-tts")
 
 
 def test_fixed_answer_still_selectable(monkeypatch):
@@ -41,7 +41,7 @@ def test_real_engine_object_does_not_load_model(monkeypatch):
     """엔진을 만들기만 해서는 모델을 내려받지 않는다(처음 호출할 때 불러옴)."""
     from app.engines import create_stt_engine, create_tts_engine
 
-    monkeypatch.setenv("STT_ENGINE", "qwen3-asr")
+    monkeypatch.setenv("STT_ENGINE", "qwen3-asr-ko")
     monkeypatch.setenv("TTS_ENGINE", "qwen3-tts")
     settings = load_settings()
     assert create_stt_engine(settings)._model is None

@@ -36,6 +36,14 @@ class PrerecordedTtsEngine:
         manifest = json.loads((self._directory / "manifest.json").read_text(encoding="utf-8"))
         for item in manifest["recordings"]:
             self._recordings[canonical_text(item["speechText"])] = (self._directory, item)
+        # 입말 문장을 고친 답(2026-11-17 C6)은 같은 번호의 옛 녹음을 튼다(사용자: 지수 녹음은 문장이 안 맞아도 됨).
+        from app.spoken_answers import load_answer_samples
+
+        by_id = {item.get("id"): item for item in manifest["recordings"]}
+        for sample in load_answer_samples():
+            key = canonical_text(sample["spoken"])
+            if key not in self._recordings and sample["id"] in by_id:
+                self._recordings[key] = (self._directory, by_id[sample["id"]])
 
     def synthesize(self, text: str) -> TtsResult:
         recording = self._recordings.get(canonical_text(text))

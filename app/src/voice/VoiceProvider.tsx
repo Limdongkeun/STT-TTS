@@ -2,7 +2,7 @@
  *  녹음·받아쓰기·답·소리·대화 모드·끼어들기·미리 만들기·시험표 기록은 여기 한곳에 있고, 동작은 옮기기 전과 같다.
  *  화면(src/app/index.tsx 메인, src/app/conversation.tsx 대화)은 useVoice() 로 읽고 부르기만 한다. */
 
-import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { setAudioModeAsync, setIsAudioActiveAsync, useAudioPlayer } from "expo-audio";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Alert, AppState, Platform } from "react-native";
 
@@ -140,7 +140,15 @@ function useVoiceController() {
   // 답을 읽기 직전에 끼어들기 듣기를 켠다(폰 STT 훅 뒤에서 만든다).
   const startBargeInRef = useRef<(conversation: Conversation) => Promise<void>>(async () => undefined);
   const player = useAudioPlayer();
-  const playback = useAudioPlayerStatus(player);
+  // 재생이 끝날 때만 센다. 예전에는 재생 상태(0.5초마다)를 상태로 받아 그때마다 앱 전체가 다시 그려졌다
+  // (2026-11-17 사용자: 앱 시험 중 발열이 심함).
+  const [finishCount, setFinishCount] = useState(0);
+  useEffect(() => {
+    const subscription = player.addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) setFinishCount((count) => count + 1);
+    });
+    return () => subscription.remove();
+  }, [player]);
   const serverRecorder = useServerRecorder();
   // 지금 읽는 답의 소리 조각들. 새 답·마이크·대화 멈춤 때 null 로 바꾸면 남은 조각은 만들지도 틀지도 않는다.
   const speechQueueRef = useRef<SpeechQueue | null>(null);
@@ -599,8 +607,8 @@ function useVoiceController() {
 
   useEffect(() => {
     // 같은 '끝남' 상태로 이 효과가 다시 돌면 조각을 하나 건너뛰게 되므로 한 번만 처리한다.
-    if (!playback.didJustFinish || handledFinishRef.current === playback) return;
-    handledFinishRef.current = playback;
+    if (finishCount === 0 || handledFinishRef.current === finishCount) return;
+    handledFinishRef.current = finishCount;
     const queue = speechQueueRef.current;
     if (queue && queue.next < queue.audios.length) {
       void playNextChunk(queue);
@@ -612,7 +620,7 @@ function useVoiceController() {
       return;
     }
     onSpeechFinished();
-  }, [onSpeechFinished, playNextChunk, playback]);
+  }, [onSpeechFinished, playNextChunk, finishCount]);
 
   /** 숫자 읽기 시험: 읽기 글들을 차례로 만들어 튼다(답 소리와 같은 길: 하나씩 만들고, 앞 것을 트는 동안 다음 것을 만든다). */
   const playReadings = useCallback(async (readings: string[], owner: "answers" | "numbers") => {

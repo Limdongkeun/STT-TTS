@@ -5,11 +5,9 @@ export type HealthResponse = {
   sttEngine: string;
   ttsEngine: string;
   answerProvider: string;
-  /** 실제 모델을 쓸 때만 채워진다(예: "Qwen/Qwen3-ASR-1.7B"). 예전 서버에는 없다. */
+  /** 실제 모델을 쓸 때만 채워진다(예: "TeamUNIVA/qwen3_asr_1.7b_ko"). 예전 서버에는 없다. */
   sttModel?: string;
   ttsModel?: string;
-  /** 서버 STT 에 넣는 힌트 낱말 수(0 = 없음). 폰 STT 는 늘 같은 목록을 쓴다. 예전 서버에는 없다. */
-  sttHints?: number;
   /** 서버 하나로 합쳐 띄웠을 때 앱 버튼으로 고를 수 있는 TTS. label 은 시험표에 적는 이름. 예전 서버에는 없다. */
   ttsChoices?: TtsChoice[];
   /** 버튼 방식에서 고를 수 있는 서버 STT(첫째가 기본, 2026-11-16 LFM3 추가~). label 은 시험표에 적는 이름. 예전 서버에는 없다. */
@@ -25,6 +23,8 @@ const TTS_BUTTON_LABELS: Record<string, string> = {
   prerecorded: "지수 녹음",
   "qwen3-tts-107": "107 G 목소리",
   "qwen3-tts-107-h2": "107 H2 목소리",
+  "elevenlabs-v4-turbo-female": "ElevenLabs 여자",
+  "elevenlabs-v4-turbo-male": "ElevenLabs 남자",
   "lfm3-tts-female": "LFM3 여자",
   "lfm3-tts-male": "LFM3 남자",
   "qwen3-tts": "맥 Qwen TTS",
@@ -55,7 +55,7 @@ export function sttChoicesOf(health: HealthResponse | null): SttChoice[] {
 }
 
 const STT_BUTTON_LABELS: Record<string, string> = {
-  "qwen3-asr": "서버 Qwen3-ASR",
+  "qwen3-asr-ko": "서버 Qwen 한국어",
   "lfm3-asr": "서버 LFM3",
   mock: "서버 mock",
 };
@@ -77,7 +77,7 @@ export function activeTtsChoice(
 export const PHONE_STT_LABEL = "폰 기본 STT";
 
 /** 시험표에 적을 STT 이름. 폰 기본 STT, 또는 서버 STT 의 모델 이름(조직 이름 뺌).
- * 서버 STT 가 힌트를 쓰면 '· 힌트 42'를 붙인다: 힌트 있고 없음은 다른 조건이라 저장본 비교도 따로 한다. */
+ * (2026-11-17 원래 Qwen3-ASR 과 그 전용 힌트를 지워 '· 힌트' 꼬리는 없다. 예전 저장본 이름은 그대로 둔다.) */
 export function sttLabelFor(
   mode: "phone" | "server", sttServerHealth: HealthResponse | null, serverEngine: string | null = null,
 ): string {
@@ -87,9 +87,7 @@ export function sttLabelFor(
   const choices = sttChoicesOf(sttServerHealth);
   if (choices.length > 0) return (choices.find((choice) => choice.engine === serverEngine) ?? choices[0]).label;
   if (sttServerHealth.sttEngine === "mock") return "서버 mock STT";
-  const model = sttServerHealth.sttModel?.split("/").pop() || `서버 ${sttServerHealth.sttEngine}`;
-  const hints = sttServerHealth.sttHints ?? 0;
-  return hints > 0 ? `${model} · 힌트 ${hints}` : model;
+  return sttServerHealth.sttModel?.split("/").pop() || `서버 ${sttServerHealth.sttEngine}`;
 }
 
 const ANSWER_PROVIDER_LABELS: Record<string, string> = {

@@ -1,6 +1,7 @@
 /** 시험표 카드를 옆으로 넘겨 보는 줄(2026-11-17 사용자: 밑으로 계속 늘어나서 불편).
  *  한 번에 카드 하나, 옆으로 쓸거나 ◀ ▶ 로 넘기고, 위의 번호 줄(C1·D2…)을 눌러 바로 간다.
- *  번호 색: 끝냄(초록)·× 있음(빨강)·시험 중(파랑). 시험 중인 문장이 바뀌면 그 카드로 넘어간다. */
+ *  번호 색: 끝냄(초록)·× 있음(빨강)·시험 중(파랑 테두리).
+ *  저절로 넘어가지 않는다(2026-11-17 사용자: 자꾸 옆으로 넘어가서 불편) — 넘기는 건 사용자만 한다. */
 
 import { useEffect, useRef, useState, type ComponentRef, type ReactElement } from "react";
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from "react-native";
@@ -32,14 +33,6 @@ export function CaseCarousel<T extends { id: string }>({ items, activeId, toneOf
     setIndex(target);
     listRef.current?.scrollToOffset({ offset: target * page, animated });
   };
-
-  // 시험 중인 문장(시험표 '이 문장 말하기'·대화 모드 칸 맞추기)으로 넘어간다.
-  useEffect(() => {
-    if (!activeId || width === 0) return;
-    const target = items.findIndex((item) => item.id === activeId);
-    if (target >= 0 && target !== current) goTo(target);
-    // goTo 는 그릴 때마다 새로 만들어지지만 activeId·폭이 바뀔 때만 움직이면 된다.
-  }, [activeId, width]);
 
   // 번호 줄도 지금 카드가 보이게 따라간다(번호 칸 하나 약 56px).
   useEffect(() => {
@@ -118,6 +111,10 @@ export function CaseCarousel<T extends { id: string }>({ items, activeId, toneOf
           ItemSeparatorComponent={() => <View style={{ width: GAP }} />}
           getItemLayout={(_, i) => ({ length: page, offset: page * i, index: i })}
           initialScrollIndex={current}
+          // 보이는 카드와 양옆만 그린다(카드마다 입력칸이 많아 한꺼번에 그리면 무겁다, 2026-11-17 발열)
+          initialNumToRender={2}
+          maxToRenderPerBatch={2}
+          windowSize={3}
           onMomentumScrollEnd={(event) => setIndex(Math.round(event.nativeEvent.contentOffset.x / page))}
           renderItem={({ item }) => <View style={{ width }}>{renderCard(item)}</View>}
         />

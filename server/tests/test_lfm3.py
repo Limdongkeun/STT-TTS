@@ -74,8 +74,12 @@ def test_choices_only_when_lfm3_files_exist(tmp_path, monkeypatch):
     assert tts_choices(with_lfm3) == ("prerecorded", "lfm3-tts-female", "lfm3-tts-male", "mock")
     assert stt_choices(with_lfm3) == ("mock", "lfm3-asr")
     assert stt_choices(make_settings()) == ("mock",)
-    # load_settings: auto 는 파일이 다 있을 때만 켠다. off 면 끈다. LFM3 TTS 를 기본으로 하려면 파일이 있어야 한다.
+    # load_settings: 기본은 off(2026-11-17). auto 는 파일이 다 있을 때만 켠다. LFM3 TTS 를 기본으로 하려면 파일이 있어야 한다.
     monkeypatch.setenv("LFM3_DIR", str(tmp_path))
+    make_lfm3_dir(tmp_path)
+    assert load_settings().lfm3_dir == ""
+    monkeypatch.setenv("LFM3", "auto")
+    (tmp_path / LFM3_MODEL_FILE).unlink()
     assert load_settings().lfm3_dir == ""
     make_lfm3_dir(tmp_path)
     assert load_settings().lfm3_dir == str(tmp_path)

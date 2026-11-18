@@ -10,11 +10,14 @@ import re
 from pathlib import Path
 
 from app.engines.prerecorded import canonical_text
+from app.settings import ELEVENLABS_TTS_ENGINES
 
 SPOKEN_PATH = Path(__file__).resolve().parent / "data" / "spoken_answers.json"
 MAX_SPOKEN_CHARS = 200
 # 그때그때 소리를 만드는 TTS. 앞뒤 조용한 부분을 자른다.
-SPOKEN_ENGINES = ("qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts", "lfm3-tts-female", "lfm3-tts-male")
+SPOKEN_ENGINES = (
+    "qwen3-tts-107", "qwen3-tts-107-h2", "qwen3-tts", "lfm3-tts-female", "lfm3-tts-male", *ELEVENLABS_TTS_ENGINES,
+)
 # 입말 문장을 읽는 TTS. 지수 녹음도 2026-11-12부터 입말 문장으로 녹음했다(소리 끝 자르기는 SPOKEN_ENGINES 만).
 SPOKEN_READERS = (*SPOKEN_ENGINES, "prerecorded")
 

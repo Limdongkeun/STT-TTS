@@ -17,7 +17,6 @@ def make_settings(**overrides) -> Settings:
         stt_engine="mock",
         tts_engine="mock",
         answer_provider="fixed",
-        asr_model_id="Qwen/Qwen3-ASR-1.7B",
         tts_model_id="Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
         tts_speaker="Sohee",
         speech_language="Korean",
@@ -54,7 +53,6 @@ def test_health(client):
         "ttsModel": "",
         "answerProvider": "fixed",
         "demoClock": "fixed",
-        "sttHints": 0,
         "ttsChoices": [
             {"engine": "prerecorded", "label": "JISOO 녹음 (C1~E2) · 입말"},
             {"engine": "mock", "label": "mock"},
@@ -65,9 +63,9 @@ def test_health(client):
 
 
 def test_health_names_real_models_without_loading_them():
-    settings = make_settings(stt_engine="qwen3-asr", tts_engine="qwen3-tts", asr_model_id="Qwen/Qwen3-ASR-0.6B")
+    settings = make_settings(stt_engine="qwen3-asr-ko", tts_engine="qwen3-tts", asr_ko_model_id="/models/ko")
     body = TestClient(create_app(settings)).get("/health").json()
-    assert (body["sttModel"], body["ttsModel"]) == ("Qwen/Qwen3-ASR-0.6B", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+    assert (body["sttModel"], body["ttsModel"]) == ("TeamUNIVA/qwen3_asr_1.7b_ko", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
 
 
 def test_health_shows_family_demo_provider():

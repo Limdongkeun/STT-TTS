@@ -39,9 +39,10 @@
 
 ### 3단계-107 — 107 서버 Qwen3-TTS (G 목소리, 2026-11-09~)
 
-- **서버 하나로 (2026-11-09 15:00~):** `STT_ENGINE=qwen3-asr TTS_107_URL=http://<107 주소>:5110 .venv-asr/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002` 하나만 켠다(8001은 끈다). 앱 `.env`의 STT·TTS 주소는 둘 다 8002. 앱 맨 위에서 STT(폰 기본/서버 Qwen)와 TTS(지수 녹음/107 G·H2/LFM3, 삐는 2026-11-16에 뺌)를 버튼으로 고른다. 시험표에는 턴마다 STT·TTS 이름이 적히고, 저장본 TTS 칸은 턴에 적힌 이름으로 정해진다.
+- **서버 하나로 (2026-11-09 15:00~):** `STT_ENGINE=qwen3-asr-ko TTS_107_URL=http://<107 주소>:5110 .venv-asr/bin/uvicorn app.main:app --host 0.0.0.0 --port 8002` (2026-11-17부터 서버 STT는 Qwen 한국어판 하나, 원래 Qwen3-ASR은 지움) 하나만 켠다(8001은 끈다). 앱 `.env`의 STT·TTS 주소는 둘 다 8002. 앱 맨 위에서 STT(폰 기본/서버 Qwen)와 TTS(지수 녹음/107 G·H2/LFM3, 삐는 2026-11-16에 뺌)를 버튼으로 고른다. 시험표에는 턴마다 STT·TTS 이름이 적히고, 저장본 TTS 칸은 턴에 적힌 이름으로 정해진다.
 - 8002를 `TTS_ENGINE=qwen3-tts-107 TTS_107_URL=http://<107 주소>:5110`으로 띄운다(회사 망). 앱 맨 위에 `107 Qwen3-TTS · G 목소리`가 보이면 된다. 2026-11-12부터 TTS 버튼에 `107 H2 목소리`(밝은 목소리, 엔진 `qwen3-tts-107-h2`)도 있다. 저장본 TTS 칸이 `107 Qwen3-TTS · H2 목소리 · 입말`로 따로 적혀 G와 비교된다.
-- **LFM3-Audio-2B (2026-11-16~):** `server/.lfm3/`(git 밖, 맥에만)에 llama.cpp 실행 파일과 모델이 있으면 8002가 켜질 때 LFM3 서버(127.0.0.1:8090)를 함께 띄우고 끌 때 함께 끈다(`LFM3=off`로 끔, 포트는 `LFM3_PORT`). 앱 STT 버튼에 `서버 LFM3`, TTS 버튼에 `LFM3 여자`·`LFM3 남자`가 생겨 기존 것과 섞어 고른다(대화 모드 STT는 늘 폰). 저장본 이름은 STT `LFM3-Audio-2B`, TTS `LFM3-Audio-2B · 여자 목소리 · 입말`. 목소리 복제는 없고 seed를 고정해 같은 글은 같은 말투로 읽는다. 라이선스 LFM Open License v1.0(연 매출 1천만 달러 이상 회사는 상업 사용 불가).
+- **ElevenLabs v4 Turbo (2026-11-17~, 사용자 허락):** 키(환경변수 `ELEVENLABS_API_KEY` 또는 맥 키체인 `elevenlabs-api-key`)가 있으면 8002 TTS 버튼에 `ElevenLabs 여자`(Anna Kim - Tender, Calm and Clear)와 `ElevenLabs 남자`(Chris - Warm and Clear, 계정 이름 KKC HQ)가 생긴다(`ELEVENLABS=off`로 뺌). 2026-11-17 16:10부터 지수 Turbo는 뺐다(지수 녹음 재생은 그대로). 쓴 글자 수만큼 계정 크레딧이 줄어든다(Turbo는 1자에 0.5). 대화 모드의 미리 답도 첫 소리를 만들어 두므로, 말이 바뀌어 버려진 미리 답만큼 더 든다. 저장본 TTS 이름 `ElevenLabs v4 Turbo · 지수 목소리 · 입말`.
+- **LFM3-Audio-2B (2026-11-16~, 11/17부터 기본 꺼짐 — 한국어 받아쓰기 오류율 25%·목소리 억양 어색):** `LFM3=auto`로 띄우고 `server/.lfm3/`(git 밖, 맥에만)에 llama.cpp 실행 파일과 모델이 있으면 8002가 켜질 때 LFM3 서버(127.0.0.1:8090)를 함께 띄우고 끌 때 함께 끈다(기본 `LFM3=off`, 포트는 `LFM3_PORT`). 앱 STT 버튼에 `서버 LFM3`, TTS 버튼에 `LFM3 여자`·`LFM3 남자`가 생겨 기존 것과 섞어 고른다(대화 모드 STT는 늘 폰). 저장본 이름은 STT `LFM3-Audio-2B`, TTS `LFM3-Audio-2B · 여자 목소리 · 입말`. 목소리 복제는 없고 seed를 고정해 같은 글은 같은 말투로 읽는다. 라이선스 LFM Open License v1.0(연 매출 1천만 달러 이상 회사는 상업 사용 불가).
 - 예열: 시험 전에 한 번 부른다(첫 요청 10~15초는 기록에서 뺀다).
   `curl -s -X POST http://localhost:8002/tts -H 'Content-Type: application/json' -d '{"text":"안녕하세요","normalize":true}'`
 - **소리용 입말 문장 (2026-11-09 17:00~):** TTS를 107 G 목소리로 고르면 시험 답 34개를 입말 문장(`server/app/data/spoken_answers.json`, 규칙은 [speech-style-guide.md](speech-style-guide.md))으로 읽는다. 화면 답은 그대로다. 시험표 TTS 이름이 `107 Qwen3-TTS · G 목소리 · 입말`로 바뀌어 15:30 저장본(원래 문장)과 따로 비교된다. 끄려면 서버를 `SPOKEN_ANSWERS=off`로 켠다.
@@ -59,6 +60,8 @@
 - **숫자 읽기 시험 (2026-11-12~):** 말하지 않고 TTS가 숫자를 제대로 읽는지만 듣는다. 앱 맨 아래 '숫자 읽기 시험'을 펼치고 TTS를 107 G 목소리로 고른 뒤, 줄마다 [▶ 듣기] 또는 [▶ 전부 듣기]를 누른다. 줄마다 '글 → 읽기 글'이 보이고, 들은 대로 ○/×를 누른다(×면 어떻게 읽었는지 메모). [결과 저장]을 누르면 `results/number-reading/<기기>/<날짜_시각>.md`에 남는다. 문장 28개는 `server/app/data/reading_samples.json`(날짜·시각·금액·약·체온·단위·개수·범위·전화번호·퍼센트, N28 '하루 2번'은 뜻이 갈려 일부러 남긴 줄). 읽기 글이 틀리면 변환기(`server/app/normalize.py`) 문제, 읽기 글은 맞는데 소리가 틀리면 TTS 문제로 가른다. 지수 녹음은 정해진 답만 있어 이 시험에서 버튼이 꺼진다.
 
 ## 4단계 — Qwen3-ASR (서버 STT)
+
+> 2026-11-17: 원래 `Qwen/Qwen3-ASR-1.7B`(`STT_ENGINE=qwen3-asr`)는 지웠다(선택지·모델 파일·`ASR_MODEL_ID`, 그 모델 전용 서버 힌트 42개 `STT_HINTS`·`stt_hints.json`도). 폰 STT 힌트(앱 `CONTEXTUAL_WORDS`)는 그대로다. 지금 서버 STT는 한국어판 `qwen3-asr-ko`(TeamUNIVA, `server/.models/qwen3_asr_1.7b_ko`, 힌트 없음) 하나다. 아래는 그때 기록으로 남긴다.
 
 - STT 서버는 따로 만든 환경 `server/.venv-asr`로 띄운다(qwen-asr 와 qwen-tts 의 transformers 버전이 달라 8002 의 `.venv`와 나눈다). 처음 한 번:
   `cd server && UV_PROJECT_ENVIRONMENT=.venv-asr uv sync --extra asr` → `.venv-asr/bin/hf download Qwen/Qwen3-ASR-1.7B`(약 4.7GB, `~/.cache/huggingface/hub`)

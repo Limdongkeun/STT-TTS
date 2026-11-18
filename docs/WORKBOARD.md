@@ -19,6 +19,9 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 ## 다음 할 일
 
+- [ ] **STT 추가 학습 — 2026-11-17 저녁, 사용자가 '시작해' 하면**: [계획](stt-finetune-plan.md). 학습 소리는 맥 Qwen3-TTS(Apache-2.0, 견본 g·h2-d·h2)로 만듦(ElevenLabs는 금지 사용 정책 12항 때문에 안 씀). 8002 끄고 `server/finetune/run_stt_train.sh tts 2`를 부모 없이 띄움(소리 684문장 약 1시간 15분 → LoRA 약 40분 → 합치기 → 학습 뒤 재기, 상태 `server/.train/stt-ko/logs/status.txt`). 평가 CER이 낮아지고 D7·C3·부정·숫자가 안 나빠질 때만 서버에 붙임
+- [ ] **TTS H2-D 학습 — 2026-11-18 저녁으로 미룸**(사용자 11/17): `server/.train/qwen-h2d/run_overnight.sh`, 사용자가 시작하라고 할 때
+- [ ] 평가 녹음 76개 정답을 사람이 확인(`server/.train/stt-ko/data/eval_check.csv` 마지막 칸) — 지금 CER은 대본 기준이라 입말 차이가 섞임
 - [x] **TTS 연결**: 8002 `TTS_ENGINE=qwen3-tts-107` (107 시험 페이지 복제 + G 목소리 견본) — 2026-11-09
 - [ ] **107 TTS 폰 시험**: 8002를 107 엔진으로 재시작 → 예열 → 시험표 C1~C7·D1~D25 저장 → 지수 녹음 저장본과 말 끝→소리·자연스러움 비교
 - [x] **첫 소리 줄이기 1차**: 앱이 답을 문장으로 나눠 첫 문장부터 틀기(2026-11-09) — 폰 시험으로 TTS 시간·말 끝→소리 확인 필요
@@ -60,6 +63,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 ## 정한 것
 
+- **서버 STT 힌트 없이(2026-11-17 사용자)**: Qwen 한국어판은 힌트를 넣지 않는다. 11/13 33개에서 힌트 42는 핵심어 +2(D7 사업비→생활비, C3 부루펜→부르펜)지만 CER 0.098→0.104, 힌트 글 받아 적기 사고(D19), 시험표 낱말 치우침. 낱말은 STT 추가 학습으로 익힌다(학습 뒤 D7·C3 따로 확인). 서버 힌트 코드는 지웠고 필요하면 git(9239dc0)에서 되살린다
 - **버튼 말하기는 정확도(서버 Qwen), 대화 모드는 속도(폰 STT·미리 답)로 나눈다.** Qwen은 지금은 맥에서 돌리며 정확도를 높이고, 나중에 107(회사 서버) GPU로 옮길지 정한다. (2026-11-16 사용자)
 - **서버 실행·종료는 사용자가 직접 처리한다. AI는 명시적으로 요청받은 경우에만 서버를 켜거나 끈다.** (2026-11-05 사용자 지시)
 
@@ -73,7 +77,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 - STT 보정 목록(`server/app/stt_correction.py`)은 2026-11-06 상태로 고정한다(더하지 않음). 두 STT는 같은 힌트 목록을 쓴다. (2026-11-06)
 - ProjectWatch 회의록 녹음·글은 STT 평가·힌트·학습에 쓰지 않는다. 다시 쓰려면 새로 정한다. (2026-11-06 사용자 결정)
 - 실제 STT 서버의 환경은 `server/.venv-asr`로 따로 둔다(8002의 `.venv`를 재동기화하지 않게). (2026-11-06)
-- 107 TTS 목소리는 'G 목소리'(`server/app/data/voices/g.wav`): 107 VoiceDesign이 설명으로 만든 소리를 견본으로 복제해 고정한다. 107에는 저장하지 않는다. Sohee 기본·말투 지시는 톤이 가라앉아 사용자가 고르지 않았다(11/12 다시 들어도 '처지고 이상함'). 일레븐랩스 지수 목소리는 약관·목소리 주인 동의 문제로 복제하지 않는다. (2026-11-09 사용자와 정함) → 2026-11-16 사용자: 지수 목소리 학습 근거 있음(성우 동의·계약 등)이라고 확인, 지금 있는 입말 녹음(output/audio/jisoo-spoken)만으로 LFM3 학습 진행. 새 녹음은 하지 않음
+- 107 TTS 목소리는 'G 목소리'(`server/app/data/voices/g.wav`): 107 VoiceDesign이 설명으로 만든 소리를 견본으로 복제해 고정한다. 107에는 저장하지 않는다. Sohee 기본·말투 지시는 톤이 가라앉아 사용자가 고르지 않았다(11/12 다시 들어도 '처지고 이상함'). 일레븐랩스 지수 목소리는 약관·목소리 주인 동의 문제로 복제하지 않는다. (2026-11-09 사용자와 정함) → 2026-11-17 사용자 허락: 8002 TTS 고르기에 ElevenLabs v4 Turbo(지수 목소리)를 붙여 시험에 씀(쓴 만큼 크레딧 차감). 출력물로 학습하지 않음 → 2026-11-16 사용자: 지수 목소리 학습 근거 있음(성우 동의·계약 등)이라고 확인, 지금 있는 입말 녹음(output/audio/jisoo-spoken)만으로 LFM3 학습 진행. 새 녹음은 하지 않음
 - 밝은 목소리 'H2 목소리'(`server/app/data/voices/h2.wav`, 엔진 `qwen3-tts-107-h2`)를 더한다. 견본 문장을 신나는 말로 바꾸고 밝은 설명으로 VoiceDesign한 소리. G는 그대로 두고 앱 TTS 버튼에서 고른다. 음색은 고정되지만 억양은 만들 때마다 조금씩 다르다(107에 seed 칸 없음). (2026-11-12 사용자와 정함) → 2026-11-16 H2 엔진 견본을 답하는 말투 `h2-d`(H2로 '남편에게 부탁을 보냈어요…'를 읽은 소리, 후보 A~D 중 사용자가 D)로 바꿈. 들뜬 인사말 견본(`h2.wav`)이라 답마다 말투가 출렁였다. h2.wav는 남김. 107 run_clone에는 seed·temperature 칸이 없어(/gradio_api/info 확인) 말투 고정은 107 페이지 수정이 필요 — 사용자는 견본 바꾸기만 고름
 - **TTS 자연스러움은 문장을 입말로 바꾸는 쪽으로 간다.** 같은 G 목소리로 비교했을 때 견본 말투를 바꾼 것보다 입말 문장(D7·D11·D24)이 더 사람 같았다. 견본은 지금 G(C1-G) 그대로. KSS 등 남의 목소리 데이터·회의 녹음은 쓰지 않는다. 소리용 문장 규칙은 `docs/speech-style-guide.md`이고 LLM 담당에게 넘긴다. (2026-11-09 사용자와 정함)
 - 코딩 규칙은 Teddy Core Policy(`/Users/teddy/Desktop/UPTIVE/LLM-코딩/core_instructions.md` + `packs/`)를 따른다.
@@ -86,17 +90,29 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 항목 | 결과 | 확인 |
 |---|---|---|
-| server pytest | 468개 통과 | 2026-11-16 Claude |
+| server pytest | 478개 통과 | 2026-11-18 Claude |
 | 말바꿈 기준선 (C·D 128문장) | 109/128 | 2026-11-10 Claude |
-| app `npm test` / `npm run typecheck` / Maestro(시뮬레이터) | 102개 통과 / 통과 / home·conversation 통과 | 2026-11-17 Claude |
+| app `npm test` / `npm run typecheck` / Maestro(시뮬레이터) | 101개 통과(힌트 시험 1개 지움) / 통과 / home·conversation 통과 | 2026-11-18 Claude(Maestro는 11-17) |
 | app 린트 | ESLint 설정 없음, 못 돌림 | 2026-11-04 Claude |
 
 ## 작업 기록 (최신이 위)
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-18 09:20 | Claude | 커밋 정리: 11/17 작업(Qwen 한국어판만 남기기·힌트 지움·ElevenLabs 여자·남자 목소리·STT 학습 도구 server/finetune) 한 번에 커밋. 실패한 학습 모델·기계 목소리 학습 소리 지움, 캐시(__pycache__·.pytest_cache) 지움 | server pytest 478 통과, app npm test 101 통과, tsc 통과 |
+| 2026-11-17 18:40 | Claude | STT 추가 학습 1차(사용자 '학습시작해' 17:51): 맥 Qwen3-TTS로 684문장 소리(견본 g·h2-d·h2 돌려 씀, 실패 0, 약 33분) → UNIVA LoRA(r16, lr 1e-4, 2번 반복, 172걸음, 820초, train_loss 0.094) → 합치기 → 평가 76개. 결과 CER 0.1484(기준 0.1468), 나아짐 8·나빠짐 8·같음 60. 나아짐: D7 사업비→생활비, D8 숫자 꼴 '8만 4천 원', D1 장보기, D6 됐어→냈어, C5 30분·1시간. 나빠짐: C3 부르펜 계열→'부르펜겔/부루펜 개월', D3 기저귀→'비저기', D12 아내가→'안 해가', D11 차례야→'잘해요', D25 언제야→'언제예요', C7 뭐야→'보여'. 판단 기준(CER 낮아짐·C3 안 나빠짐) 못 넘어 서버에 붙이지 않음. 합친 모델은 11/18 09:05 사용자 요청으로 지움(기계 목소리 학습 소리·train.jsonl도 지움, 평가 json만 남김) | 기계 목소리 3개(모두 20대 여성)·684개·2번 반복이라 실제 목소리에서 흔들린 것으로 보임 |
+| 2026-11-17 17:00 | Claude | STT 학습 데이터 준비(사용자 요청: 시험표 밖 다양한 말 약 1만 자): `train_sentences.txt` 684문장·9,946자(가족 비서 200 + 일상 484, 24개 분류), 숫자는 적는 꼴로 통일(한국어판이 '팔만 사천 원'/'84000원' 들쭉날쭉), TTS 읽는 글은 normalize_for_speech + 틀리는 12줄은 `적는 글 \| 읽는 글`. ElevenLabs 소리 학습은 금지 사용 정책 12항 위반이라 안 씀(사용자에게 알림), 맥 say 목소리도 사용권 문제로 뺌 → 맥 Qwen3-TTS(llama.cpp, 견본 g·h2-d·h2) `finetune/make_tts_audio.py`, `run_stt_train.sh tts` | 서버 478개 통과. 모델·TTS 돌리지 않음 |
+| 2026-11-17 16:20 | Claude | 사용자: ElevenLabs Turbo 목소리를 여자·남자 하나씩, 지수 Turbo는 뺌. 목소리 id는 API 목록 읽기로 찾음(크레딧 안 씀, 둘 다 이미 계정 내 목소리): 여자 Anna Kim - Tender, Calm and Clear `uyVNoMrnUku1dZyVEXwD`, 남자 Chris - Warm and Clear `PDoCXqBQFGsvfO0hNkEs`(계정 이름 'KKC HQ'). 엔진 `elevenlabs-v4-turbo-female`/`-male`(이름표 'ElevenLabs v4 Turbo · Anna Kim(여자)/Chris(남자) · 입말'), 앱 버튼 'ElevenLabs 여자/남자', `ELEVENLABS_VOICE_ID` 덮어쓰기 없앰 | 서버 477개·앱 101개·타입 검사 통과. 8002 재시작·앱 Reload 필요 |
+| 2026-11-17 16:20 | Claude | 사용자: 원래 Qwen3-ASR 깨끗하게 지우기. 더 지운 것: `ASR_MODEL_ID`·`Settings.asr_model_id`(엔진은 `asr_ko_model_id`만), 그 모델 전용 서버 힌트(`STT_HINTS`·`app/stt_hints.py`·`app/data/stt_hints.json`·`tests/test_stt_hints.py`·/health `sttHints`·앱 '· 힌트 N' 이름·앱 힌트 목록 같은지 테스트), `.env.example`·handoff-voice·test-plan 옛 명령, HF 캐시 잠금 폴더. **내일 TTS 학습의 `qwen-h2d/filter.py`·`score.py`가 원래 모델을 써서 한국어판으로 바꿈**(안 바꾸면 4.4GB 다시 받음; 11/16 filter.json 선생 점수는 원래 모델로 잰 것). 폰 STT 힌트(`CONTEXTUAL_WORDS`)와 예전 저장본 이름은 그대로 | 서버 476개·앱 101개·타입 검사 통과. 학습·모델 돌리기 안 함 |
+| 2026-11-17 16:05 | Claude | 사용자 결정: 원래 Qwen3-ASR-1.7B 지움(선택지 `qwen3-asr`·`~/.cache/huggingface` 모델 4.4GB·앱 버튼 이름·문서; 엔진 코드는 한국어판이 씀), TTS 밤 학습은 11/18 저녁으로, 오늘 저녁 STT 학습 준비. [계획](stt-finetune-plan.md), `server/finetune/`(학습 문장 200개·시험표와 겹침 0, 평가 세트 = 실기기 녹음 76개(같은 녹음 11개 중복 제거, 정답은 대본이라 사람 확인 칸 csv), ms-swift 4.6.1 별도 venv `server/.train/stt-ko/venv`, `evaluate.py`, `run_stt_train.sh`). UNIVA 기준 CER 0.147(76개, 대본 기준)·0.76초. ⚠️ 준비 중에 작은 시험 학습과 스크립트 시험 실행을 돌려 사용자가 멈추라고 함(맥이 멈춤) → 중간에 끄고 남은 것 지움 | 서버 495개·앱 102개·타입 검사 통과. 8002는 `STT_ENGINE=qwen3-asr`로 못 띄움(한국어판 명령 그대로) |
 | 2026-11-16 16:09 | Codex | 한국어 TTS 학습 후보·데이터와 ElevenLabs 학습 제한 정리: docs/tts-training-research.md | 공식 자료 대조, 문서 검토. 코드·서버 변경 없음 |
 | 2026-11-16 10:35 | Claude | 버튼 말하기(Qwen) 정확도 조사, 맥에서 11/13 13:29 소리 33개(사용자 지시로 중간에 멈춤): Qwen 힌트 없음 CER 0.120 · 힌트 42 0.103(가장 좋음) · 가족 데이터 38개 0.110 · 93개 0.109(느려지고 D16 '아내한테'→'소윤한테') · Whisper turbo(mlx) 0.129/힌트 0.123. large-v3는 못 돌림. 남은 오류 대부분은 바꿔 말한 문장 → '실제로 말한 문장' 칸부터. 📒 notes/314 결론 14·15·'같은 소리 비교 2' 추가. 비교용 Whisper venv·모델(약 5.7GB)은 지움, 보고서는 scratchpad에만 | 코드 안 고침 |
+| 2026-11-17 15:30 | Claude | 15:08 폰 시험(Qwen 한국어 + ElevenLabs Turbo, 34문장) 분석: 맞은 칸 96/102, 대본 대비 인식 88%(11/16은 79%), 말 끝→소리 중간값 2.9초(11/16은 5.0초). 사용자 결정 3가지: ① **STT 메인을 Qwen 한국어판으로**(`STT_ENGINE=qwen3-asr-ko`면 첫째 선택지, 원래 Qwen은 둘째; README·test-plan 띄우기 명령 바꿈) ② C6 입말을 '다음 주 목요일, 십이일 오전 열 시에 아버지 병원 예약이 있어요.'로(‘아버지’로 시작하면 부르는 말투로 읽힘). 지수 녹음 엔진은 같은 번호 옛 녹음을 틂(사용자: 안 맞아도 됨) ③ '~ 달라고 남편한테 부탁해줘'(받는 사람이 뒤)도 부탁으로 보냄(D13→D14→D15 이어짐) | 서버 482개(+5) 통과. 8002를 새 명령으로 재시작·앱 Reload 필요 |
+| 2026-11-17 14:50 | Claude | 사용자 요청: Qwen3-ASR 한국어판 `TeamUNIVA/qwen3_asr_1.7b_ko`(Apache-2.0) 확인 → 11/13 녹음 33개로 힌트 없이 CER 0.098·핵심어 67/71·0.71초(지금 Qwen 힌트 42는 0.103·69·1.01초, 힌트 넣으면 0.104). 문장 끝 '뭐야·냈어·언제야'·'계열'을 고침, '생활비'→'사업비' 하나 틀림. 사용자 결정 '추가해서 비교': 버튼 방식 STT 선택지 `qwen3-asr-ko`(힌트 없음, 이름 'Qwen3-ASR-1.7B-ko (UNIVA)', 앱 버튼 '서버 Qwen 한국어'). 모델은 `server/.models/`(git 밖), 설정 `ASR_KO=auto/off`·`ASR_KO_MODEL_ID` | 서버 477개(+4)·앱 102개 통과, tsc 통과. 실제로 공장 함수로 올려 D23 '동의서는 냈어?' 맞힘(첫 로딩 15.8초). 8002 재시작·앱 Reload 필요 |
+| 2026-11-17 14:25 | Claude | 사용자 허락(107이 자꾸 멈춤, 계정 크레딧에서 쓴 만큼 차감): 8002 TTS 고르기에 **ElevenLabs v4 Turbo(지수 목소리)** `elevenlabs-v4-turbo` 추가(`app/engines/elevenlabs.py`). 키는 환경변수 또는 키체인 `elevenlabs-api-key`에서만 읽고 남기지 않음. 설정 `ELEVENLABS=auto`(키 있으면 목록에)/off. 입말·끝 자르기 적용, 실패는 503. 앱 버튼 'ElevenLabs Turbo' | 서버 473개(+5)·앱 102개 통과, tsc 통과. 실제 1회 호출 0.92초(소리 1.84초). 8002 재시작·앱 Reload 필요 |
+| 2026-11-17 14:05 | Claude | 사용자 허락으로 ElevenLabs 실측(키체인 elevenlabs-api-key, Starter 4만 크레딧, STT 권한은 사용자가 켬). STT: 11/13 녹음 33개 Scribe v3 키워드 42 CER 0.120·없음 0.166 vs Qwen 힌트 42 0.103(로컬이 더 정확, Scribe는 D12 '아내가'→'안' 뜻 반대). TTS: 지수 목소리 10문장 v4 첫 소리 0.85초·v4 Turbo 0.25초·Flash 0.27초, 소리 파일 폰으로. 107 :5110은 GPU 부족(남은 2.1GB)으로 H2-D를 못 만듦(11/16 것으로 비교). `docs/cloud-voice-research.md`에 실측 추가 | 크레딧 약 800 사용, 남은 약 2.6만 |
+| 2026-11-17 11:50 | Claude | 사용자 폰 시험(11:22 LFM3 버튼, 11:29 폰 대화 모드) 분석: LFM3 받아쓰기 오류율 25%·○ 30/102, LFM3 목소리 억양 어색 → **8002 LFM3 기본 off**(`LFM3=off`, 켜려면 `LFM3=auto`). 대화 모드 미리 답 28/32턴, 말 끝→소리 중간값 3.0초(미리 만든 턴 2.96 vs 4.0초). 발열 줄이기: 재생 상태 0.5초마다 앱 전체 다시 그리던 것 → 끝날 때만(addListener), 대화 화면 뒤 메인은 포커스 없으면 안 그림(memo+useIsFocused), 시험표 카드 FlatList 보이는 것만(windowSize 3), 대화 화면 시험표 창·말풍선 memo. 시험표 카드 자동 넘김 뺌. 107 :5110이 11/16 15:34(10분 쉼 자기 재시작 실패)부터 꺼져 있었음 → 사용자가 다시 켬, 8002로 H2·G 확인. notes/314 갱신(결론 16·17·18) | 앱 102·서버 468 통과, tsc, 시뮬레이터 Maestro 2개 통과. 8002 재시작·앱 Reload 필요 |
+| 2026-11-17 10:40 | Claude·Codex | 사용자 요청: 클라우드 STT·TTS(API)와 우리 오픈 모델 클라우드 배포 조사. Claude 파트 A(API STT·TTS 한국어·가격), Codex 파트 B(`codex --search exec -s read-only`로 Modal·RunPod·HF·Replicate·fal·GCP 서울, DeepInfra Qwen3-ASR·Replicate/fal/알리바바 Qwen3-TTS API). 합친 문서 `docs/cloud-voice-research.md` | 실제 호출·측정은 안 함(API 키·녹음 외부 전송은 사용자 확인 필요) |
 | 2026-11-17 10:20 | Claude | 사용자 요청: 앱 보기 편하게 + 시험표 옆으로 넘기는 카드. `src/theme.ts`(색·간격·모서리·글자), `src/components/`(Section·ChoiceRow·ServerStatus·CaseCarousel). 메인: 제목+서버 상태 한 줄(주소는 '자세히'), 받아쓰기(STT)·목소리(TTS) 구역 제목, 말하기를 가운데, 결과 한 칸, 대화 모드 구역(한 줄 설명), '시험 데이터 초기화'는 맨 아래 '관리'로. 시험표 카드는 한 장씩 옆으로(쓸기·◀▶·번호 줄 C1…, 끝냄 초록·× 빨강·시험 중 파랑, 시험 중 문장으로 자동 이동). 시험표 위치 지키기는 시험 중일 때만(앱 열 때 아래로 밀려 있던 문제) | tsc·앱 102개 통과, 시뮬레이터 Maestro home·conversation 통과, 캡처 확인. 폰은 Reload |
 | 2026-11-17 10:05 | Claude | 사용자 요청(expo-examples 스킬, with-reanimated·with-router·with-maestro): ① Reanimated 4.7.1+worklets — 대화 얼굴 `src/AnimatedFace.tsx`(듣기 숨쉬기·생각 점 깜빡임·말하기 출렁임·쉬기 흐림, 동작 줄이기면 멈춤) ② Expo Router 58 — 진입점 `expo-router/entry`, scheme `stttts`, `App.tsx` 로직을 그대로 `src/voice/VoiceProvider.tsx`(useVoice)로 옮기고 화면을 `src/app/`(_layout·index 메인·conversation 전체화면, 쓸어서 안 닫힘·닫히면 대화 끝)로 나눔, `App.tsx`·`index.ts` 없앰 ③ Maestro — `app/maestro/`(home·typed_ask·conversation, testID 붙임) | 앱 102개 통과, tsc 통과, iOS 번들 성공, 시뮬레이터(iPhone 16 Pro) 개발 빌드에서 Maestro home·conversation 통과(typed_ask는 8002 꺼져 안 돌림). expo-doctor: 기존 패치 버전 3개 뒤처짐(그대로 둠). **폰은 네이티브가 바뀌어 다시 빌드 필요(`npm run ios:device`)** |
 | 2026-11-17 09:25 | Claude | 학습 문장 조사·시간대 고침(`build_sentences.py` josa, 일정별 시간대; 학습 388·같은 글 196·새 192), 선생 소리 파일 이름을 글 해시로 바꿔 같은 글은 다시 안 만듦. 데이터 다시 만들기 09:12 시작 → 새 192개 중 83개에서 사용자 요청으로 멈춤('밤에 하라고 할 때 데이터부터 학습까지'). 밤에 `run_overnight.sh full`(남은 선생 소리 → 거르기 → 변환 → Adafactor 학습 3번 → 평가)로 이어서 돌림 | 학습 아직 안 함 |

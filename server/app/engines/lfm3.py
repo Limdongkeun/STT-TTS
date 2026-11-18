@@ -156,7 +156,6 @@ def get_runtime(directory: str, port: int) -> Lfm3Runtime:
 class Lfm3SttEngine:
     name = LFM3_STT_ENGINE
     label = MODEL_LABEL
-    hint_count = 0
 
     def __init__(self, runtime: Lfm3Runtime, language: str = "Korean") -> None:
         self._runtime = runtime

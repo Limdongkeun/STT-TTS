@@ -2,7 +2,8 @@
  *  상태와 동작은 VoiceProvider(useVoice). 대화 모드는 /conversation 화면으로 연다(2026-11-17 Expo Router).
  *  2026-11-17 보기 편하게: 구역마다 제목, 가장 많이 쓰는 '말하기'를 가운데, 지우는 '시험 데이터 초기화'는 맨 아래 '관리'로. */
 
-import { router } from "expo-router";
+import { router, useIsFocused } from "expo-router";
+import { memo } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -19,6 +20,16 @@ import { colors, radius, spacing, type } from "../theme";
 import { STAGE_LABELS, useVoice } from "../voice/VoiceProvider";
 
 export default function MainScreen() {
+  const voice = useVoice();
+  const focused = useIsFocused();
+  return <MainContent voice={voice} focused={focused} />;
+}
+
+/** 대화 화면이 위에 떠 있는 동안(이 화면 포커스 없음)은 다시 그리지 않는다. 받아 적는 글이 바뀔 때마다
+ *  가려진 메인 화면(시험표 카드 등)까지 다시 그려 폰이 뜨거웠다(2026-11-17). 돌아오면 그때 한 번 그린다. */
+const MainContent = memo(MainView, (prev, next) => !prev.focused && !next.focused);
+
+function MainView({ voice }: { voice: ReturnType<typeof useVoice>; focused: boolean }) {
   const {
     serverInfo, refreshServerInfo, notice, onResetDemo, saveAndReset,
     sttMode, setSttMode, setServerStt, sttButtons, sttLabel,
@@ -27,7 +38,7 @@ export default function MainScreen() {
     errorMessage, question, answerText, speechText, timings, canReplay, replaySpeech,
     testSheet, chooseTestCase, readingOwner, readingIndex, playReadings, stopSpeech,
     conversationActive, startConversation, stopConversation,
-  } = useVoice();
+  } = voice;
   const idle = stage === "idle";
   const listening = stage === "listening";
   const timingText = timings.totalMs === undefined

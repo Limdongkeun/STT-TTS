@@ -107,10 +107,10 @@ docs/    test-plan.md (단계 1~6), test-sentences.md (질문 15 + 답 15)
   `uv run uvicorn app.main:app --host 0.0.0.0 --port 8002`
 - 실제 TTS:
   `TTS_ENGINE=qwen3-tts uv run --extra tts uvicorn app.main:app --host 0.0.0.0 --port 8002`
-- 실제 STT:
-  `STT_ENGINE=qwen3-asr uv run --extra asr uvicorn app.main:app --host 0.0.0.0 --port 8001`
-- 0.6B로 바꿀 때:
-  `ASR_MODEL_ID=Qwen/Qwen3-ASR-0.6B`, `TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
+- 실제 STT(Qwen3-ASR 한국어판, 2026-11-17부터 이것 하나; 원래 Qwen3-ASR-1.7B와 힌트는 지움):
+  `STT_ENGINE=qwen3-asr-ko uv run --extra asr uvicorn app.main:app --host 0.0.0.0 --port 8001`
+- TTS를 0.6B로 바꿀 때:
+  `TTS_MODEL_ID=Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice`
 
 **앱**
 - `.env`에 맥미니 IP를 넣는다(지금 `192.168.29.179`).

@@ -4,7 +4,7 @@
  *  말할 문장을 보며(다 외울 수 없어서, 사용자 요청), 맨 아래에 말풍선이 쌓인다.
  *  듣기·답·소리는 VoiceProvider 가 맡고, 이 파일은 보여 주기만 한다. 얼굴 움직임은 AnimatedFace(Reanimated). */
 
-import { useState, useRef, type ComponentRef } from "react";
+import { memo, useRef, useState, type ComponentRef } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AnimatedFace } from "./AnimatedFace";
@@ -41,12 +41,7 @@ const FACES: Record<ConversationFace, { emoji: string; label: string }> = {
 export function ConversationScreen({
   face, liveText, chat, cases, results, sttLabel, ttsLabel, errorMessage, onEnd, onResume, onInterrupt,
 }: Props) {
-  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
-  const [sheetOpen, setSheetOpen] = useState(true);
-  const [onlyTodo, setOnlyTodo] = useState(false);
   const { emoji, label } = FACES[face];
-  const rows = sheetPreviewRows(cases, results, onlyTodo);
-  const saidCount = sheetPreviewRows(cases, results, false).filter((row) => row.said).length;
   // 방금 시험표에 적힌 문장(마지막 내 말풍선의 칸)을 초록색으로 보여 준다.
   const lastCaseId = [...chat].reverse().find((item) => item.who === "me")?.caseId ?? null;
 
@@ -66,62 +61,9 @@ export function ConversationScreen({
       </Pressable>
       {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
 
-      <View style={styles.sheet}>
-        <View style={styles.sheetHeader}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: sheetOpen }}
-            onPress={() => setSheetOpen(!sheetOpen)}
-            style={styles.flex}
-          >
-            <Text style={styles.sheetTitle}>
-              {sheetOpen ? "▼" : "▶"} 📋 시험표 · 말한 문장 {saidCount}/{cases.length}
-            </Text>
-          </Pressable>
-          {sheetOpen ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ selected: onlyTodo }}
-              onPress={() => setOnlyTodo(!onlyTodo)}
-              style={[styles.todoButton, onlyTodo && styles.todoButtonActive]}
-            >
-              <Text style={[styles.todoText, onlyTodo && styles.todoTextActive]}>안 한 것만</Text>
-            </Pressable>
-          ) : null}
-        </View>
-        {sheetOpen ? (
-          <ScrollView style={styles.sheetList} nestedScrollEnabled>
-            {rows.length === 0 ? (
-              <Text style={styles.meta}>{cases.length === 0 ? "시험표를 불러오지 못했어요." : "모든 문장을 말했어요."}</Text>
-            ) : null}
-            {rows.map((row) => (
-              <View key={row.id} style={[styles.sheetRow, row.id === lastCaseId && styles.sheetRowLast]}>
-                <Text style={[styles.sheetId, row.said && styles.said]}>{row.said ? "✓" : " "} {row.id}</Text>
-                <Text style={[styles.sheetSay, row.said && styles.said]}>{row.say}</Text>
-              </View>
-            ))}
-          </ScrollView>
-        ) : null}
-      </View>
+      <SheetPreview cases={cases} results={results} lastCaseId={lastCaseId} />
 
-      <ScrollView
-        ref={scrollRef}
-        style={styles.chat}
-        contentContainerStyle={styles.chatContent}
-        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
-      >
-        {chat.length === 0 ? (
-          <Text style={styles.meta}>시험표 문장을 아무 순서로 말해 보세요. 맞는 칸에 적혀요.</Text>
-        ) : null}
-        {chat.map((item) => (
-          <View key={item.id} style={[styles.bubble, item.who === "me" ? styles.mine : styles.theirs]}>
-            <Text style={[styles.bubbleText, item.who === "me" && styles.mineText]}>{item.text}</Text>
-            {item.who === "me" ? (
-              <Text style={styles.caseTag}>{item.caseId ? `시험표 ${item.caseId}` : "시험표에 없는 말"}</Text>
-            ) : null}
-          </View>
-        ))}
-      </ScrollView>
+      <ChatList chat={chat} />
 
       <Pressable testID="conversation-end" accessibilityRole="button" onPress={onEnd} style={styles.endButton}>
         <Text style={styles.endText}>■ 대화 끝내기</Text>
@@ -129,6 +71,80 @@ export function ConversationScreen({
     </View>
   );
 }
+
+/** 작은 시험표 창. 받아 적는 글이 바뀔 때마다 다시 그리지 않게 따로 둔다(2026-11-17 발열). */
+const SheetPreview = memo(function SheetPreview({
+  cases, results, lastCaseId,
+}: { cases: TestCase[]; results: Record<string, SheetResult>; lastCaseId: string | null }) {
+  const [sheetOpen, setSheetOpen] = useState(true);
+  const [onlyTodo, setOnlyTodo] = useState(false);
+  const rows = sheetPreviewRows(cases, results, onlyTodo);
+  const saidCount = sheetPreviewRows(cases, results, false).filter((row) => row.said).length;
+  return (
+    <View style={styles.sheet}>
+      <View style={styles.sheetHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: sheetOpen }}
+          onPress={() => setSheetOpen(!sheetOpen)}
+          style={styles.flex}
+        >
+          <Text style={styles.sheetTitle}>
+            {sheetOpen ? "▼" : "▶"} 📋 시험표 · 말한 문장 {saidCount}/{cases.length}
+          </Text>
+        </Pressable>
+        {sheetOpen ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ selected: onlyTodo }}
+            onPress={() => setOnlyTodo(!onlyTodo)}
+            style={[styles.todoButton, onlyTodo && styles.todoButtonActive]}
+          >
+            <Text style={[styles.todoText, onlyTodo && styles.todoTextActive]}>안 한 것만</Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {sheetOpen ? (
+        <ScrollView style={styles.sheetList} nestedScrollEnabled>
+          {rows.length === 0 ? (
+            <Text style={styles.meta}>{cases.length === 0 ? "시험표를 불러오지 못했어요." : "모든 문장을 말했어요."}</Text>
+          ) : null}
+          {rows.map((row) => (
+            <View key={row.id} style={[styles.sheetRow, row.id === lastCaseId && styles.sheetRowLast]}>
+              <Text style={[styles.sheetId, row.said && styles.said]}>{row.said ? "✓" : " "} {row.id}</Text>
+              <Text style={[styles.sheetSay, row.said && styles.said]}>{row.say}</Text>
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
+    </View>
+  );
+});
+
+/** 말풍선 목록. 새 말풍선이 생길 때만 다시 그린다. */
+const ChatList = memo(function ChatList({ chat }: { chat: ChatItem[] }) {
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  return (
+    <ScrollView
+      ref={scrollRef}
+      style={styles.chat}
+      contentContainerStyle={styles.chatContent}
+      onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
+    >
+      {chat.length === 0 ? (
+        <Text style={styles.meta}>시험표 문장을 아무 순서로 말해 보세요. 맞는 칸에 적혀요.</Text>
+      ) : null}
+      {chat.map((item) => (
+        <View key={item.id} style={[styles.bubble, item.who === "me" ? styles.mine : styles.theirs]}>
+          <Text style={[styles.bubbleText, item.who === "me" && styles.mineText]}>{item.text}</Text>
+          {item.who === "me" ? (
+            <Text style={styles.caseTag}>{item.caseId ? `시험표 ${item.caseId}` : "시험표에 없는 말"}</Text>
+          ) : null}
+        </View>
+      ))}
+    </ScrollView>
+  );
+});
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 16, gap: 12, backgroundColor: colors.background },

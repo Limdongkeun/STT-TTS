@@ -37,6 +37,10 @@ REQUEST_WITHOUT_RECIPIENT = re.compile(r"^(.+?)\s*(?:해\s*)?(?:달라고|주라
 REQUEST_PATTERN = re.compile(
     r"(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s+(.+?)\s*(?:해\s*)?(?:달라고|주라고|하라고)?\s*부탁"
 )
+# 받는 사람이 뒤에 오는 부탁: "퇴근길에 약국 들러 달라고 남편한테 부탁해줘"(2026-11-17 15:08 D13)
+REQUEST_RECIPIENT_AFTER = re.compile(
+    r"^(.+?)\s*(?:해\s*)?(?:달라고|주라고|하라고)\s+(남편|신랑|아내|와이프|여보)\s*(?:한테|에게|께)\s*부탁"
+)
 # '부탁'이라는 말 없이 전해 달라는 말(2026-11-10 D13 '약국 들리라고 말해줘'): "남편한테 약국 들르라고 해",
 # "~ 달라고 전해 줘", "~하라고 말해 줘". 받는 사람은 앞이나 뒤에 온다.
 RELAY_VERB = r"(?:해|말해|전해|얘기해|이야기해|알려)(?:\s*줘|\s*주세요|\s*줄래)?$"
@@ -258,6 +262,12 @@ class FamilyTopics:
         match = REQUEST_PATTERN.search(words)
         if sending and match and not asking_me:
             name, content = match.groups()
+            recipient = other_speaker(speaker) if name == "여보" else RECIPIENTS[name]
+            sender = speaker if name == "여보" else other_speaker(recipient)
+            return self._send_request(sender, recipient, content)
+        after = REQUEST_RECIPIENT_AFTER.search(words)
+        if sending and after and not asking_me:
+            content, name = after.groups()
             recipient = other_speaker(speaker) if name == "여보" else RECIPIENTS[name]
             sender = speaker if name == "여보" else other_speaker(recipient)
             return self._send_request(sender, recipient, content)

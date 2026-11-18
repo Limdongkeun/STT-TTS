@@ -17,3 +17,5 @@ output/audio/*.zip
 server/.lfm3/
 # Qwen3-TTS 0.6B H2-D 학습(모델·데이터·저장본, 맥에만)
 server/.train/
+# 맥에서만 쓰는 추가 모델(Qwen3-ASR 한국어판 등)
+server/.models/

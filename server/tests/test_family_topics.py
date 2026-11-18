@@ -313,6 +313,26 @@ def test_request_sent_without_the_word_request(question, expected):
 
 
 @pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("퇴근길에 약국 들러 달라고 남편한테 부탁해줘", "남편에게 '퇴근길에 약국 들러' 부탁을 보냈어요."),
+        ("퇴근길에 약국 돌려달라고 남편한테 부탁해줘.", "남편에게 '퇴근길에 약국 돌려' 부탁을 보냈어요."),
+        ("소윤이 우산 챙겨 달라고 아내에게 부탁해 줘", "아내에게 '소윤이 우산 챙겨' 부탁을 보냈어요."),
+    ],
+)
+def test_request_with_recipient_after_content(question, expected):
+    """'~ 달라고 남편한테 부탁해줘'처럼 받는 사람이 뒤에 와도 부탁을 보낸다(2026-11-17 15:08 D13)."""
+    assert _answers([question]) == [expected]
+
+
+def test_request_with_recipient_after_then_ask_and_finish():
+    """11/17 D13→D14→D15: 뒤에 받는 사람이 와도 이어서 묻고 끝낼 수 있다."""
+    replies = _answers(["퇴근길에 약국 돌려달라고 남편한테 부탁해줘.", "남편한테 온 부탁 뭐 있어?", "남편이 약국 부탁 다 했어."])
+    assert replies[1].startswith("남편에게 온 부탁은 1건이에요.")
+    assert replies[2] == "'퇴근길에 약국 돌려' 부탁을 끝낸 걸로 표시했어요."
+
+
+@pytest.mark.parametrize(
     "question",
     ["남편한테 뭐라고 해?", "아내한테 고맙다고 전해줘", "남편이 약국 들렀어?", "가스비 아내가 냈어"],
 )
