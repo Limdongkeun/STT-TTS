@@ -1,0 +1,5339 @@
+{
+ "version": "2026-11-18",
+ "items": [
+  {
+   "id": "S001",
+   "type": "read",
+   "category": "일정",
+   "text": "이번 주말에 우리 가족 뭐 하기로 했지?"
+  },
+  {
+   "id": "S002",
+   "type": "read",
+   "category": "일정",
+   "text": "토요일 오전에 뭐 있었더라?"
+  },
+  {
+   "id": "S003",
+   "type": "read",
+   "category": "일정",
+   "text": "다음 달 첫째 주에 잡힌 약속 알려줘"
+  },
+  {
+   "id": "S004",
+   "type": "read",
+   "category": "일정",
+   "text": "금요일 저녁 외식 7시로 잡아줘"
+  },
+  {
+   "id": "S005",
+   "type": "read",
+   "category": "일정",
+   "text": "수요일 오후 3시에 치과 예약 넣어줘"
+  },
+  {
+   "id": "S006",
+   "type": "read",
+   "category": "일정",
+   "text": "이번 일요일 시댁 가는 거 몇 시에 출발해?"
+  },
+  {
+   "id": "S007",
+   "type": "read",
+   "category": "일정",
+   "text": "내일 아침에 일정 있어?"
+  },
+  {
+   "id": "S008",
+   "type": "read",
+   "category": "일정",
+   "text": "모레 오후는 비어 있어?"
+  },
+  {
+   "id": "S009",
+   "type": "read",
+   "category": "일정",
+   "text": "25일에 결혼식 있다고 적어줘"
+  },
+  {
+   "id": "S010",
+   "type": "read",
+   "category": "일정",
+   "text": "다음 주 화요일 가족 식사 취소됐어"
+  },
+  {
+   "id": "S011",
+   "type": "read",
+   "category": "일정",
+   "text": "월요일 일정 하나 지워줘"
+  },
+  {
+   "id": "S012",
+   "type": "read",
+   "category": "일정",
+   "text": "오늘 남은 일정 다 읽어줘"
+  },
+  {
+   "id": "S013",
+   "type": "read",
+   "category": "일정",
+   "text": "이번 달 마지막 주 금요일에 뭐 있지?"
+  },
+  {
+   "id": "S014",
+   "type": "read",
+   "category": "일정",
+   "text": "12월 3일 가족 여행 일정 넣어줘"
+  },
+  {
+   "id": "S015",
+   "type": "read",
+   "category": "일정",
+   "text": "설날 연휴에 친정 가는 날 언제로 했지?"
+  },
+  {
+   "id": "S016",
+   "type": "read",
+   "category": "일정",
+   "text": "저녁 8시에 화상 회의 있다고 알려줘"
+  },
+  {
+   "id": "S017",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 피아노 학원 몇 시에 끝나?"
+  },
+  {
+   "id": "S018",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 오늘 태권도 가는 날이야?"
+  },
+  {
+   "id": "S019",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 숙제 다 했대?"
+  },
+  {
+   "id": "S020",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 담임 선생님 상담 언제야?"
+  },
+  {
+   "id": "S021",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 체육복 챙겼는지 물어봐줘"
+  },
+  {
+   "id": "S022",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 방과 후 수업 신청 마감 언제야?"
+  },
+  {
+   "id": "S023",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 수학 학원 보강 날짜 바뀌었대"
+  },
+  {
+   "id": "S024",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 친구 생일 파티 토요일 2시야"
+  },
+  {
+   "id": "S025",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 독감 예방주사 맞혔어?"
+  },
+  {
+   "id": "S026",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 안경 맞추러 가야 하는데 언제 가지?"
+  },
+  {
+   "id": "S027",
+   "type": "read",
+   "category": "아이",
+   "text": "내일 등원은 내가 할게"
+  },
+  {
+   "id": "S028",
+   "type": "read",
+   "category": "아이",
+   "text": "오늘 하원 차량 몇 시에 와?"
+  },
+  {
+   "id": "S029",
+   "type": "read",
+   "category": "아이",
+   "text": "어린이집 낮잠 이불 금요일에 보내야 돼"
+  },
+  {
+   "id": "S030",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 학교 급식 메뉴 뭐야?"
+  },
+  {
+   "id": "S031",
+   "type": "read",
+   "category": "아이",
+   "text": "아이 수영 가방 어디 뒀어?"
+  },
+  {
+   "id": "S032",
+   "type": "read",
+   "category": "아이",
+   "text": "소윤이 용돈 이번 주에 줬어?"
+  },
+  {
+   "id": "S033",
+   "type": "read",
+   "category": "장보기",
+   "text": "계란 한 판이랑 두부 2모 사야 돼"
+  },
+  {
+   "id": "S034",
+   "type": "read",
+   "category": "장보기",
+   "text": "장보기 목록에서 우유 빼줘"
+  },
+  {
+   "id": "S035",
+   "type": "read",
+   "category": "장보기",
+   "text": "휴지랑 물티슈 떨어졌어"
+  },
+  {
+   "id": "S036",
+   "type": "read",
+   "category": "장보기",
+   "text": "쌀 거의 다 먹었으니까 목록에 넣어줘"
+  },
+  {
+   "id": "S037",
+   "type": "read",
+   "category": "장보기",
+   "text": "마트 가는 김에 바나나 한 송이 사와"
+  },
+  {
+   "id": "S038",
+   "type": "read",
+   "category": "장보기",
+   "text": "장보기 목록 처음부터 읽어줘"
+  },
+  {
+   "id": "S039",
+   "type": "read",
+   "category": "장보기",
+   "text": "생수 2묶음이랑 라면 한 봉지 추가해줘"
+  },
+  {
+   "id": "S040",
+   "type": "read",
+   "category": "장보기",
+   "text": "세제는 이미 샀으니까 지워줘"
+  },
+  {
+   "id": "S041",
+   "type": "read",
+   "category": "장보기",
+   "text": "사과 말고 배로 바꿔줘"
+  },
+  {
+   "id": "S042",
+   "type": "read",
+   "category": "장보기",
+   "text": "주말에 고기 사러 정육점 가야 돼"
+  },
+  {
+   "id": "S043",
+   "type": "read",
+   "category": "장보기",
+   "text": "샴푸랑 치약 같이 사줘"
+  },
+  {
+   "id": "S044",
+   "type": "read",
+   "category": "장보기",
+   "text": "분유 몇 통 남았는지 확인해줘"
+  },
+  {
+   "id": "S045",
+   "type": "read",
+   "category": "장보기",
+   "text": "장 볼 거 다 샀다고 체크해줘"
+  },
+  {
+   "id": "S046",
+   "type": "read",
+   "category": "장보기",
+   "text": "아까 넣은 빵은 취소해줘"
+  },
+  {
+   "id": "S047",
+   "type": "read",
+   "category": "장보기",
+   "text": "양파 3개랑 대파 한 단 사야 돼"
+  },
+  {
+   "id": "S048",
+   "type": "read",
+   "category": "장보기",
+   "text": "간장 다 떨어진 거 목록에 있어?"
+  },
+  {
+   "id": "S049",
+   "type": "read",
+   "category": "병원·약",
+   "text": "아버지 정형외과 예약 다음 주 수요일 10시야"
+  },
+  {
+   "id": "S050",
+   "type": "read",
+   "category": "병원·약",
+   "text": "어머니 당뇨약 처방 받으러 언제 가야 돼?"
+  },
+  {
+   "id": "S051",
+   "type": "read",
+   "category": "병원·약",
+   "text": "소아과 예약 오늘 오후 4시로 잡았어"
+  },
+  {
+   "id": "S052",
+   "type": "read",
+   "category": "병원·약",
+   "text": "아이 감기약 아침에 먹였다고 적어줘"
+  },
+  {
+   "id": "S053",
+   "type": "read",
+   "category": "병원·약",
+   "text": "해열제 먹인 지 몇 시간 됐어?"
+  },
+  {
+   "id": "S054",
+   "type": "read",
+   "category": "병원·약",
+   "text": "타이레놀 4시간 지나면 다시 먹여도 돼?"
+  },
+  {
+   "id": "S055",
+   "type": "read",
+   "category": "병원·약",
+   "text": "아버지 혈압 재는 거 잊지 말라고 알려줘"
+  },
+  {
+   "id": "S056",
+   "type": "read",
+   "category": "병원·약",
+   "text": "치과 정기 검진 언제 가기로 했지?"
+  },
+  {
+   "id": "S057",
+   "type": "read",
+   "category": "병원·약",
+   "text": "남편 건강검진 결과 나왔대"
+  },
+  {
+   "id": "S058",
+   "type": "read",
+   "category": "병원·약",
+   "text": "엄마 안과 예약 금요일 오전으로 바꿔줘"
+  },
+  {
+   "id": "S059",
+   "type": "read",
+   "category": "병원·약",
+   "text": "약 먹이고 10분 지났어"
+  },
+  {
+   "id": "S060",
+   "type": "read",
+   "category": "병원·약",
+   "text": "아니 그게 아니라 2시간 전에 먹였어"
+  },
+  {
+   "id": "S061",
+   "type": "read",
+   "category": "병원·약",
+   "text": "비타민 아침마다 먹으라고 알려줘"
+  },
+  {
+   "id": "S062",
+   "type": "read",
+   "category": "병원·약",
+   "text": "병원 갈 때 진료 의뢰서 챙겨야 돼"
+  },
+  {
+   "id": "S063",
+   "type": "read",
+   "category": "병원·약",
+   "text": "부르펜 시럽 5미리 먹였다고 적어줘"
+  },
+  {
+   "id": "S064",
+   "type": "read",
+   "category": "병원·약",
+   "text": "어머니 물리치료 화요일하고 목요일에 있어"
+  },
+  {
+   "id": "S065",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "이번 달 전기 요금 얼마 나왔어?"
+  },
+  {
+   "id": "S066",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "수도 요금 냈다고 체크해줘"
+  },
+  {
+   "id": "S067",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "통신비 자동이체 며칠에 빠져?"
+  },
+  {
+   "id": "S068",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "카드값 결제일이 언제야?"
+  },
+  {
+   "id": "S069",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "이번 달 외식비 얼마나 썼어?"
+  },
+  {
+   "id": "S070",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "편의점에서 1만 2천 원 썼어"
+  },
+  {
+   "id": "S071",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "오늘 주유비 6만 원 나왔어"
+  },
+  {
+   "id": "S072",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "학원비 23만 원 이체했어"
+  },
+  {
+   "id": "S073",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "관리비 고지서 왔어?"
+  },
+  {
+   "id": "S074",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "보험료 이번 달에 올랐대"
+  },
+  {
+   "id": "S075",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "생활비 통장에 얼마 남았는지 알려줘"
+  },
+  {
+   "id": "S076",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "지난달보다 장보기 돈 많이 썼어?"
+  },
+  {
+   "id": "S077",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "아파트 관리비 남편이 냈어"
+  },
+  {
+   "id": "S078",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "가스 요금 아직 안 냈어"
+  },
+  {
+   "id": "S079",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "유튜브 프리미엄 구독 해지해줘"
+  },
+  {
+   "id": "S080",
+   "type": "read",
+   "category": "돈·공과금",
+   "text": "35만 원 적금 넣었어"
+  },
+  {
+   "id": "S081",
+   "type": "read",
+   "category": "집안일",
+   "text": "오늘 설거지 누가 하기로 했어?"
+  },
+  {
+   "id": "S082",
+   "type": "read",
+   "category": "집안일",
+   "text": "음식물 쓰레기 버렸다고 체크해줘"
+  },
+  {
+   "id": "S083",
+   "type": "read",
+   "category": "집안일",
+   "text": "화장실 청소 이번 주 내 차례야?"
+  },
+  {
+   "id": "S084",
+   "type": "read",
+   "category": "집안일",
+   "text": "이불 빨래 주말에 하자"
+  },
+  {
+   "id": "S085",
+   "type": "read",
+   "category": "집안일",
+   "text": "청소기 돌렸어"
+  },
+  {
+   "id": "S086",
+   "type": "read",
+   "category": "집안일",
+   "text": "재활용 내놓는 날이 무슨 요일이야?"
+  },
+  {
+   "id": "S087",
+   "type": "read",
+   "category": "집안일",
+   "text": "남편이 쓰레기 버렸대"
+  },
+  {
+   "id": "S088",
+   "type": "read",
+   "category": "집안일",
+   "text": "베란다 화분 물 줬어?"
+  },
+  {
+   "id": "S089",
+   "type": "read",
+   "category": "집안일",
+   "text": "냉장고 정리 토요일에 하기로 했지?"
+  },
+  {
+   "id": "S090",
+   "type": "read",
+   "category": "집안일",
+   "text": "집안일 당번표 읽어줘"
+  },
+  {
+   "id": "S091",
+   "type": "read",
+   "category": "집안일",
+   "text": "분리수거는 내가 했으니까 체크해줘"
+  },
+  {
+   "id": "S092",
+   "type": "read",
+   "category": "집안일",
+   "text": "에어컨 필터 청소 언제 했더라?"
+  },
+  {
+   "id": "S093",
+   "type": "read",
+   "category": "집안일",
+   "text": "보일러 점검 다음 주 월요일 오전에 와"
+  },
+  {
+   "id": "S094",
+   "type": "read",
+   "category": "집안일",
+   "text": "빨래 개는 건 아직 안 했어"
+  },
+  {
+   "id": "S095",
+   "type": "read",
+   "category": "집안일",
+   "text": "세탁기 돌려 놨으니까 이따 널어줘"
+  },
+  {
+   "id": "S096",
+   "type": "read",
+   "category": "집안일",
+   "text": "오늘 청소 당번 바꿔줘"
+  },
+  {
+   "id": "S097",
+   "type": "read",
+   "category": "부탁",
+   "text": "아내한테 오늘 저녁 늦는다고 전해줘"
+  },
+  {
+   "id": "S098",
+   "type": "read",
+   "category": "부탁",
+   "text": "남편한테 우유 사 오라고 부탁해줘"
+  },
+  {
+   "id": "S099",
+   "type": "read",
+   "category": "부탁",
+   "text": "여보한테 소윤이 데리러 가 달라고 해줘"
+  },
+  {
+   "id": "S100",
+   "type": "read",
+   "category": "부탁",
+   "text": "와이프한테 택배 받아 달라고 부탁해"
+  },
+  {
+   "id": "S101",
+   "type": "read",
+   "category": "부탁",
+   "text": "신랑한테 차 키 어디 있는지 물어봐줘"
+  },
+  {
+   "id": "S102",
+   "type": "read",
+   "category": "부탁",
+   "text": "남편이 부탁한 거 끝냈다고 알려줘"
+  },
+  {
+   "id": "S103",
+   "type": "read",
+   "category": "부탁",
+   "text": "아내가 부탁한 세탁소 다녀왔어"
+  },
+  {
+   "id": "S104",
+   "type": "read",
+   "category": "부탁",
+   "text": "남편한테 부탁한 거 취소해줘"
+  },
+  {
+   "id": "S105",
+   "type": "read",
+   "category": "부탁",
+   "text": "나한테 온 부탁 다 읽어줘"
+  },
+  {
+   "id": "S106",
+   "type": "read",
+   "category": "부탁",
+   "text": "아내한테 퇴근하고 마트 들러 달라고 해줘"
+  },
+  {
+   "id": "S107",
+   "type": "read",
+   "category": "부탁",
+   "text": "남편한테 콩이 산책 시켜 달라고 부탁해줘"
+  },
+  {
+   "id": "S108",
+   "type": "read",
+   "category": "부탁",
+   "text": "아내한테 부탁한 거 했대?"
+  },
+  {
+   "id": "S109",
+   "type": "read",
+   "category": "부탁",
+   "text": "은행 다녀와 달라고 남편한테 부탁해줘"
+  },
+  {
+   "id": "S110",
+   "type": "read",
+   "category": "부탁",
+   "text": "여보한테 온 부탁 아직 안 했어"
+  },
+  {
+   "id": "S111",
+   "type": "read",
+   "category": "부탁",
+   "text": "남편 부탁 하나 남았어?"
+  },
+  {
+   "id": "S112",
+   "type": "read",
+   "category": "부탁",
+   "text": "아내한테 어머님 전화 드리라고 전해줘"
+  },
+  {
+   "id": "S113",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "장모님 생신이 다음 달 며칠이지?"
+  },
+  {
+   "id": "S114",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "결혼기념일 선물 뭐 할까?"
+  },
+  {
+   "id": "S115",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "아버지 칠순 잔치 장소 어디로 했지?"
+  },
+  {
+   "id": "S116",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "시댁 제사 날짜 알려줘"
+  },
+  {
+   "id": "S117",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "어버이날 용돈 얼마 드리기로 했어?"
+  },
+  {
+   "id": "S118",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "친정엄마 생신 선물로 안마기 샀어"
+  },
+  {
+   "id": "S119",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "조카 돌잔치 토요일 12시야"
+  },
+  {
+   "id": "S120",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "시어머니 용돈 이번 달에 드렸어?"
+  },
+  {
+   "id": "S121",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "명절 선물 세트 주문했어?"
+  },
+  {
+   "id": "S122",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "처가 가족 모임 다음 주 일요일이야"
+  },
+  {
+   "id": "S123",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "소윤이 생일 케이크 예약했어?"
+  },
+  {
+   "id": "S124",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "처가에 보낼 김치 택배 아직 안 보냈어"
+  },
+  {
+   "id": "S125",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "외삼촌 병문안 이번 주 토요일에 가자"
+  },
+  {
+   "id": "S126",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "추석 때 시댁에 며칠 있기로 했지?"
+  },
+  {
+   "id": "S127",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "본가 김장 날짜 정해졌어?"
+  },
+  {
+   "id": "S128",
+   "type": "read",
+   "category": "가족 행사",
+   "text": "어머님 댁 가는 길에 꽃 사 가자"
+  },
+  {
+   "id": "S129",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 사료 다 떨어져 가"
+  },
+  {
+   "id": "S130",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 산책 오늘 누가 했어?"
+  },
+  {
+   "id": "S131",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 미용 예약 토요일 오후 2시야"
+  },
+  {
+   "id": "S132",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 구충제 먹였어"
+  },
+  {
+   "id": "S133",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 동물병원 정기검진 언제야?"
+  },
+  {
+   "id": "S134",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 간식 장보기 목록에 넣어줘"
+  },
+  {
+   "id": "S135",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 목욕시켰다고 체크해줘"
+  },
+  {
+   "id": "S136",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 광견병 주사 맞을 때 됐어?"
+  },
+  {
+   "id": "S137",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 발톱 깎아야 돼"
+  },
+  {
+   "id": "S138",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 아침밥 줬어?"
+  },
+  {
+   "id": "S139",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 배변 패드 다 썼어"
+  },
+  {
+   "id": "S140",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 산책 저녁 7시에 하자"
+  },
+  {
+   "id": "S141",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 호텔 예약 연휴 동안 해줘"
+  },
+  {
+   "id": "S142",
+   "type": "read",
+   "category": "반려견",
+   "text": "콩이 귀 청소 언제 했더라?"
+  },
+  {
+   "id": "S143",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "여권 만료 언제야?"
+  },
+  {
+   "id": "S144",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "운전면허 갱신 기간 알려줘"
+  },
+  {
+   "id": "S145",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "자동차 정기검사 받으러 가야 돼"
+  },
+  {
+   "id": "S146",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "건강보험 서류 제출했어?"
+  },
+  {
+   "id": "S147",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "소윤이 체험학습 신청서 냈어"
+  },
+  {
+   "id": "S148",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "가정통신문 답장 보냈어?"
+  },
+  {
+   "id": "S149",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "전세 계약 만기 언제였지?"
+  },
+  {
+   "id": "S150",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "휴대폰 약정 언제 끝나?"
+  },
+  {
+   "id": "S151",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "실손보험 청구 서류 챙겨줘"
+  },
+  {
+   "id": "S152",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "주민등록등본 떼어 놔야 돼"
+  },
+  {
+   "id": "S153",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "자동차세 이번 달에 내는 거 맞아?"
+  },
+  {
+   "id": "S154",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "이번 주에 마감되는 거 뭐 있어?"
+  },
+  {
+   "id": "S155",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "아이 여권 사진 찍으러 가야 돼"
+  },
+  {
+   "id": "S156",
+   "type": "read",
+   "category": "서류·만료",
+   "text": "연말정산 서류 언제까지 내야 돼?"
+  },
+  {
+   "id": "S157",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "지금 몇 시야?"
+  },
+  {
+   "id": "S158",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "오늘 며칠이야?"
+  },
+  {
+   "id": "S159",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "다음 주 목요일이 며칠이지?"
+  },
+  {
+   "id": "S160",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "11시 반에 알려줘"
+  },
+  {
+   "id": "S161",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "20분 뒤에 다시 알려줘"
+  },
+  {
+   "id": "S162",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "3일 뒤가 무슨 요일이야?"
+  },
+  {
+   "id": "S163",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "다음 달 15일에 알림 맞춰줘"
+  },
+  {
+   "id": "S164",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "오후 2시 45분에 출발해야 돼"
+  },
+  {
+   "id": "S165",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "1년 전 오늘 뭐 했는지 알려줘"
+  },
+  {
+   "id": "S166",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "3만 5천 원 나눠서 계산해줘"
+  },
+  {
+   "id": "S167",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "1,200원짜리 우유 2개 샀어"
+  },
+  {
+   "id": "S168",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "150만 원 넘게 썼어?"
+  },
+  {
+   "id": "S169",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "오전 9시 10분에 깨워줘"
+  },
+  {
+   "id": "S170",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "7시 반 알람 꺼줘"
+  },
+  {
+   "id": "S171",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "3시간 뒤에 약 먹으라고 알려줘"
+  },
+  {
+   "id": "S172",
+   "type": "read",
+   "category": "날짜·시간·숫자",
+   "text": "이번 달 28일이 무슨 요일이야?"
+  },
+  {
+   "id": "S173",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "아니 그거 말고 다른 거"
+  },
+  {
+   "id": "S174",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "방금 말한 거 취소해줘"
+  },
+  {
+   "id": "S175",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "그거 내가 안 했어"
+  },
+  {
+   "id": "S176",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "아직 안 냈어"
+  },
+  {
+   "id": "S177",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "냈다는 거 아니고 안 냈다고"
+  },
+  {
+   "id": "S178",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "아내가 아니라 남편이 했어"
+  },
+  {
+   "id": "S179",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "화요일이 아니라 수요일이야"
+  },
+  {
+   "id": "S180",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "2개 말고 3개로 바꿔줘"
+  },
+  {
+   "id": "S181",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "그거 지우지 마"
+  },
+  {
+   "id": "S182",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "잘못 들었어 다시 해줘"
+  },
+  {
+   "id": "S183",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "안 먹였어 아직이야"
+  },
+  {
+   "id": "S184",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "아니야 그건 다음 주야"
+  },
+  {
+   "id": "S185",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "그 부탁은 아직 안 끝났어"
+  },
+  {
+   "id": "S186",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "남편이 아니라 내가 갈게"
+  },
+  {
+   "id": "S187",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "5천 원이 아니라 5만 원이야"
+  },
+  {
+   "id": "S188",
+   "type": "read",
+   "category": "부정·고치기",
+   "text": "아 맞다 그거 했다"
+  },
+  {
+   "id": "S189",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "응"
+  },
+  {
+   "id": "S190",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "아니"
+  },
+  {
+   "id": "S191",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "고마워"
+  },
+  {
+   "id": "S192",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "됐어"
+  },
+  {
+   "id": "S193",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "다시 말해줘"
+  },
+  {
+   "id": "S194",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "잠깐만"
+  },
+  {
+   "id": "S195",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "그만"
+  },
+  {
+   "id": "S196",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "알겠어"
+  },
+  {
+   "id": "S197",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "조금 천천히 말해줘"
+  },
+  {
+   "id": "S198",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "다음"
+  },
+  {
+   "id": "S199",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "그거 맞아"
+  },
+  {
+   "id": "S200",
+   "type": "short",
+   "category": "짧은 말",
+   "text": "한 번 더"
+  },
+  {
+   "id": "S201",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "내일 비 온대?"
+  },
+  {
+   "id": "S202",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "오늘 미세먼지 어때?"
+  },
+  {
+   "id": "S203",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "주말에 날씨 좋으면 공원 가자"
+  },
+  {
+   "id": "S204",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "우산 챙겨야 할까?"
+  },
+  {
+   "id": "S205",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "오늘 최고 기온이 몇 도야?"
+  },
+  {
+   "id": "S206",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "아침에 영하 5도까지 떨어진대"
+  },
+  {
+   "id": "S207",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "눈 오면 차 놓고 지하철 타고 갈게"
+  },
+  {
+   "id": "S208",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "요즘 일교차가 너무 커서 감기 걸리기 쉽겠다"
+  },
+  {
+   "id": "S209",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "이번 주 내내 흐리다고 하더라"
+  },
+  {
+   "id": "S210",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "태풍 올라온다는데 창문 단단히 닫아 놔"
+  },
+  {
+   "id": "S211",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "장마 언제 끝나?"
+  },
+  {
+   "id": "S212",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "오늘 습도가 높아서 빨래가 잘 안 마르네"
+  },
+  {
+   "id": "S213",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "황사 심하니까 마스크 꼭 써"
+  },
+  {
+   "id": "S214",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "해 지는 시간이 많이 빨라졌네"
+  },
+  {
+   "id": "S215",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "벚꽃 언제 핀대?"
+  },
+  {
+   "id": "S216",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "단풍 보러 다음 주에 설악산 갈까?"
+  },
+  {
+   "id": "S217",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "폭염 주의보 내렸으니까 낮에는 나가지 마"
+  },
+  {
+   "id": "S218",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "지금 밖에 바람 많이 불어?"
+  },
+  {
+   "id": "S219",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "첫눈 왔다는데 봤어?"
+  },
+  {
+   "id": "S220",
+   "type": "read",
+   "category": "날씨·계절",
+   "text": "내일 아침 출근길에 길 얼 수도 있대"
+  },
+  {
+   "id": "S221",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "여기서 강남역까지 얼마나 걸려?"
+  },
+  {
+   "id": "S222",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "지하철 2호선 막차 몇 시야?"
+  },
+  {
+   "id": "S223",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "버스 정류장이 어느 쪽이야?"
+  },
+  {
+   "id": "S224",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "택시 불러줘"
+  },
+  {
+   "id": "S225",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "지금 올림픽대로 많이 막혀?"
+  },
+  {
+   "id": "S226",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "다음 휴게소까지 몇 킬로 남았어?"
+  },
+  {
+   "id": "S227",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "주차장 자리 있는지 확인해줘"
+  },
+  {
+   "id": "S228",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "고속도로 통행료 얼마 나왔어?"
+  },
+  {
+   "id": "S229",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "기차표 오후 3시 걸로 예매해줘"
+  },
+  {
+   "id": "S230",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "KTX 부산 가는 거 몇 시간 걸려?"
+  },
+  {
+   "id": "S231",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "공항 리무진 첫차 몇 시에 있어?"
+  },
+  {
+   "id": "S232",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "네비 집으로 찍어줘"
+  },
+  {
+   "id": "S233",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "여기서 우회전하면 돼?"
+  },
+  {
+   "id": "S234",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "신호 바뀌었어 출발해"
+  },
+  {
+   "id": "S235",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "환승은 어디서 해야 돼?"
+  },
+  {
+   "id": "S236",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "교통카드 잔액 얼마 남았어?"
+  },
+  {
+   "id": "S237",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "자전거 빌리는 곳 근처에 있어?"
+  },
+  {
+   "id": "S238",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "지금 출발하면 약속 시간에 맞출 수 있을까?"
+  },
+  {
+   "id": "S239",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "차 기름 넣어야 돼 주유소 찾아줘"
+  },
+  {
+   "id": "S240",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "전기차 충전소 가까운 데 어디야?"
+  },
+  {
+   "id": "S241",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "퇴근 시간이라 길이 꽉 막혔어"
+  },
+  {
+   "id": "S242",
+   "type": "read",
+   "category": "교통·길찾기",
+   "text": "비행기 2시간 지연됐대"
+  },
+  {
+   "id": "S243",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "짜장면 2개랑 탕수육 하나 시켜줘"
+  },
+  {
+   "id": "S244",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "오늘 저녁 뭐 먹을까?"
+  },
+  {
+   "id": "S245",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "치킨 반반으로 주문해줘"
+  },
+  {
+   "id": "S246",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "배달 언제 와?"
+  },
+  {
+   "id": "S247",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "아메리카노 따뜻한 걸로 한 잔이요"
+  },
+  {
+   "id": "S248",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "라떼는 우유 대신 두유로 바꿔 주세요"
+  },
+  {
+   "id": "S249",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "여기 물 좀 더 주세요"
+  },
+  {
+   "id": "S250",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "계산서 주세요"
+  },
+  {
+   "id": "S251",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "포장해 갈게요"
+  },
+  {
+   "id": "S252",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "매운 거 못 먹으니까 덜 맵게 해 주세요"
+  },
+  {
+   "id": "S253",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "김치찌개 1인분 추가요"
+  },
+  {
+   "id": "S254",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "떡볶이에 치즈 추가해줘"
+  },
+  {
+   "id": "S255",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "피자 라지 사이즈로 하나 시킬까?"
+  },
+  {
+   "id": "S256",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "점심에 국수 먹으러 가자"
+  },
+  {
+   "id": "S257",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "이 집 예약 되나 전화해 봐"
+  },
+  {
+   "id": "S258",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "4명 자리 있어요?"
+  },
+  {
+   "id": "S259",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "반찬 좀 더 주실 수 있어요?"
+  },
+  {
+   "id": "S260",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "디저트는 케이크로 할게"
+  },
+  {
+   "id": "S261",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "아이스크림 녹기 전에 냉동실에 넣어"
+  },
+  {
+   "id": "S262",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "오늘은 외식하지 말고 집에서 해 먹자"
+  },
+  {
+   "id": "S263",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "밥 다 됐어 먹자"
+  },
+  {
+   "id": "S264",
+   "type": "read",
+   "category": "음식·주문",
+   "text": "삼겹살 2인분 더 주세요"
+  },
+  {
+   "id": "S265",
+   "type": "read",
+   "category": "요리",
+   "text": "된장찌개 끓이는 법 알려줘"
+  },
+  {
+   "id": "S266",
+   "type": "read",
+   "category": "요리",
+   "text": "라면 물 몇 미리 넣어야 돼?"
+  },
+  {
+   "id": "S267",
+   "type": "read",
+   "category": "요리",
+   "text": "계란말이에 소금 얼마나 넣어?"
+  },
+  {
+   "id": "S268",
+   "type": "read",
+   "category": "요리",
+   "text": "밥솥 예약 6시로 해줘"
+  },
+  {
+   "id": "S269",
+   "type": "read",
+   "category": "요리",
+   "text": "고기 해동하려면 얼마나 걸려?"
+  },
+  {
+   "id": "S270",
+   "type": "read",
+   "category": "요리",
+   "text": "오븐 180도로 예열해줘"
+  },
+  {
+   "id": "S271",
+   "type": "read",
+   "category": "요리",
+   "text": "타이머 10분 맞춰줘"
+  },
+  {
+   "id": "S272",
+   "type": "read",
+   "category": "요리",
+   "text": "미역국에 소고기 넣을까 조개 넣을까?"
+  },
+  {
+   "id": "S273",
+   "type": "read",
+   "category": "요리",
+   "text": "양념이 좀 싱거운데 간장 더 넣을까?"
+  },
+  {
+   "id": "S274",
+   "type": "read",
+   "category": "요리",
+   "text": "김치 볶음밥 하려는데 햄 있어?"
+  },
+  {
+   "id": "S275",
+   "type": "read",
+   "category": "요리",
+   "text": "냉장고에 있는 재료로 뭐 만들 수 있어?"
+  },
+  {
+   "id": "S276",
+   "type": "read",
+   "category": "요리",
+   "text": "불 좀 줄여줘"
+  },
+  {
+   "id": "S277",
+   "type": "read",
+   "category": "요리",
+   "text": "마늘 다져 놓은 거 어디 있어?"
+  },
+  {
+   "id": "S278",
+   "type": "read",
+   "category": "요리",
+   "text": "튀김 기름 온도 몇 도가 좋아?"
+  },
+  {
+   "id": "S279",
+   "type": "read",
+   "category": "요리",
+   "text": "쌀 씻어서 30분 불려 놔"
+  },
+  {
+   "id": "S280",
+   "type": "read",
+   "category": "요리",
+   "text": "설탕 대신 올리고당 써도 돼?"
+  },
+  {
+   "id": "S281",
+   "type": "read",
+   "category": "요리",
+   "text": "멸치 육수 내는 데 얼마나 걸려?"
+  },
+  {
+   "id": "S282",
+   "type": "read",
+   "category": "요리",
+   "text": "반죽 1시간 숙성시켜야 돼"
+  },
+  {
+   "id": "S283",
+   "type": "read",
+   "category": "요리",
+   "text": "파스타 면 몇 분 삶아?"
+  },
+  {
+   "id": "S284",
+   "type": "read",
+   "category": "요리",
+   "text": "남은 찌개는 내일 데워 먹자"
+  },
+  {
+   "id": "S285",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "이거 얼마예요?"
+  },
+  {
+   "id": "S286",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "카드로 계산할게요"
+  },
+  {
+   "id": "S287",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "할부 3개월로 해 주세요"
+  },
+  {
+   "id": "S288",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "영수증 버려 주세요"
+  },
+  {
+   "id": "S289",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "교환하려면 영수증 있어야 돼요?"
+  },
+  {
+   "id": "S290",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "이 옷 다른 색상도 있어요?"
+  },
+  {
+   "id": "S291",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "M 사이즈로 보여 주세요"
+  },
+  {
+   "id": "S292",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "온라인 주문한 거 언제 도착해?"
+  },
+  {
+   "id": "S293",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "택배 송장 번호 알려줘"
+  },
+  {
+   "id": "S294",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "반품 신청 어떻게 해?"
+  },
+  {
+   "id": "S295",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "쿠폰 쓰면 얼마 할인돼?"
+  },
+  {
+   "id": "S296",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "포인트 적립해 주세요"
+  },
+  {
+   "id": "S297",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "세일 언제까지예요?"
+  },
+  {
+   "id": "S298",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "1+1 행사하는 거 뭐 있어?"
+  },
+  {
+   "id": "S299",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "무료 배송 되려면 얼마 더 사야 돼?"
+  },
+  {
+   "id": "S300",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "청소기 새로 하나 사야겠어"
+  },
+  {
+   "id": "S301",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "노트북 가격 비교해줘"
+  },
+  {
+   "id": "S302",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "겨울 패딩 하나 장만하자"
+  },
+  {
+   "id": "S303",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "신발 사이즈 250 맞아?"
+  },
+  {
+   "id": "S304",
+   "type": "read",
+   "category": "쇼핑·물건",
+   "text": "선물 포장해 주실 수 있어요?"
+  },
+  {
+   "id": "S305",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "계좌 이체 좀 해줘"
+  },
+  {
+   "id": "S306",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "이번 달 월급 들어왔어?"
+  },
+  {
+   "id": "S307",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "적금 만기 언제야?"
+  },
+  {
+   "id": "S308",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "환율 지금 얼마야?"
+  },
+  {
+   "id": "S309",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "달러로 300불만 바꿔야 돼"
+  },
+  {
+   "id": "S310",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "카드 분실 신고해야 돼"
+  },
+  {
+   "id": "S311",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "비밀번호 5번 틀려서 잠겼어"
+  },
+  {
+   "id": "S312",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "대출 이자 이번 달에 얼마 나가?"
+  },
+  {
+   "id": "S313",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "가계부에 오늘 쓴 돈 적어줘"
+  },
+  {
+   "id": "S314",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "이번 달 저축 목표 얼마로 할까?"
+  },
+  {
+   "id": "S315",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "현금 인출기 근처에 있어?"
+  },
+  {
+   "id": "S316",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "송금 수수료 붙어?"
+  },
+  {
+   "id": "S317",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "자동이체 날짜 25일로 바꿔줘"
+  },
+  {
+   "id": "S318",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "신용카드 한도 얼마 남았어?"
+  },
+  {
+   "id": "S319",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "연말정산 환급금 언제 들어와?"
+  },
+  {
+   "id": "S320",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "주식 오늘 많이 떨어졌대"
+  },
+  {
+   "id": "S321",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "용돈 기입장 같이 정리하자"
+  },
+  {
+   "id": "S322",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "보험 해지하면 환급금 얼마야?"
+  },
+  {
+   "id": "S323",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "월세 이번 달 보냈어?"
+  },
+  {
+   "id": "S324",
+   "type": "read",
+   "category": "은행·돈",
+   "text": "더치페이로 나누면 1인당 얼마야?"
+  },
+  {
+   "id": "S325",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "머리가 아파서 두통약 좀 먹어야겠어"
+  },
+  {
+   "id": "S326",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "열이 38도 넘어"
+  },
+  {
+   "id": "S327",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "목이 칼칼하고 기침이 나"
+  },
+  {
+   "id": "S328",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "내과 진료 몇 시까지 해?"
+  },
+  {
+   "id": "S329",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "접수하려면 신분증 필요해요?"
+  },
+  {
+   "id": "S330",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "처방전 약국에 보내 주세요"
+  },
+  {
+   "id": "S331",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "하루 3번 식후 30분에 드세요"
+  },
+  {
+   "id": "S332",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "알레르기 있는 약 있으세요?"
+  },
+  {
+   "id": "S333",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "피검사 결과 언제 나와요?"
+  },
+  {
+   "id": "S334",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "허리가 아파서 정형외과 가 봐야겠어"
+  },
+  {
+   "id": "S335",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "요즘 잠을 잘 못 자"
+  },
+  {
+   "id": "S336",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "하루에 물 2리터 마시기로 했어"
+  },
+  {
+   "id": "S337",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "오늘 만 보 걸었어"
+  },
+  {
+   "id": "S338",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "혈압이 좀 높게 나왔대"
+  },
+  {
+   "id": "S339",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "독감 주사 맞으러 가자"
+  },
+  {
+   "id": "S340",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "눈이 침침해서 안약 넣어야겠어"
+  },
+  {
+   "id": "S341",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "병원 대기 시간 얼마나 돼요?"
+  },
+  {
+   "id": "S342",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "응급실 어디로 가야 돼?"
+  },
+  {
+   "id": "S343",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "다리 삐어서 파스 붙였어"
+  },
+  {
+   "id": "S344",
+   "type": "read",
+   "category": "병원·건강",
+   "text": "건강검진 전날 밤 9시부터 금식이래"
+  },
+  {
+   "id": "S345",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "오늘 숙제 뭐 있어?"
+  },
+  {
+   "id": "S346",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "영어 단어 시험 내일이야"
+  },
+  {
+   "id": "S347",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "받아쓰기 100점 맞았대"
+  },
+  {
+   "id": "S348",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "수학 문제 이거 어떻게 풀어?"
+  },
+  {
+   "id": "S349",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "방학 숙제 독후감 써야 돼"
+  },
+  {
+   "id": "S350",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "학부모 상담 주간이 언제야?"
+  },
+  {
+   "id": "S351",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "도서관 책 반납 기한 지났어"
+  },
+  {
+   "id": "S352",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "과학 준비물 돋보기랑 자석이래"
+  },
+  {
+   "id": "S353",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "중간고사 다음 주 월요일부터야"
+  },
+  {
+   "id": "S354",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "학원 차 놓쳤대"
+  },
+  {
+   "id": "S355",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "줄넘기 대회 연습해야 돼"
+  },
+  {
+   "id": "S356",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "운동회 때 도시락 싸 가야 돼?"
+  },
+  {
+   "id": "S357",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "교과서 놓고 갔대 학교 갖다줘야 할까?"
+  },
+  {
+   "id": "S358",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "구구단 7단 외웠어"
+  },
+  {
+   "id": "S359",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "일기 쓰고 자"
+  },
+  {
+   "id": "S360",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "급식 우유 안 마셨대"
+  },
+  {
+   "id": "S361",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "학교 앞 문구점에서 공책 사 와"
+  },
+  {
+   "id": "S362",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "방과 후 로봇 교실 신청했어"
+  },
+  {
+   "id": "S363",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "졸업식 몇 시에 시작해?"
+  },
+  {
+   "id": "S364",
+   "type": "read",
+   "category": "학교·공부",
+   "text": "선생님께 감사 편지 썼어"
+  },
+  {
+   "id": "S365",
+   "type": "read",
+   "category": "직장·일",
+   "text": "오늘 회의 몇 시야?"
+  },
+  {
+   "id": "S366",
+   "type": "read",
+   "category": "직장·일",
+   "text": "내일 출장 가야 해서 늦게 와"
+  },
+  {
+   "id": "S367",
+   "type": "read",
+   "category": "직장·일",
+   "text": "보고서 오늘까지 내야 돼"
+  },
+  {
+   "id": "S368",
+   "type": "read",
+   "category": "직장·일",
+   "text": "메일 확인했어?"
+  },
+  {
+   "id": "S369",
+   "type": "read",
+   "category": "직장·일",
+   "text": "점심 먹고 2시에 미팅 있어"
+  },
+  {
+   "id": "S370",
+   "type": "read",
+   "category": "직장·일",
+   "text": "오늘 야근할 것 같아"
+  },
+  {
+   "id": "S371",
+   "type": "read",
+   "category": "직장·일",
+   "text": "재택근무하는 날이 화요일이랑 목요일이야"
+  },
+  {
+   "id": "S372",
+   "type": "read",
+   "category": "직장·일",
+   "text": "연차 다음 주 금요일로 냈어"
+  },
+  {
+   "id": "S373",
+   "type": "read",
+   "category": "직장·일",
+   "text": "회사 송년회 12월 20일이래"
+  },
+  {
+   "id": "S374",
+   "type": "read",
+   "category": "직장·일",
+   "text": "월급날이 며칠이었지?"
+  },
+  {
+   "id": "S375",
+   "type": "read",
+   "category": "직장·일",
+   "text": "부장님한테 전화 왔었어"
+  },
+  {
+   "id": "S376",
+   "type": "read",
+   "category": "직장·일",
+   "text": "발표 자료 아직 다 못 만들었어"
+  },
+  {
+   "id": "S377",
+   "type": "read",
+   "category": "직장·일",
+   "text": "퇴근하고 바로 갈게"
+  },
+  {
+   "id": "S378",
+   "type": "read",
+   "category": "직장·일",
+   "text": "점심시간 끝나기 전에 은행 다녀올게"
+  },
+  {
+   "id": "S379",
+   "type": "read",
+   "category": "직장·일",
+   "text": "명함 새로 나왔어"
+  },
+  {
+   "id": "S380",
+   "type": "read",
+   "category": "직장·일",
+   "text": "이번 분기 실적이 좋대"
+  },
+  {
+   "id": "S381",
+   "type": "read",
+   "category": "직장·일",
+   "text": "신입 사원 환영회가 금요일이야"
+  },
+  {
+   "id": "S382",
+   "type": "read",
+   "category": "직장·일",
+   "text": "노트북 회사에 두고 왔어"
+  },
+  {
+   "id": "S383",
+   "type": "read",
+   "category": "직장·일",
+   "text": "출근 카드 찍는 거 깜빡했어"
+  },
+  {
+   "id": "S384",
+   "type": "read",
+   "category": "직장·일",
+   "text": "오늘 일 빨리 끝났어"
+  },
+  {
+   "id": "S385",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "엄마한테 전화해줘"
+  },
+  {
+   "id": "S386",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "아빠한테 저녁에 전화 드린다고 문자 보내줘"
+  },
+  {
+   "id": "S387",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "방금 누구한테 전화 왔었어?"
+  },
+  {
+   "id": "S388",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "부재중 전화 확인해줘"
+  },
+  {
+   "id": "S389",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "010-2345-6789로 전화 걸어줘"
+  },
+  {
+   "id": "S390",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "문자 읽어줘"
+  },
+  {
+   "id": "S391",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "카톡 왔어?"
+  },
+  {
+   "id": "S392",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "지금 통화 괜찮아?"
+  },
+  {
+   "id": "S393",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "좀 이따 다시 전화할게"
+  },
+  {
+   "id": "S394",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "스피커폰으로 바꿔줘"
+  },
+  {
+   "id": "S395",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "영상통화 걸어줘"
+  },
+  {
+   "id": "S396",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "단체방에 사진 올려줘"
+  },
+  {
+   "id": "S397",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "생일 축하 메시지 보내줘"
+  },
+  {
+   "id": "S398",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "답장 보냈어"
+  },
+  {
+   "id": "S399",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "전화번호 저장해줘"
+  },
+  {
+   "id": "S400",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "연락처에서 김민수 찾아줘"
+  },
+  {
+   "id": "S401",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "방해 금지 모드 켜줘"
+  },
+  {
+   "id": "S402",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "알림 소리 좀 줄여줘"
+  },
+  {
+   "id": "S403",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "배터리 얼마 남았어?"
+  },
+  {
+   "id": "S404",
+   "type": "read",
+   "category": "전화·연락",
+   "text": "충전기 어디 있어?"
+  },
+  {
+   "id": "S405",
+   "type": "read",
+   "category": "집·생활",
+   "text": "거실 불 꺼줘"
+  },
+  {
+   "id": "S406",
+   "type": "read",
+   "category": "집·생활",
+   "text": "에어컨 26도로 맞춰줘"
+  },
+  {
+   "id": "S407",
+   "type": "read",
+   "category": "집·생활",
+   "text": "보일러 좀 올려줘"
+  },
+  {
+   "id": "S408",
+   "type": "read",
+   "category": "집·생활",
+   "text": "현관문 잠갔어?"
+  },
+  {
+   "id": "S409",
+   "type": "read",
+   "category": "집·생활",
+   "text": "TV 볼륨 좀 낮춰줘"
+  },
+  {
+   "id": "S410",
+   "type": "read",
+   "category": "집·생활",
+   "text": "로봇청소기 돌려줘"
+  },
+  {
+   "id": "S411",
+   "type": "read",
+   "category": "집·생활",
+   "text": "가습기에 물 채워야 돼"
+  },
+  {
+   "id": "S412",
+   "type": "read",
+   "category": "집·생활",
+   "text": "전구 나갔어 새로 갈아야겠다"
+  },
+  {
+   "id": "S413",
+   "type": "read",
+   "category": "집·생활",
+   "text": "택배 문 앞에 두고 갔대"
+  },
+  {
+   "id": "S414",
+   "type": "read",
+   "category": "집·생활",
+   "text": "관리사무소에 전화해 봐"
+  },
+  {
+   "id": "S415",
+   "type": "read",
+   "category": "집·생활",
+   "text": "윗집 소음 때문에 잠을 못 잤어"
+  },
+  {
+   "id": "S416",
+   "type": "read",
+   "category": "집·생활",
+   "text": "엘리베이터 점검한대"
+  },
+  {
+   "id": "S417",
+   "type": "read",
+   "category": "집·생활",
+   "text": "정수기 필터 언제 갈아?"
+  },
+  {
+   "id": "S418",
+   "type": "read",
+   "category": "집·생활",
+   "text": "세탁기에서 이상한 소리 나"
+  },
+  {
+   "id": "S419",
+   "type": "read",
+   "category": "집·생활",
+   "text": "커튼 좀 쳐줘"
+  },
+  {
+   "id": "S420",
+   "type": "read",
+   "category": "집·생활",
+   "text": "현관 비밀번호 바꿨어"
+  },
+  {
+   "id": "S421",
+   "type": "read",
+   "category": "집·생활",
+   "text": "이사 날짜 정해졌어?"
+  },
+  {
+   "id": "S422",
+   "type": "read",
+   "category": "집·생활",
+   "text": "인터넷이 자꾸 끊겨"
+  },
+  {
+   "id": "S423",
+   "type": "read",
+   "category": "집·생활",
+   "text": "공기청정기 자동 모드로 해줘"
+  },
+  {
+   "id": "S424",
+   "type": "read",
+   "category": "집·생활",
+   "text": "방이 너무 건조해"
+  },
+  {
+   "id": "S425",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "이번 연휴에 어디 갈까?"
+  },
+  {
+   "id": "S426",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "제주도 비행기표 얼마야?"
+  },
+  {
+   "id": "S427",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "호텔 체크인 몇 시부터야?"
+  },
+  {
+   "id": "S428",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "캠핑 장비 챙겼어?"
+  },
+  {
+   "id": "S429",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "영화 몇 시 거 예매할까?"
+  },
+  {
+   "id": "S430",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "넷플릭스에 볼 만한 거 있어?"
+  },
+  {
+   "id": "S431",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "주말에 등산 가자"
+  },
+  {
+   "id": "S432",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "수영장 자유 수영 시간 알려줘"
+  },
+  {
+   "id": "S433",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "놀이공원 입장료 얼마야?"
+  },
+  {
+   "id": "S434",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "여권 챙겼지?"
+  },
+  {
+   "id": "S435",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "환전은 공항에서 할까?"
+  },
+  {
+   "id": "S436",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "숙소 근처 맛집 찾아줘"
+  },
+  {
+   "id": "S437",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "사진 좀 찍어 주세요"
+  },
+  {
+   "id": "S438",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "캠핑장 예약 2박으로 했어"
+  },
+  {
+   "id": "S439",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "바다 보러 강릉 가자"
+  },
+  {
+   "id": "S440",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "콘서트 티켓 예매 성공했어"
+  },
+  {
+   "id": "S441",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "야구 경기 몇 시에 시작해?"
+  },
+  {
+   "id": "S442",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "책 읽다가 잠들었어"
+  },
+  {
+   "id": "S443",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "요즘 무슨 드라마 봐?"
+  },
+  {
+   "id": "S444",
+   "type": "read",
+   "category": "여가·여행",
+   "text": "자전거 타러 한강 가자"
+  },
+  {
+   "id": "S445",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "오늘 진짜 피곤하다"
+  },
+  {
+   "id": "S446",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "기분 좋은 일 있었어?"
+  },
+  {
+   "id": "S447",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "너무 고마워 덕분에 살았어"
+  },
+  {
+   "id": "S448",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "미안해 내가 깜빡했어"
+  },
+  {
+   "id": "S449",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "괜찮아 신경 쓰지 마"
+  },
+  {
+   "id": "S450",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "진짜? 대박이다"
+  },
+  {
+   "id": "S451",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "그건 좀 아닌 것 같아"
+  },
+  {
+   "id": "S452",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "나도 그렇게 생각해"
+  },
+  {
+   "id": "S453",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "걱정하지 마 잘될 거야"
+  },
+  {
+   "id": "S454",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "수고했어 오늘"
+  },
+  {
+   "id": "S455",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "배고파 죽겠어"
+  },
+  {
+   "id": "S456",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "심심한데 뭐 하지?"
+  },
+  {
+   "id": "S457",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "아 짜증 나 또 늦었어"
+  },
+  {
+   "id": "S458",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "축하해 정말 잘됐다"
+  },
+  {
+   "id": "S459",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "보고 싶었어"
+  },
+  {
+   "id": "S460",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "천천히 해도 돼"
+  },
+  {
+   "id": "S461",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "그래서 어떻게 됐어?"
+  },
+  {
+   "id": "S462",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "무슨 말인지 잘 모르겠어"
+  },
+  {
+   "id": "S463",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "잠깐만 생각 좀 해 볼게"
+  },
+  {
+   "id": "S464",
+   "type": "read",
+   "category": "감정·대화",
+   "text": "좋아 그렇게 하자"
+  },
+  {
+   "id": "S465",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "우리 집 주소는 서울시 마포구 월드컵로 15길 23이야"
+  },
+  {
+   "id": "S466",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "우편번호 04001 맞아?"
+  },
+  {
+   "id": "S467",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "101동 1203호로 배달해 주세요"
+  },
+  {
+   "id": "S468",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "비밀번호 4자리 다시 입력해줘"
+  },
+  {
+   "id": "S469",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "주문 번호 2024년 11월 15일 거 찾아줘"
+  },
+  {
+   "id": "S470",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "3층 엘리베이터 앞에서 만나"
+  },
+  {
+   "id": "S471",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "2시 15분에 출발하는 버스 탈게"
+  },
+  {
+   "id": "S472",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "1시간 30분 정도 걸릴 거야"
+  },
+  {
+   "id": "S473",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "총 4만 7천 5백 원 나왔어"
+  },
+  {
+   "id": "S474",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "할인해서 1만 9천 9백 원이래"
+  },
+  {
+   "id": "S475",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "몸무게 2킬로 빠졌어"
+  },
+  {
+   "id": "S476",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "키가 120센티 넘었어"
+  },
+  {
+   "id": "S477",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "물 500미리 한 병 주세요"
+  },
+  {
+   "id": "S478",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "3분의 1만 덜어줘"
+  },
+  {
+   "id": "S479",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "1등부터 3등까지 상품 있대"
+  },
+  {
+   "id": "S480",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "10월 9일은 한글날이야"
+  },
+  {
+   "id": "S481",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "2030년에 졸업해"
+  },
+  {
+   "id": "S482",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "조카가 올해 7살이야"
+  },
+  {
+   "id": "S483",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "결혼한 지 10년 됐어"
+  },
+  {
+   "id": "S484",
+   "type": "read",
+   "category": "숫자·주소·이름",
+   "text": "엄마 생신은 음력 8월 15일이야"
+  },
+  {
+   "id": "S485",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "음악 틀어줘"
+  },
+  {
+   "id": "S486",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "다음 곡으로 넘겨줘"
+  },
+  {
+   "id": "S487",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "볼륨 10으로 맞춰줘"
+  },
+  {
+   "id": "S488",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "알람 내일 아침 6시 반에 맞춰줘"
+  },
+  {
+   "id": "S489",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "알람 다 꺼줘"
+  },
+  {
+   "id": "S490",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "타이머 3분"
+  },
+  {
+   "id": "S491",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "스톱워치 시작해"
+  },
+  {
+   "id": "S492",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "오늘 일정 알려줘"
+  },
+  {
+   "id": "S493",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "메모해줘 우유 사기"
+  },
+  {
+   "id": "S494",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "메모 읽어줘"
+  },
+  {
+   "id": "S495",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "사진 찍어줘"
+  },
+  {
+   "id": "S496",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "화면 밝기 좀 올려줘"
+  },
+  {
+   "id": "S497",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "와이파이 연결해줘"
+  },
+  {
+   "id": "S498",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "블루투스 꺼줘"
+  },
+  {
+   "id": "S499",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "앱 업데이트해줘"
+  },
+  {
+   "id": "S500",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "라디오 켜줘"
+  },
+  {
+   "id": "S501",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "유튜브에서 동요 틀어줘"
+  },
+  {
+   "id": "S502",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "뉴스 들려줘"
+  },
+  {
+   "id": "S503",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "번역해줘 감사합니다를 영어로"
+  },
+  {
+   "id": "S504",
+   "type": "read",
+   "category": "기기·앱",
+   "text": "계산기 켜줘 125 곱하기 4"
+  },
+  {
+   "id": "S505",
+   "type": "read",
+   "category": "긴 말",
+   "text": "오늘 퇴근하고 마트 들러서 우유랑 계란 사 가지고 갈 테니까 저녁은 먼저 먹고 있어"
+  },
+  {
+   "id": "S506",
+   "type": "read",
+   "category": "긴 말",
+   "text": "내일 아침에 비 온다고 하니까 애들 우산 꼭 챙겨서 보내고 장화도 신겨 줘"
+  },
+  {
+   "id": "S507",
+   "type": "read",
+   "category": "긴 말",
+   "text": "이번 주 토요일에 친구들이랑 저녁 약속 있어서 조금 늦게 들어올 것 같아"
+  },
+  {
+   "id": "S508",
+   "type": "read",
+   "category": "긴 말",
+   "text": "병원에서 약을 일주일 치 받아 왔는데 하루 3번 밥 먹고 30분 뒤에 먹으래"
+  },
+  {
+   "id": "S509",
+   "type": "read",
+   "category": "긴 말",
+   "text": "엄마가 김치 보내 주신다고 했는데 택배가 오늘 오후에 도착할 거래"
+  },
+  {
+   "id": "S510",
+   "type": "read",
+   "category": "긴 말",
+   "text": "다음 달부터 아파트 관리비가 조금 오른다고 관리사무소에서 안내문 붙였더라"
+  },
+  {
+   "id": "S511",
+   "type": "read",
+   "category": "긴 말",
+   "text": "아이가 열이 나서 오늘 어린이집 안 보내고 집에서 데리고 있기로 했어"
+  },
+  {
+   "id": "S512",
+   "type": "read",
+   "category": "긴 말",
+   "text": "주말에 시간 되면 같이 대청소하고 안 입는 옷은 정리해서 기부하자"
+  },
+  {
+   "id": "S513",
+   "type": "read",
+   "category": "긴 말",
+   "text": "회사 근처에 새로 생긴 식당이 맛있다던데 다음에 같이 가 보자"
+  },
+  {
+   "id": "S514",
+   "type": "read",
+   "category": "긴 말",
+   "text": "지난번에 빌려준 책 다 읽었으면 이번 주 안에 돌려줄 수 있어?"
+  },
+  {
+   "id": "S515",
+   "type": "read",
+   "category": "긴 말",
+   "text": "차 엔진 오일 교체할 때가 됐다고 경고등이 들어왔어"
+  },
+  {
+   "id": "S516",
+   "type": "read",
+   "category": "긴 말",
+   "text": "이번 겨울에는 난방비 아끼려고 보일러 온도를 22도로 맞춰 놓을까 해"
+  },
+  {
+   "id": "S517",
+   "type": "read",
+   "category": "긴 말",
+   "text": "휴대폰 요금제 바꾸면 한 달에 만 원 정도 아낄 수 있대"
+  },
+  {
+   "id": "S518",
+   "type": "read",
+   "category": "긴 말",
+   "text": "내일 중요한 발표가 있어서 오늘은 일찍 자야 할 것 같아"
+  },
+  {
+   "id": "S519",
+   "type": "read",
+   "category": "긴 말",
+   "text": "시어머니가 이번 명절에는 간단하게 차리자고 하셨어"
+  },
+  {
+   "id": "S520",
+   "type": "read",
+   "category": "긴 말",
+   "text": "조카 결혼식 축의금은 얼마 정도 하면 될까?"
+  },
+  {
+   "id": "S521",
+   "type": "read",
+   "category": "긴 말",
+   "text": "아침에 늦잠 자서 지하철 놓치는 바람에 회사에 10분 늦었어"
+  },
+  {
+   "id": "S522",
+   "type": "read",
+   "category": "긴 말",
+   "text": "지난주에 주문한 소파가 배송이 2주 정도 늦어진다고 연락 왔어"
+  },
+  {
+   "id": "S523",
+   "type": "read",
+   "category": "긴 말",
+   "text": "아이 학교에서 다음 주에 현장 체험 간다고 김밥 싸 달래"
+  },
+  {
+   "id": "S524",
+   "type": "read",
+   "category": "긴 말",
+   "text": "감기 기운이 있어서 오늘은 운동 쉬고 따뜻한 차 마시고 일찍 쉴게"
+  },
+  {
+   "id": "S525",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "안녕하세요 예약 확인 좀 하려고 전화드렸어요"
+  },
+  {
+   "id": "S526",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "죄송한데 조금만 천천히 말씀해 주시겠어요?"
+  },
+  {
+   "id": "S527",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "담당자분 연결 부탁드립니다"
+  },
+  {
+   "id": "S528",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "주문을 취소하고 싶은데 어떻게 하면 될까요?"
+  },
+  {
+   "id": "S529",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "환불은 언제쯤 처리되나요?"
+  },
+  {
+   "id": "S530",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "배송지 주소를 변경하고 싶어요"
+  },
+  {
+   "id": "S531",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "고객센터 운영 시간이 어떻게 되나요?"
+  },
+  {
+   "id": "S532",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "불편을 드려서 죄송합니다"
+  },
+  {
+   "id": "S533",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "확인해 보고 다시 연락드리겠습니다"
+  },
+  {
+   "id": "S534",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "혹시 주차 가능한가요?"
+  },
+  {
+   "id": "S535",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "몇 시까지 영업하세요?"
+  },
+  {
+   "id": "S536",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "카드 결제 되나요?"
+  },
+  {
+   "id": "S537",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "다음 주 화요일로 예약 변경 가능할까요?"
+  },
+  {
+   "id": "S538",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "번호표 뽑고 기다려 주세요"
+  },
+  {
+   "id": "S539",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "서류는 팩스로 보내 드리면 될까요?"
+  },
+  {
+   "id": "S540",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "감사합니다 좋은 하루 보내세요"
+  },
+  {
+   "id": "S541",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "여기 와이파이 비밀번호가 뭐예요?"
+  },
+  {
+   "id": "S542",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "화장실이 어디에 있나요?"
+  },
+  {
+   "id": "S543",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "이 근처에 약국 있나요?"
+  },
+  {
+   "id": "S544",
+   "type": "read",
+   "category": "존댓말·민원",
+   "text": "사진 찍어도 되나요?"
+  },
+  {
+   "id": "S545",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "엄마 나 배고파"
+  },
+  {
+   "id": "S546",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "아빠 이거 같이 놀자"
+  },
+  {
+   "id": "S547",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "나 오늘 유치원에서 그림 그렸어"
+  },
+  {
+   "id": "S548",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "이거 무슨 뜻이야?"
+  },
+  {
+   "id": "S549",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "나도 그거 하고 싶어"
+  },
+  {
+   "id": "S550",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "공룡 나오는 만화 틀어줘"
+  },
+  {
+   "id": "S551",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "나 이제 졸려"
+  },
+  {
+   "id": "S552",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "사탕 하나만 더 먹으면 안 돼?"
+  },
+  {
+   "id": "S553",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "친구가 내 장난감 뺏어 갔어"
+  },
+  {
+   "id": "S554",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "오늘 놀이터 가도 돼?"
+  },
+  {
+   "id": "S555",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "엄마 나 화장실"
+  },
+  {
+   "id": "S556",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "내가 혼자 할 수 있어"
+  },
+  {
+   "id": "S557",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "이거 왜 안 돼?"
+  },
+  {
+   "id": "S558",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "할머니 집에 언제 가?"
+  },
+  {
+   "id": "S559",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "나 키 컸지?"
+  },
+  {
+   "id": "S560",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "양치 안 하면 안 돼?"
+  },
+  {
+   "id": "S561",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "책 읽어 줘"
+  },
+  {
+   "id": "S562",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "비행기 타고 싶어"
+  },
+  {
+   "id": "S563",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "강아지 만져 봐도 돼?"
+  },
+  {
+   "id": "S564",
+   "type": "read",
+   "category": "어린이 말",
+   "text": "나 오늘 칭찬 스티커 받았어"
+  },
+  {
+   "id": "S565",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "아이고 허리야"
+  },
+  {
+   "id": "S566",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "밥은 먹었니?"
+  },
+  {
+   "id": "S567",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "요새 무릎이 시원찮아"
+  },
+  {
+   "id": "S568",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "손주들 잘 크지?"
+  },
+  {
+   "id": "S569",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "그거 어떻게 하는 건지 다시 좀 알려 줘"
+  },
+  {
+   "id": "S570",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "글씨가 작아서 잘 안 보인다"
+  },
+  {
+   "id": "S571",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "약 먹을 시간 됐나?"
+  },
+  {
+   "id": "S572",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "경로당 다녀올게"
+  },
+  {
+   "id": "S573",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "텔레비전 소리 좀 키워 봐라"
+  },
+  {
+   "id": "S574",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "감기 조심하고 따뜻하게 입고 다녀라"
+  },
+  {
+   "id": "S575",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "노인 일자리 신청하러 가야 해"
+  },
+  {
+   "id": "S576",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "병원 차 몇 시에 온다고 했지?"
+  },
+  {
+   "id": "S577",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "옛날에는 이런 거 없었는데"
+  },
+  {
+   "id": "S578",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "명절에 다들 내려오냐?"
+  },
+  {
+   "id": "S579",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "김장 언제 하냐"
+  },
+  {
+   "id": "S580",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "보청기 배터리 다 됐다"
+  },
+  {
+   "id": "S581",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "버스 카드 충전해야 하는데"
+  },
+  {
+   "id": "S582",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "날이 추우니까 보일러 좀 틀어라"
+  },
+  {
+   "id": "S583",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "전화 소리가 작아서 못 들었다"
+  },
+  {
+   "id": "S584",
+   "type": "read",
+   "category": "어르신 말",
+   "text": "천천히 다시 말해 봐"
+  },
+  {
+   "id": "S585",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "오늘 헬스장 가는 날이야"
+  },
+  {
+   "id": "S586",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "러닝 5킬로 뛰었어"
+  },
+  {
+   "id": "S587",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "요가 수업 저녁 7시에 있어"
+  },
+  {
+   "id": "S588",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "골프 연습장 예약해줘"
+  },
+  {
+   "id": "S589",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "테니스 레슨 몇 시였지?"
+  },
+  {
+   "id": "S590",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "자전거 타이어 바람 빠졌어"
+  },
+  {
+   "id": "S591",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "수영 강습 등록했어"
+  },
+  {
+   "id": "S592",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "등산화 새로 샀어"
+  },
+  {
+   "id": "S593",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "기타 연습 30분 했어"
+  },
+  {
+   "id": "S594",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "피아노 학원 다시 다녀 볼까?"
+  },
+  {
+   "id": "S595",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "뜨개질로 목도리 만들고 있어"
+  },
+  {
+   "id": "S596",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "낚시하러 새벽에 출발할 거야"
+  },
+  {
+   "id": "S597",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "축구 경기 결과 어떻게 됐어?"
+  },
+  {
+   "id": "S598",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "배드민턴 치러 갈 사람?"
+  },
+  {
+   "id": "S599",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "홈트 영상 틀어줘"
+  },
+  {
+   "id": "S600",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "스쿼트 100개 했어"
+  },
+  {
+   "id": "S601",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "그림 그리기 수업 신청했어"
+  },
+  {
+   "id": "S602",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "사진 동호회 모임이 이번 주야"
+  },
+  {
+   "id": "S603",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "퍼즐 1000조각 다 맞췄어"
+  },
+  {
+   "id": "S604",
+   "type": "read",
+   "category": "운동·취미",
+   "text": "캘리그라피 배우고 싶어"
+  },
+  {
+   "id": "S605",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "고양이 밥 줬어?"
+  },
+  {
+   "id": "S606",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "어항 물 갈아야 돼"
+  },
+  {
+   "id": "S607",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "강아지 털이 많이 빠져"
+  },
+  {
+   "id": "S608",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "베란다에 상추 심었어"
+  },
+  {
+   "id": "S609",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "화분에 꽃 폈어"
+  },
+  {
+   "id": "S610",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "새들이 아침마다 시끄럽게 울어"
+  },
+  {
+   "id": "S611",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "모기 물렸어 약 좀 줘"
+  },
+  {
+   "id": "S612",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "거미 나왔어 잡아 줘"
+  },
+  {
+   "id": "S613",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "산책하다가 다람쥐 봤어"
+  },
+  {
+   "id": "S614",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "바다에서 돌고래 봤대"
+  },
+  {
+   "id": "S615",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "햄스터 케이지 청소해야 돼"
+  },
+  {
+   "id": "S616",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "고양이 모래 주문해줘"
+  },
+  {
+   "id": "S617",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "강아지 예방접종 수첩 어디 뒀어?"
+  },
+  {
+   "id": "S618",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "나비가 집 안에 들어왔어"
+  },
+  {
+   "id": "S619",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "선인장은 물 얼마나 자주 줘?"
+  },
+  {
+   "id": "S620",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "텃밭에 방울토마토 열렸어"
+  },
+  {
+   "id": "S621",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "개미가 부엌에 줄 서 있어"
+  },
+  {
+   "id": "S622",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "새끼 고양이 분양받기로 했어"
+  },
+  {
+   "id": "S623",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "낙엽 쓸어야겠다"
+  },
+  {
+   "id": "S624",
+   "type": "read",
+   "category": "동물·자연",
+   "text": "봄이라 꽃가루 알레르기가 심해"
+  },
+  {
+   "id": "S625",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "오늘 주요 뉴스 알려줘"
+  },
+  {
+   "id": "S626",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "기름값이 또 올랐대"
+  },
+  {
+   "id": "S627",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "선거 언제야?"
+  },
+  {
+   "id": "S628",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "투표소 어디야?"
+  },
+  {
+   "id": "S629",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "지하철 요금 인상된대"
+  },
+  {
+   "id": "S630",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "아파트 값 많이 떨어졌대"
+  },
+  {
+   "id": "S631",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "버스 파업한다는데 내일 운행해?"
+  },
+  {
+   "id": "S632",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "고속도로 사고 났대"
+  },
+  {
+   "id": "S633",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "코로나 다시 유행한대"
+  },
+  {
+   "id": "S634",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "물가가 너무 올라서 장보기 무섭다"
+  },
+  {
+   "id": "S635",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "최저 임금이 얼마로 올랐어?"
+  },
+  {
+   "id": "S636",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "연금 개혁 얘기 나오더라"
+  },
+  {
+   "id": "S637",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "오늘 지진 났다는 거 들었어?"
+  },
+  {
+   "id": "S638",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "이번 주 로또 당첨 번호 뭐야?"
+  },
+  {
+   "id": "S639",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "대통령 담화 몇 시에 한대?"
+  },
+  {
+   "id": "S640",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "전기 요금 누진제 바뀐대"
+  },
+  {
+   "id": "S641",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "공휴일이 하루 더 생긴대"
+  },
+  {
+   "id": "S642",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "분리배출 규정 바뀌었대"
+  },
+  {
+   "id": "S643",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "청년 지원금 신청 기간 언제까지야?"
+  },
+  {
+   "id": "S644",
+   "type": "read",
+   "category": "뉴스·사회",
+   "text": "재난 문자 왔어"
+  },
+  {
+   "id": "S645",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "스타벅스에서 만나자"
+  },
+  {
+   "id": "S646",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "넷플릭스 계정 공유해줘"
+  },
+  {
+   "id": "S647",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "아이폰 업데이트했어?"
+  },
+  {
+   "id": "S648",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "갤럭시 충전기 빌려줄 수 있어?"
+  },
+  {
+   "id": "S649",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "쿠팡에서 주문하면 내일 와?"
+  },
+  {
+   "id": "S650",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "배민으로 시킬까 요기요로 시킬까?"
+  },
+  {
+   "id": "S651",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "카카오택시 불러줘"
+  },
+  {
+   "id": "S652",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "네이버 지도에서 찾아봐"
+  },
+  {
+   "id": "S653",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "유튜브 프리미엄 가족 요금제로 바꾸자"
+  },
+  {
+   "id": "S654",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "에어팟 한쪽 잃어버렸어"
+  },
+  {
+   "id": "S655",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "다이소 가서 수납함 사 오자"
+  },
+  {
+   "id": "S656",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "이케아 가구 조립하는 데 3시간 걸렸어"
+  },
+  {
+   "id": "S657",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "코스트코 회원권 갱신해야 돼"
+  },
+  {
+   "id": "S658",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "맥도날드 드라이브스루 들르자"
+  },
+  {
+   "id": "S659",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "올리브영에서 선크림 샀어"
+  },
+  {
+   "id": "S660",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "줌 회의 링크 보내줘"
+  },
+  {
+   "id": "S661",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "구글 캘린더에 일정 넣어줘"
+  },
+  {
+   "id": "S662",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "인스타에 사진 올렸어"
+  },
+  {
+   "id": "S663",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "티맵으로 길 안내해줘"
+  },
+  {
+   "id": "S664",
+   "type": "read",
+   "category": "외래어·브랜드",
+   "text": "애플워치 배터리가 금방 닳아"
+  },
+  {
+   "id": "S665",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "전세 재계약 날짜 언제야?"
+  },
+  {
+   "id": "S666",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "집주인한테 연락 왔어"
+  },
+  {
+   "id": "S667",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "이사 업체 견적 3군데 받아 보자"
+  },
+  {
+   "id": "S668",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "포장 이사로 할까 반포장으로 할까?"
+  },
+  {
+   "id": "S669",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "새 집 도배는 언제 해?"
+  },
+  {
+   "id": "S670",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "전입 신고 했어?"
+  },
+  {
+   "id": "S671",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "관리비 정산은 이사 나가는 날 하면 돼"
+  },
+  {
+   "id": "S672",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "부동산에 집 보러 간다고 연락해줘"
+  },
+  {
+   "id": "S673",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "보증금 언제 돌려받아?"
+  },
+  {
+   "id": "S674",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "에어컨 이전 설치 신청했어"
+  },
+  {
+   "id": "S675",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "인터넷 이전 신청해야 돼"
+  },
+  {
+   "id": "S676",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "도시가스 해지하고 새 집에서 개통해야 해"
+  },
+  {
+   "id": "S677",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "짐 정리는 주말에 하자"
+  },
+  {
+   "id": "S678",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "가구 배치 어떻게 할까?"
+  },
+  {
+   "id": "S679",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "옆집에 이사 떡 돌리자"
+  },
+  {
+   "id": "S680",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "대출 서류 은행에 냈어"
+  },
+  {
+   "id": "S681",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "등기부 등본 확인해 봤어?"
+  },
+  {
+   "id": "S682",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "월세 계약 2년으로 했어"
+  },
+  {
+   "id": "S683",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "이삿날 비 오면 어떡하지?"
+  },
+  {
+   "id": "S684",
+   "type": "read",
+   "category": "부동산·이사",
+   "text": "새 집 열쇠 받았어"
+  },
+  {
+   "id": "S685",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "수도요금 냈어?"
+  },
+  {
+   "id": "S686",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "수도요금 처리 다 됐어?"
+  },
+  {
+   "id": "S687",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "보험료 이번 달 거 냈지?"
+  },
+  {
+   "id": "S688",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "보험료 자동이체 다 됐어?"
+  },
+  {
+   "id": "S689",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "학원비 아직 안 냈어?"
+  },
+  {
+   "id": "S690",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "학원비 결제 됐어?"
+  },
+  {
+   "id": "S691",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "통신비 누가 냈어?"
+  },
+  {
+   "id": "S692",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "통신비 정리 다 됐대?"
+  },
+  {
+   "id": "S693",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "세금 냈다고 적어줘"
+  },
+  {
+   "id": "S694",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "세금 신고 다 됐다고 적어줘"
+  },
+  {
+   "id": "S695",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "오늘 저녁 메뉴 뭐야?"
+  },
+  {
+   "id": "S696",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "냉장고에 뭐 있어?"
+  },
+  {
+   "id": "S697",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "내일 날씨 보여줘"
+  },
+  {
+   "id": "S698",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "이번 달 지출 내역 보여줘"
+  },
+  {
+   "id": "S699",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "아이 생일이 언제야?"
+  },
+  {
+   "id": "S700",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "결혼기념일이 언제예요?"
+  },
+  {
+   "id": "S701",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "엄마 수술 날짜 언제야?"
+  },
+  {
+   "id": "S702",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "다음 회의 언제예요?"
+  },
+  {
+   "id": "S703",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "설거지 오늘 누구 차례야?"
+  },
+  {
+   "id": "S704",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "쓰레기 버리는 거 누구 차례예요?"
+  },
+  {
+   "id": "S705",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "소윤이 숙제 다 했어?"
+  },
+  {
+   "id": "S706",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "소윤이 일기 다 썼대?"
+  },
+  {
+   "id": "S707",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "남편이 장 봤대?"
+  },
+  {
+   "id": "S708",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "아내가 은행 다녀왔대?"
+  },
+  {
+   "id": "S709",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "우리 저녁 뭐 먹을까?"
+  },
+  {
+   "id": "S710",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "주말에 어디 갈까?"
+  },
+  {
+   "id": "S711",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "택배 오면 문 앞에 놔 달라고 해줘"
+  },
+  {
+   "id": "S712",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "남편한테 일찍 오라고 말해줘"
+  },
+  {
+   "id": "S713",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "아내한테 전화 좀 하라고 해줘"
+  },
+  {
+   "id": "S714",
+   "type": "read",
+   "category": "헷갈리는 끝말",
+   "text": "엄마한테 내일 들른다고 말해줘"
+  },
+  {
+   "id": "S715",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "아내가 오늘 늦게 온대"
+  },
+  {
+   "id": "S716",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "오늘은 아내가 소윤이 데리러 간대"
+  },
+  {
+   "id": "S717",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "이 일은 아내한테 맡길게"
+  },
+  {
+   "id": "S718",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "아내한테 생일 선물 뭐 줄지 고민이야"
+  },
+  {
+   "id": "S719",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "남편이 콩이 밥 줬어"
+  },
+  {
+   "id": "S720",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "우산 챙기라고 남편한테 말해줘"
+  },
+  {
+   "id": "S721",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "남편이 산 우유 어디 있어?"
+  },
+  {
+   "id": "S722",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "시어머니가 다음 주에 오신대"
+  },
+  {
+   "id": "S723",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "이번 주말에 시어머니 댁에 가"
+  },
+  {
+   "id": "S724",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "친정엄마 생신이 다음 달이지?"
+  },
+  {
+   "id": "S725",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "친정엄마한테 반찬 받아 왔어"
+  },
+  {
+   "id": "S726",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "소윤이 오늘 학교에서 상 받았대"
+  },
+  {
+   "id": "S727",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "내일 소윤이 생일 파티 있어"
+  },
+  {
+   "id": "S728",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "우리 소윤이 감기 걸렸어"
+  },
+  {
+   "id": "S729",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "콩이 오늘 산책 했어?"
+  },
+  {
+   "id": "S730",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "콩이 사료 거의 다 먹었어"
+  },
+  {
+   "id": "S731",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "병원에서 콩이 체중 쟀대"
+  },
+  {
+   "id": "S732",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "부르펜 시럽 아직 남았어?"
+  },
+  {
+   "id": "S733",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "열 나면 부르펜 먹이라고 했어"
+  },
+  {
+   "id": "S734",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "해열제 먹이고 1시간 지났어"
+  },
+  {
+   "id": "S735",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "해열제는 몇 시간 간격으로 먹여?"
+  },
+  {
+   "id": "S736",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "심장사상충 약 이번 달 거 먹였어"
+  },
+  {
+   "id": "S737",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "콩이 심장사상충 검사 받아야 돼"
+  },
+  {
+   "id": "S738",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "할머니 혈압약 새로 받아 왔어"
+  },
+  {
+   "id": "S739",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "혈압약 먹는 거 잊지 말라고 알려줘"
+  },
+  {
+   "id": "S740",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "독감 예방접종 예약해줘"
+  },
+  {
+   "id": "S741",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "예방접종 맞은 날 적어줘"
+  },
+  {
+   "id": "S742",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "생활비 통장에 돈 좀 넣어야겠다"
+  },
+  {
+   "id": "S743",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "이번 달 생활비 너무 많이 썼어"
+  },
+  {
+   "id": "S744",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "관리비 고지서 왔어"
+  },
+  {
+   "id": "S745",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "관리비가 지난달보다 올랐어"
+  },
+  {
+   "id": "S746",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "가스비 고지서 사진 찍어 뒀어"
+  },
+  {
+   "id": "S747",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "기저귀 큰 사이즈로 바꿔야 해"
+  },
+  {
+   "id": "S748",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "기저귀 2팩 주문해줘"
+  },
+  {
+   "id": "S749",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "분리수거 하는 날이 언제야?"
+  },
+  {
+   "id": "S750",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "오늘 분리수거는 내가 할게"
+  },
+  {
+   "id": "S751",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "적금 만기 되면 알려줘"
+  },
+  {
+   "id": "S752",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "여권 만기 확인해줘"
+  },
+  {
+   "id": "S753",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "하원 시간 4시로 바뀌었대"
+  },
+  {
+   "id": "S754",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "내일 등원은 남편이 시켜"
+  },
+  {
+   "id": "S755",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "등원 버스 몇 시에 와?"
+  },
+  {
+   "id": "S756",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "현장학습 동의서 사인해서 보냈어"
+  },
+  {
+   "id": "S757",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "현장학습 가는 날 도시락 싸야 돼"
+  },
+  {
+   "id": "S758",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "준비물로 색종이 사야 돼"
+  },
+  {
+   "id": "S759",
+   "type": "read",
+   "category": "가족 낱말",
+   "text": "준비물 챙겼는지 확인해줘"
+  },
+  {
+   "id": "S760",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "아직 안 먹였어"
+  },
+  {
+   "id": "S761",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "약 안 먹었대"
+  },
+  {
+   "id": "S762",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "그거 아직 못 샀어"
+  },
+  {
+   "id": "S763",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "오늘은 못 가"
+  },
+  {
+   "id": "S764",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "안 냈으니까 내일 내야 돼"
+  },
+  {
+   "id": "S765",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "보낸 게 아니라 받은 거야"
+  },
+  {
+   "id": "S766",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "산 게 아니라 주문만 했어"
+  },
+  {
+   "id": "S767",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "끝난 게 아니고 아직 하는 중이야"
+  },
+  {
+   "id": "S768",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "아니 2시 말고 3시"
+  },
+  {
+   "id": "S769",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "10분 전이 아니라 20분 전에 먹였어"
+  },
+  {
+   "id": "S770",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "내 거 말고 소윤이 거"
+  },
+  {
+   "id": "S771",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "지난주 말고 이번 주 거"
+  },
+  {
+   "id": "S772",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "뭐라고? 다시 한 번만"
+  },
+  {
+   "id": "S773",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "방금 뭐라고 했어?"
+  },
+  {
+   "id": "S774",
+   "type": "read",
+   "category": "부정·되묻기",
+   "text": "그거 맞는 거야?"
+  },
+  {
+   "id": "S775",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "네"
+  },
+  {
+   "id": "S776",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "아니요"
+  },
+  {
+   "id": "S777",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "맞아"
+  },
+  {
+   "id": "S778",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "틀렸어"
+  },
+  {
+   "id": "S779",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "좋아"
+  },
+  {
+   "id": "S780",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "싫어"
+  },
+  {
+   "id": "S781",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "멈춰"
+  },
+  {
+   "id": "S782",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "잠깐 기다려"
+  },
+  {
+   "id": "S783",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "계속해"
+  },
+  {
+   "id": "S784",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "취소"
+  },
+  {
+   "id": "S785",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "됐어 그만해"
+  },
+  {
+   "id": "S786",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "나중에"
+  },
+  {
+   "id": "S787",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "지금"
+  },
+  {
+   "id": "S788",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "몰라"
+  },
+  {
+   "id": "S789",
+   "type": "short",
+   "category": "짧은 대답",
+   "text": "괜찮아"
+  },
+  {
+   "id": "P001",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "이번 주말에 가족끼리 무슨 약속이 있는지 비서에게 물어보세요."
+  },
+  {
+   "id": "P002",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "다음 주 수요일 저녁 7시에 가족 외식을 넣어 달라고 하세요."
+  },
+  {
+   "id": "P003",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "내일 오전에 비어 있는 시간이 있는지 물어보세요."
+  },
+  {
+   "id": "P004",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "금요일 치과 예약을 다음 주로 미뤄 달라고 하세요."
+  },
+  {
+   "id": "P005",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "오늘 남은 일정을 읽어 달라고 하세요."
+  },
+  {
+   "id": "P006",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "이번 달에 잡힌 가족 행사를 모두 알려 달라고 하세요."
+  },
+  {
+   "id": "P007",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "방금 넣은 일정을 취소해 달라고 하세요."
+  },
+  {
+   "id": "P008",
+   "type": "situation",
+   "category": "일정",
+   "prompt": "아버지 병원 가는 날을 확인해 보세요."
+  },
+  {
+   "id": "P009",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이 친구 생일 선물을 사야 한다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P010",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이 방과후 수업이 끝나는 시간을 물어보세요."
+  },
+  {
+   "id": "P011",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이가 오늘 학원에 가는 날인지 물어보세요."
+  },
+  {
+   "id": "P012",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "내일 아이 준비물이 뭔지 물어보세요."
+  },
+  {
+   "id": "P013",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이 하원을 오늘은 배우자가 맡는다고 알려 주세요."
+  },
+  {
+   "id": "P014",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이 담임 선생님 상담 날짜를 적어 달라고 하세요."
+  },
+  {
+   "id": "P015",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이가 숙제를 다 했는지 확인해 달라고 하세요."
+  },
+  {
+   "id": "P016",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "현장학습 동의서를 냈는지 물어보세요."
+  },
+  {
+   "id": "P017",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이 등원 시간이 바뀌었다고 알려 주세요."
+  },
+  {
+   "id": "P018",
+   "type": "situation",
+   "category": "아이",
+   "prompt": "아이가 아파서 오늘 어린이집에 안 간다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P019",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "아이가 기침을 해서 병원에 가야 할지 메모해 달라고 하세요."
+  },
+  {
+   "id": "P020",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "약국에서 받아 온 약 이름을 말하고 적어 달라고 하세요."
+  },
+  {
+   "id": "P021",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "아이에게 해열제를 조금 전에 먹였다고 알려 주세요."
+  },
+  {
+   "id": "P022",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "해열제를 먹인 시간을 잘못 말해서 고쳐 달라고 하세요."
+  },
+  {
+   "id": "P023",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "다음 약을 언제 먹이면 되는지 물어보세요."
+  },
+  {
+   "id": "P024",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "부모님 혈압약이 떨어졌다고 말하고 다음 진료일을 물어보세요."
+  },
+  {
+   "id": "P025",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "독감 예방접종 예약을 잡아 달라고 하세요."
+  },
+  {
+   "id": "P026",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "반려견 심장사상충 약을 먹였다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P027",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "반려견 예방접종이 언제인지 물어보세요."
+  },
+  {
+   "id": "P028",
+   "type": "situation",
+   "category": "약·병원",
+   "prompt": "약을 먹였는지 안 먹였는지 헷갈린다고 확인해 달라고 하세요."
+  },
+  {
+   "id": "P029",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "저녁 반찬거리로 살 것을 두세 가지 말해서 목록에 넣어 달라고 하세요."
+  },
+  {
+   "id": "P030",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "배우자가 장 보러 갔는지 물어보세요."
+  },
+  {
+   "id": "P031",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "장 볼 목록에 무엇이 남았는지 물어보세요."
+  },
+  {
+   "id": "P032",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "우유와 기저귀를 장 볼 목록에 넣어 달라고 하세요."
+  },
+  {
+   "id": "P033",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "배우자가 기저귀를 이미 샀다고 알려 주세요."
+  },
+  {
+   "id": "P034",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "장 볼 목록에서 계란을 빼 달라고 하세요."
+  },
+  {
+   "id": "P035",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "마트에서 쓴 돈을 금액과 함께 적어 달라고 하세요."
+  },
+  {
+   "id": "P036",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "떨어진 생필품이 뭐가 있는지 물어보세요."
+  },
+  {
+   "id": "P037",
+   "type": "situation",
+   "category": "장보기",
+   "prompt": "휴지를 두 묶음 사야 한다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P038",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "이번 달 학원비를 냈다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P039",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "지난달보다 관리비가 올랐는지 물어보세요."
+  },
+  {
+   "id": "P040",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "이번 달 관리비를 냈는지 물어보세요."
+  },
+  {
+   "id": "P041",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "가스비가 얼마 나왔는지 물어보세요."
+  },
+  {
+   "id": "P042",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "배우자가 가스비를 냈다고 알려 주세요."
+  },
+  {
+   "id": "P043",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "이번 달 생활비가 얼마 남았는지 물어보세요."
+  },
+  {
+   "id": "P044",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "아직 안 낸 공과금이 있는지 물어보세요."
+  },
+  {
+   "id": "P045",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "친정이나 시댁에 용돈을 보냈는지 물어보세요."
+  },
+  {
+   "id": "P046",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "구독 서비스 결제일이 언제인지 물어보세요."
+  },
+  {
+   "id": "P047",
+   "type": "situation",
+   "category": "돈·공과금",
+   "prompt": "보험이나 적금 만기가 다가오는 게 있는지 물어보세요."
+  },
+  {
+   "id": "P048",
+   "type": "situation",
+   "category": "집안일",
+   "prompt": "이번 주 분리수거가 누구 차례인지 물어보세요."
+  },
+  {
+   "id": "P049",
+   "type": "situation",
+   "category": "집안일",
+   "prompt": "빨래를 배우자가 했다고 체크해 달라고 하세요."
+  },
+  {
+   "id": "P050",
+   "type": "situation",
+   "category": "집안일",
+   "prompt": "오늘 설거지는 내가 하겠다고 적어 달라고 하세요."
+  },
+  {
+   "id": "P051",
+   "type": "situation",
+   "category": "집안일",
+   "prompt": "집안일 중에 아직 안 한 게 뭔지 물어보세요."
+  },
+  {
+   "id": "P052",
+   "type": "situation",
+   "category": "집안일",
+   "prompt": "청소 당번을 이번 주만 바꿔 달라고 하세요."
+  },
+  {
+   "id": "P053",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "부모님께 반찬 가지러 간다고 전해 달라고 하세요."
+  },
+  {
+   "id": "P054",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "배우자에게 오늘 늦는다고 대신 알려 달라고 하세요."
+  },
+  {
+   "id": "P055",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "배우자에게 퇴근길에 약국에 들러 달라고 부탁을 보내세요."
+  },
+  {
+   "id": "P056",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "배우자에게 온 부탁이 있는지 물어보세요."
+  },
+  {
+   "id": "P057",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "나에게 온 부탁이 뭔지 물어보세요."
+  },
+  {
+   "id": "P058",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "배우자가 부탁한 일을 다 했다고 알려 주세요."
+  },
+  {
+   "id": "P059",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "배우자에게 아이 우산을 챙겨 달라고 전해 달라고 하세요."
+  },
+  {
+   "id": "P060",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "보낸 부탁을 취소해 달라고 하세요."
+  },
+  {
+   "id": "P061",
+   "type": "situation",
+   "category": "부탁",
+   "prompt": "아이에게 숙제하라고 전해 달라고 하세요."
+  },
+  {
+   "id": "P062",
+   "type": "situation",
+   "category": "가족 행사",
+   "prompt": "시어머니 생신 선물을 뭘로 하기로 했는지 물어보세요."
+  },
+  {
+   "id": "P063",
+   "type": "situation",
+   "category": "가족 행사",
+   "prompt": "친정 부모님 결혼기념일이 언제인지 물어보세요."
+  },
+  {
+   "id": "P064",
+   "type": "situation",
+   "category": "가족 행사",
+   "prompt": "이번 명절에 어디에 먼저 가기로 했는지 물어보세요."
+  },
+  {
+   "id": "P065",
+   "type": "situation",
+   "category": "가족 행사",
+   "prompt": "가족 모임 장소를 정했다고 알려 주세요."
+  },
+  {
+   "id": "P066",
+   "type": "situation",
+   "category": "가족 행사",
+   "prompt": "아이 생일 파티 준비할 것을 정리해 달라고 하세요."
+  },
+  {
+   "id": "P067",
+   "type": "situation",
+   "category": "서류·만료",
+   "prompt": "자동차 보험이 언제 끝나는지 물어보세요."
+  },
+  {
+   "id": "P068",
+   "type": "situation",
+   "category": "서류·만료",
+   "prompt": "여권 만료일을 확인해 달라고 하세요."
+  },
+  {
+   "id": "P069",
+   "type": "situation",
+   "category": "서류·만료",
+   "prompt": "자동차 정기검사 날짜를 물어보세요."
+  },
+  {
+   "id": "P070",
+   "type": "situation",
+   "category": "서류·만료",
+   "prompt": "운전면허 갱신해야 하는지 물어보세요."
+  },
+  {
+   "id": "P071",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "오늘 쓴 돈을 금액까지 말해서 적어 달라고 하세요."
+  },
+  {
+   "id": "P072",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "약을 먹인 시각을 몇 시 몇 분까지 말해서 알려 주세요."
+  },
+  {
+   "id": "P073",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "다음 달 며칠에 약속이 있는지 날짜를 넣어 말해 보세요."
+  },
+  {
+   "id": "P074",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "택배 받을 주소를 동·호수까지 말해 보세요."
+  },
+  {
+   "id": "P075",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "아이 체온을 소수점까지 말해서 적어 달라고 하세요."
+  },
+  {
+   "id": "P076",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "전화번호 하나를 불러 주고 저장해 달라고 하세요."
+  },
+  {
+   "id": "P077",
+   "type": "situation",
+   "category": "숫자 말하기",
+   "prompt": "물건 개수를 바꿔 달라고 하세요(예: 두 개를 세 개로)."
+  },
+  {
+   "id": "P078",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "비서가 금액을 잘못 적었다고 바른 금액으로 고쳐 주세요."
+  },
+  {
+   "id": "P079",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "부탁 받을 사람을 잘못 말했다고 바꿔 달라고 하세요."
+  },
+  {
+   "id": "P080",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "방금 비서가 잘못 알아들은 날짜를 고쳐 주세요."
+  },
+  {
+   "id": "P081",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "사람 이름을 잘못 알아들었다고 바로잡아 주세요."
+  },
+  {
+   "id": "P082",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "냈다는 게 아니라 안 냈다는 뜻이었다고 고쳐 주세요."
+  },
+  {
+   "id": "P083",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "시간을 착각했다고 다시 말해 주세요."
+  },
+  {
+   "id": "P084",
+   "type": "situation",
+   "category": "고쳐 말하기",
+   "prompt": "방금 한 말을 취소하고 다시 말하겠다고 하세요."
+  },
+  {
+   "id": "P085",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서가 되물으면 맞다고 짧게 대답하세요."
+  },
+  {
+   "id": "P086",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서가 되물으면 아니라고 짧게 대답하세요."
+  },
+  {
+   "id": "P087",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서가 말하는 중에 멈춰 달라고 끼어드세요."
+  },
+  {
+   "id": "P088",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서에게 다시 한 번 말해 달라고 하세요."
+  },
+  {
+   "id": "P089",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서에게 고맙다고 말하세요."
+  },
+  {
+   "id": "P090",
+   "type": "situation",
+   "category": "짧은 대답",
+   "prompt": "비서에게 천천히 말해 달라고 하세요."
+  },
+  {
+   "id": "P091",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "오늘 날씨에 맞는 아이 옷차림을 물어보세요."
+  },
+  {
+   "id": "P092",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "이번 주에 꼭 해야 할 일 세 가지를 정리해 달라고 하세요."
+  },
+  {
+   "id": "P093",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "오늘 하루 있었던 일을 비서에게 한두 문장으로 말해 보세요."
+  },
+  {
+   "id": "P094",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "이번 주말에 하고 싶은 일을 비서에게 말해 보세요."
+  },
+  {
+   "id": "P095",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "아이에 대해 걱정되는 점을 비서에게 말해 보세요."
+  },
+  {
+   "id": "P096",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "비서에게 오늘 저녁 메뉴를 추천해 달라고 해 보세요."
+  },
+  {
+   "id": "P097",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "피곤하다고 말하고 내일 아침 일정을 물어보세요."
+  },
+  {
+   "id": "P098",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "반려견 산책을 누가 했는지 물어보세요."
+  },
+  {
+   "id": "P099",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "가족 단체 대화방에 남길 말을 불러 주세요."
+  },
+  {
+   "id": "P100",
+   "type": "situation",
+   "category": "자유 대화",
+   "prompt": "부모님께 안부 전화 드릴 날을 정해 달라고 하세요."
+  }
+ ]
+}

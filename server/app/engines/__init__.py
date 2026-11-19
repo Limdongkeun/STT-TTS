@@ -3,7 +3,7 @@
 from app.engines.base import SttEngine, SttResult, TtsEngine, TtsResult
 
 from app.settings import (
-    ELEVENLABS_TTS_ENGINES, LFM3_STT_ENGINE, LFM3_TTS_ENGINES, QWEN_KO_STT_ENGINE, TTS_107_ENGINES, Settings,
+    ELEVENLABS_TTS_ENGINES, GOOGLE_STT_ENGINE, GOOGLE_TTS_ENGINES, LFM3_STT_ENGINE, SUPERTONIC_TTS_ENGINES, LFM3_TTS_ENGINES, QWEN_KO_STT_ENGINE, TTS_107_ENGINES, Settings,
 )
 
 
@@ -18,6 +18,10 @@ def create_stt_engine(settings: Settings) -> SttEngine:
         from app.engines.lfm3 import Lfm3SttEngine
 
         return Lfm3SttEngine(_lfm3_runtime(settings), settings.speech_language)
+    if settings.stt_engine == GOOGLE_STT_ENGINE:
+        from app.engines.google_stt import GoogleSttEngine, load_hints
+
+        return GoogleSttEngine(settings.stt_engine, hints=load_hints())
     if settings.stt_engine == QWEN_KO_STT_ENGINE:
         from app.engines.qwen3_asr import Qwen3AsrEngine
 
@@ -47,6 +51,14 @@ def create_tts_engine(settings: Settings) -> TtsEngine:
         from app.engines.elevenlabs import ElevenLabsTtsEngine
 
         return ElevenLabsTtsEngine(settings.tts_engine)
+    if settings.tts_engine in GOOGLE_TTS_ENGINES:
+        from app.engines.google_tts import GoogleTtsEngine
+
+        return GoogleTtsEngine(settings.tts_engine)
+    if settings.tts_engine in SUPERTONIC_TTS_ENGINES:
+        from app.engines.supertonic import SupertonicTtsEngine
+
+        return SupertonicTtsEngine(settings.tts_engine)
     if settings.tts_engine in LFM3_TTS_ENGINES:
         from app.engines.lfm3 import Lfm3TtsEngine
 

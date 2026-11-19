@@ -27,13 +27,16 @@ from app.audio import AudioConversionError, normalize_suffix, to_wav16k
 from app.engines.prerecorded import RecordingUnavailableError, VOICE_LABEL
 from app.engines import create_stt_engine, create_tts_engine
 from app.engines.elevenlabs import ElevenLabsError
+from app.engines.google_stt import GoogleSttError
+from app.engines.google_tts import GoogleTtsError
+from app.engines.supertonic import SupertonicError
 from app.engines.lfm3 import Lfm3Error
 from app.engines.qwen3_tts_107 import Tts107Error
 from app.family_demo import DEMO_NOW, FamilyDemoAnswerProvider, FamilyDemoContext, compact_question
 from app.normalize import normalize_for_speech
 from app.reading_samples import DEFAULT_READING_DIR, ReadingResults, load_reading_samples, save_reading_results
 from app.settings import (
-    ELEVENLABS_TTS_ENGINES, LFM3_STT_ENGINE, LFM3_TTS_ENGINES, QWEN_KO_HF_ID, QWEN_KO_STT_ENGINE, TTS_107_ENGINES,
+    ELEVENLABS_TTS_ENGINES, GOOGLE_STT_ENGINE, GOOGLE_TTS_ENGINES, LFM3_STT_ENGINE, SUPERTONIC_TTS_ENGINES, LFM3_TTS_ENGINES, QWEN_KO_HF_ID, QWEN_KO_STT_ENGINE, TTS_107_ENGINES,
     Settings, load_settings, stt_choices, tts_choices,
 )
 from app.silence_trim import tail_for, trim_silence
@@ -157,7 +160,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def stt_record_label(name: str) -> str:
         """저장본·시험표에 적는 서버 STT 이름(앱 sttLabelFor 와 같은 글)."""
-        if name == LFM3_STT_ENGINE:
+        if name in (LFM3_STT_ENGINE, GOOGLE_STT_ENGINE):
             return getattr(pick_stt_engine(name), "label", name)
         if name == QWEN_KO_STT_ENGINE:
             return "Qwen3-ASR-1.7B-ko (UNIVA)"
@@ -180,7 +183,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     def tts_record_label(name: str) -> str:
         """저장본·시험표에 적는 TTS 이름(예전 저장본과 같은 글). 입말로 읽으면 '· 입말'을 붙여 따로 비교한다."""
-        own_label = name in TTS_107_ENGINES or name in LFM3_TTS_ENGINES or name in ELEVENLABS_TTS_ENGINES
+        own_label = name in TTS_107_ENGINES or name in LFM3_TTS_ENGINES or name in ELEVENLABS_TTS_ENGINES or name in GOOGLE_TTS_ENGINES or name in SUPERTONIC_TTS_ENGINES
         label = getattr(pick_tts_engine(name), "label", name) if own_label else tts_label_for(
             name, settings.tts_model_id
         )
@@ -264,8 +267,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
             try:
                 result = chosen_stt.transcribe(wav_path)
-            except Lfm3Error as exc:
-                logger.warning("lfm3 stt failed: %s", exc)
+            except (Lfm3Error, GoogleSttError) as exc:
+                logger.warning("stt failed: %s", exc)
                 raise HTTPException(status_code=503, detail=str(exc)) from exc
         return SttResponse(
             text=result.text,
@@ -316,7 +319,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         except RecordingUnavailableError as exc:
             # 404: 이 답의 녹음이 없다(앱은 오류 대신 화면 답만 보여 준다). 422 는 요청 모양 오류로 남겨 둔다.
             raise HTTPException(status_code=404, detail=str(exc)) from exc
-        except (Tts107Error, Lfm3Error, ElevenLabsError) as exc:
+        except (Tts107Error, Lfm3Error, ElevenLabsError, GoogleTtsError, SupertonicError) as exc:
             # 503: 107 TTS·LFM3 를 지금 못 쓴다(회사 망 밖, 시험 페이지 꺼짐, 시간 초과). 앱은 이 안내를 보여 준다.
             logger.warning("tts failed: %s", exc)
             raise HTTPException(status_code=503, detail=str(exc)) from exc

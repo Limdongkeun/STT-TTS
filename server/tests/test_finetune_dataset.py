@@ -119,17 +119,41 @@ def test_evaluate_summary_and_answer_text():
     assert summarize([])["median_sec"] is None
 
 
-def test_tts_jobs_rotate_voices_and_name_clips(tmp_path):
-    from finetune.make_tts_audio import VOICES, clip_path, plan_jobs
-
-    jobs = plan_jobs(4)
-    assert [voice for _, voice, _ in jobs] == [VOICES[0], VOICES[1], VOICES[2], VOICES[0]]
-    assert len({seed for _, _, seed in jobs}) == 4
-    path = clip_path(tmp_path, 12, "g")
-    assert path.name == "0012_g.wav"
-    # build_dataset train 이 이 이름을 12번 문장과 짝짓는다
+def test_train_pairs_numbered_clip_with_sentence(tmp_path):
+    # <번호>_<이름>.wav(녹음한 사람 이름 등)를 그 번호 문장과 짝짓는다
+    path = tmp_path / "0012_g.wav"
     sentences = tmp_path / "s.txt"
     sentences.write_text("# 장보기\n" + "".join(f"문장 {i}\n" for i in range(1, 13)), encoding="utf-8")
     path.write_bytes(b"x")
     rows = build_train(tmp_path, tmp_path / "out", sentences)
     assert rows[0]["messages"][1]["content"].endswith("문장 12")
+
+
+def test_situation_prompts_are_unique_and_do_not_quote_the_test_sheet():
+    from app.family_demo import compact_question
+    from app.test_sheet import TEST_CASES
+    from finetune.build_dataset import load_prompts
+
+    prompts = load_prompts()
+    assert len(prompts) >= 90
+    assert [p["id"] for p in prompts[:2]] == ["P001", "P002"]
+    assert len({p["prompt"] for p in prompts}) == len(prompts)
+    tests = [compact_question(case["say"]) for case in TEST_CASES]
+    # 상황만 주고 시험표 문장을 그대로 읽게 하지 않는다
+    assert not [p["prompt"] for p in prompts if any(t and t in compact_question(p["prompt"]) for t in tests)]
+    assert {"짧은 대답", "고쳐 말하기", "숫자 말하기"} <= {p["category"] for p in prompts}
+
+
+def test_recording_items_number_sentences_like_audio_files(tmp_path):
+    from finetune.build_dataset import load_sentences, recording_items
+
+    items = recording_items()
+    reads = [item for item in items if item["type"] in ("read", "short")]
+    sentences = load_sentences()
+    assert len(reads) == len(sentences)
+    # S 번호 = 학습 문장 순서 = 녹음 파일 <번호>_<사람>.wav 의 번호
+    assert reads[11]["id"] == "S012" and reads[11]["text"] == sentences[11][1]
+    assert {item["type"] for item in items} == {"read", "short", "situation"}
+    assert len({item["id"] for item in items}) == len(items)
+    assert all(item.get("text") or item.get("prompt") for item in items)
+

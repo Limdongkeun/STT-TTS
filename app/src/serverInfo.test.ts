@@ -91,9 +91,13 @@ test("sttChoicesOf·sttLabelFor: 서버가 준 STT 고르기 목록(2026-11-16 L
 test("버튼 이름: LFM3 STT·TTS", () => {
   assert.equal(sttButtonLabel("lfm3-asr"), "서버 LFM3");
   assert.equal(sttButtonLabel("qwen3-asr-ko"), "서버 Qwen 한국어");
+  assert.equal(sttButtonLabel("google-chirp3"), "Google Chirp 3");
   assert.equal(sttButtonLabel("whisper"), "서버 whisper");
   assert.equal(ttsButtonLabel("lfm3-tts-female"), "LFM3 여자");
   assert.equal(ttsButtonLabel("lfm3-tts-male"), "LFM3 남자");
   assert.equal(ttsButtonLabel("elevenlabs-v4-turbo-female"), "ElevenLabs 여자");
   assert.equal(ttsButtonLabel("elevenlabs-v4-turbo-male"), "ElevenLabs 남자");
+  assert.equal(ttsButtonLabel("google-chirp3-hd-female"), "Google 여자");
+  assert.equal(ttsButtonLabel("google-chirp3-hd-male"), "Google 남자");
+  assert.equal(ttsButtonLabel("supertonic-male"), "Supertonic 남자");
 });

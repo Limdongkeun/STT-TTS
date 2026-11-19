@@ -1,8 +1,8 @@
 #!/bin/zsh
 # STT 추가 학습 한 번 돌리기(2026-11-17): 기준 재기 → 학습 세트 → LoRA 학습 → 합치기 → 학습 뒤 재기.
-# 사용: run_stt_train.sh <학습 소리 폴더 | tts> [반복 수, 기본 2]
+# 사용: run_stt_train.sh <학습 소리 폴더> [반복 수, 기본 2]
 #   학습 소리 폴더: <문장 번호>.wav 또는 <번호>_<이름>.wav (번호 = finetune/train_sentences.txt 순서, 1부터)
-#   tts: 먼저 맥 Qwen3-TTS 로 소리를 만든다(finetune/make_tts_audio.py → .train/stt-ko/audio-qwen-tts, 약 1시간+)
+#   (11/18: 기계 목소리 학습은 실패해서 맥 Qwen3-TTS 로 소리 만들기(tts)는 지웠다. 실제 사람 녹음만 쓴다.)
 # 사용자가 '시작해'라고 할 때만 건다. IntelliJ·Claude 를 꺼도 돌게 부모 없이 띄울 것(caffeinate -i -s).
 set -u
 SERVER=/Users/teddy/Desktop/UPTIVE/STT-TTS/server
@@ -21,12 +21,6 @@ status() { echo "$1" > $W/logs/status.txt; echo "--- $1 $(date '+%T')"; }
 fail() { status "FAILED: $1 ($STAMP)"; exit 1; }
 echo "=== start $STAMP audio=$AUDIO epochs=$EPOCHS"
 cd $SERVER
-
-if [ "$AUDIO" = tts ]; then
-  status "0/5 tts"
-  $ASR_PY -m finetune.make_tts_audio || fail tts
-  AUDIO=$W/audio-qwen-tts
-fi
 
 status "1/5 eval-base"
 [ -f $W/eval/base.json ] || $ASR_PY -m finetune.build_dataset eval || fail eval-set

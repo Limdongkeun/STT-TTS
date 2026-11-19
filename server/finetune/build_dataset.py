@@ -28,6 +28,10 @@ from app.test_sheet import TEST_CASES, _edit_distance, reference_text
 SERVER_DIR = Path(__file__).resolve().parents[1]
 REPO_DIR = SERVER_DIR.parent
 SENTENCES_PATH = Path(__file__).resolve().parent / "train_sentences.txt"
+# 상황만 보여 주고 자기 말로 말하게 하는 녹음 문제(2026-11-18). 정답은 녹음한 사람이 고친 글이다.
+PROMPTS_PATH = Path(__file__).resolve().parent / "situation_prompts.txt"
+# 와치 음성 모으기 녹음 중 학습에서 뺄 것(2026-11-19)
+COLLECT_EXCLUDE_PATH = Path(__file__).resolve().parent / "collect_exclude.txt"
 RESULTS_DIR = REPO_DIR / "results" / "test-runs"
 OUT_DIR = SERVER_DIR / ".train" / "stt-ko" / "data"
 LANGUAGE = "Korean"
@@ -66,6 +70,29 @@ def load_items(path: Path = SENTENCES_PATH) -> list[dict]:
 def load_sentences(path: Path = SENTENCES_PATH) -> list[tuple[str, str]]:
     """[(분류, 정답 글)]."""
     return [(item["category"], item["text"]) for item in load_items(path)]
+
+
+def load_prompts(path: Path = PROMPTS_PATH) -> list[dict]:
+    """'상황 보고 자기 말로' 문제 → [{id(P001…, 파일 순서), category, prompt}]. 앱 녹음 화면이 id 로 녹음과 짝짓는다."""
+    return [
+        {"id": f"P{number:03d}", "category": category, "prompt": line}
+        for number, (category, line) in enumerate(_raw_lines(path), start=1)
+    ]
+
+
+SHORT_CATEGORIES = ("짧은 말", "짧은 대답")
+
+
+def recording_items(sentences_path: Path = SENTENCES_PATH, prompts_path: Path = PROMPTS_PATH) -> list[dict]:
+    """앱 '녹음 모으기'에 넘길 문제 목록(2026-11-18, ProjectWatch 앱 연결용).
+    읽기 문장 id 는 S + train_sentences 순서(1부터, 녹음 파일 <번호>_<사람>.wav 의 번호와 같다), 상황 문제는 P + 순서."""
+    items = []
+    for number, (category, text) in enumerate(load_sentences(sentences_path), start=1):
+        kind = "short" if category in SHORT_CATEGORIES else "read"
+        items.append({"id": f"S{number:03d}", "type": kind, "category": category, "text": text})
+    for prompt in load_prompts(prompts_path):
+        items.append({"id": prompt["id"], "type": "situation", "category": prompt["category"], "prompt": prompt["prompt"]})
+    return items
 
 
 def _raw_lines(path: Path) -> list[tuple[str, str]]:
@@ -179,6 +206,61 @@ def build_train(audio_dir: Path, out_dir: Path = OUT_DIR, sentences_path: Path =
     return rows
 
 
+def load_collect_excludes(path: Path = COLLECT_EXCLUDE_PATH) -> set[tuple[str, str, str]]:
+    """{(문제 id, 사람 코드, 날짜)}. '#' 뒤는 이유(무시)."""
+    excludes = set()
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.split("#", 1)[0].split()
+        if not line:
+            continue
+        if len(line) != 3:
+            raise ValueError(f"제외 줄 모양이 이상해요(문제 id, 사람, 날짜): {raw}")
+        excludes.add((line[0], line[1], line[2]))
+    return excludes
+
+
+def build_collect(folders: list[Path], out_dir: Path = OUT_DIR, exclude_path: Path = COLLECT_EXCLUDE_PATH) -> tuple[list[dict], list[str]]:
+    """와치 음성 모으기 zip 을 푼 폴더들(manifest.jsonl) → 학습 줄. 정답은 manifest 의 transcript.
+    빼는 것: 제외 목록, 같은 녹음(clip_id) 두 번째, 정답이 시험표 문장과 거의 같은 것(평가가 부풀지 않게),
+    맥 STT 검사(verify.json)에서 정답과 크게 달랐던 것."""
+    from finetune.verify_collect import flagged_clip_ids
+
+    excludes = load_collect_excludes(exclude_path)
+    tests = [case["say"] for case in TEST_CASES]
+    rows, skipped, seen = [], [], set()
+    for folder in folders:
+        flagged = flagged_clip_ids(folder)
+        for line in (folder / "manifest.jsonl").read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            clip = json.loads(line)
+            clip_id = str(clip.get("clip_id", ""))
+            day = str(clip.get("recorded_at", ""))[:10]
+            text = str(clip.get("transcript", "")).strip()
+            audio = (folder / str(clip.get("audio", ""))).resolve()
+            reason = ""
+            if clip_id in seen:
+                reason = "같은 녹음"
+            elif (clip.get("item_id"), clip.get("speaker_code"), day) in excludes:
+                reason = "제외 목록"
+            elif not text:
+                reason = "정답 글 없음"
+            elif clip_id in flagged:
+                reason = "맥 STT 검사에서 걸림(verify.json)"
+            elif folder.resolve() not in audio.parents or not audio.is_file():
+                reason = "소리 파일 없음"
+            elif hit := near_test_sentence(text, tests):
+                reason = f"시험표와 비슷함({hit})"
+            if reason:
+                skipped.append(f"{clip.get('item_id')} {clip.get('speaker_code')} {clip_id[:8]}: {reason}")
+                continue
+            seen.add(clip_id)
+            rows.append(swift_row(str(audio), text))
+    if rows:
+        write_jsonl(out_dir / "train.jsonl", rows)
+    return rows, skipped
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -186,11 +268,26 @@ def main(argv: list[str] | None = None) -> int:
     train = sub.add_parser("train", help="학습 문장 + 소리로 학습 세트 만들기")
     train.add_argument("--audio-dir", type=Path, required=True)
     sub.add_parser("check", help="학습 문장이 시험표와 겹치지 않는지만 확인")
+    collect = sub.add_parser("collect", help="와치 음성 모으기 녹음(푼 폴더)으로 학습 세트 만들기")
+    collect.add_argument("folders", type=Path, nargs="+")
+    export = sub.add_parser("items", help="앱 녹음 모으기용 문제 목록 JSON 쓰기")
+    export.add_argument("--out", type=Path, required=True)
     args = parser.parse_args(argv)
     if args.command == "eval":
         rows = build_eval()
         verified = sum(r["verified"] for r in rows)
         print(f"평가 녹음 {len(rows)}개(사람 확인 {verified}개) → {OUT_DIR / 'eval.jsonl'}")
+    elif args.command == "collect":
+        rows, skipped = build_collect(args.folders)
+        for line in skipped:
+            print("뺌:", line)
+        print(f"학습 줄 {len(rows)}개, 뺀 것 {len(skipped)}개" + (f" → {OUT_DIR / 'train.jsonl'}" if rows else ""))
+    elif args.command == "items":
+        items = recording_items()
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps({"version": "2026-11-18", "items": items}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        kinds = {kind: sum(item["type"] == kind for item in items) for kind in ("read", "short", "situation")}
+        print(f"문제 {len(items)}개 {kinds} → {args.out}")
     elif args.command == "train":
         rows = build_train(args.audio_dir)
         print(f"학습 줄 {len(rows)}개 → {OUT_DIR / 'train.jsonl'}")
@@ -200,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
         near = [(t, hit) for _, t in sentences if (hit := near_test_sentence(t, tests))]
         for text, hit in near:
             print(f"겹침: {text} ≈ {hit}")
-        print(f"학습 문장 {len(sentences)}개, 시험표와 겹침 {len(near)}개")
+        print(f"학습 문장 {len(sentences)}개, 시험표와 겹침 {len(near)}개, 상황 문제 {len(load_prompts())}개")
         return 1 if near else 0
     return 0
 

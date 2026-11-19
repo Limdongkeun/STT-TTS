@@ -20,16 +20,25 @@ LFM3_MODES = ("off", "auto")
 # Qwen3-ASR 한국어 학습판(TeamUNIVA/qwen3_asr_1.7b_ko, Apache-2.0). 2026-11-17 사용자: 버튼 방식 STT 에 더해 비교.
 # 11/13 녹음 33개로 힌트 없이 CER 0.098(지금 Qwen 힌트 42 는 0.103), 한 문장 0.71초. 힌트를 넣어도 나아지지 않아 힌트 없이 쓴다.
 QWEN_KO_STT_ENGINE = "qwen3-asr-ko"
+# 구글 Speech-to-Text V2 Chirp 3(2026-11-18~). auto(기본): 구글 로그인(키체인 google-stt-refresh-token)이 있으면 목록에 넣는다 / off: 뺀다
+GOOGLE_STT_ENGINE = "google-chirp3"
+GOOGLE_STT_MODES = ("auto", "off")
 QWEN_KO_DEFAULT_PATH = Path(__file__).resolve().parents[1] / ".models" / "qwen3_asr_1.7b_ko"
 QWEN_KO_HF_ID = "TeamUNIVA/qwen3_asr_1.7b_ko"
 # 2026-11-17 사용자: 원래 Qwen3-ASR-1.7B(qwen3-asr)는 한국어판이 메인이 되어 필요 없다고 지움(선택지·모델 파일). 엔진 코드는 한국어판이 쓰고, 원래 모델 전용 힌트 42개(STT_HINTS)·ASR_MODEL_ID 도 지움.
-STT_ENGINES = ("mock", QWEN_KO_STT_ENGINE)
+STT_ENGINES = ("mock", QWEN_KO_STT_ENGINE, GOOGLE_STT_ENGINE)
 # ElevenLabs v4 Turbo(2026-11-17 사용자 허락: 107 이 자꾸 멈춰 8002 에 붙임, 쓴 만큼 크레딧 차감).
 # 2026-11-17 16:10 사용자: Turbo 목소리를 여자 Anna Kim·남자 Chris 둘로(지수 Turbo 는 뺌, 지수 녹음 재생은 그대로).
 ELEVENLABS_TTS_ENGINES = ("elevenlabs-v4-turbo-female", "elevenlabs-v4-turbo-male")
 # auto(기본): 키(ELEVENLABS_API_KEY 또는 맥 키체인 'elevenlabs-api-key')가 있으면 고르기 목록에 넣는다 / off: 뺀다
 ELEVENLABS_MODES = ("auto", "off")
-TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", *ELEVENLABS_TTS_ENGINES, *LFM3_TTS_ENGINES)
+# 구글 Chirp 3 HD(2026-11-18~). auto(기본): 키(GOOGLE_TTS_API_KEY 또는 맥 키체인 'google-tts-api-key')가 있으면 목록에 넣는다 / off: 뺀다
+GOOGLE_TTS_ENGINES = ("google-chirp3-hd-female", "google-chirp3-hd-male")
+GOOGLE_TTS_MODES = ("auto", "off")
+# 맥 로컬 Supertonic 3(2026-11-18~). auto(기본): 모델 폴더(server/.models/supertonic-3)와 패키지가 있으면 목록에 넣는다 / off: 뺀다
+SUPERTONIC_TTS_ENGINES = ("supertonic-female", "supertonic-male")
+SUPERTONIC_MODES = ("auto", "off")
+TTS_ENGINES = ("mock", "qwen3-tts", "prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", *ELEVENLABS_TTS_ENGINES, *GOOGLE_TTS_ENGINES, *SUPERTONIC_TTS_ENGINES, *LFM3_TTS_ENGINES)
 # 107 복제(run_clone) 엔진 → 목소리 견본 이름(app/data/voices/<이름>.json). 빈 글이면 TTS_107_VOICE(기본 g).
 # 2026-11-12 사용자 결정: 밝은 H2 목소리를 더하고 G 는 그대로 둔다(앱에서 고른다).
 # 2026-11-16 사용자 결정: H2 엔진의 견본을 답하는 말투(h2-d)로 바꾼다(h2 견본은 답마다 말투가 출렁였다). h2 는 남긴다.
@@ -86,6 +95,12 @@ class Settings:
     lfm3_port: int = 8090
     # ElevenLabs TTS 를 고를 수 있는지(키가 있을 때만)
     elevenlabs: bool = False
+    # 구글 TTS 를 고를 수 있는지(키가 있을 때만)
+    google_tts: bool = False
+    # Supertonic 3(맥 로컬)을 고를 수 있는지(모델·패키지가 있을 때만)
+    supertonic: bool = False
+    # 구글 STT(Chirp 3)를 고를 수 있는지(로그인이 있을 때만)
+    google_stt: bool = False
     # Qwen3-ASR 한국어판 모델(맥 폴더 또는 Hugging Face 이름). 비우면 고르기 목록에 없다.
     asr_ko_model_id: str = ""
 
@@ -97,7 +112,7 @@ def lfm3_files_ready(directory: Path) -> bool:
 
 # 서버 하나로 여러 TTS 를 고를 때 보여 주는 순서. 맥에서 모델을 돌리는 qwen3-tts 는 기본 엔진일 때만 고를 수 있다
 # (qwen-tts 는 qwen-asr 와 한 환경에 못 들어가서, 합친 서버(.venv-asr)에서는 쓰지 않는다).
-TTS_CHOICE_ORDER = ("prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", *ELEVENLABS_TTS_ENGINES, *LFM3_TTS_ENGINES, "qwen3-tts", "mock")
+TTS_CHOICE_ORDER = ("prerecorded", "qwen3-tts-107", "qwen3-tts-107-h2", *ELEVENLABS_TTS_ENGINES, *GOOGLE_TTS_ENGINES, *SUPERTONIC_TTS_ENGINES, *LFM3_TTS_ENGINES, "qwen3-tts", "mock")
 
 
 def tts_choices(settings: "Settings") -> tuple[str, ...]:
@@ -110,6 +125,10 @@ def tts_choices(settings: "Settings") -> tuple[str, ...]:
         available.update(LFM3_TTS_ENGINES)
     if settings.elevenlabs:
         available.update(ELEVENLABS_TTS_ENGINES)
+    if settings.google_tts:
+        available.update(GOOGLE_TTS_ENGINES)
+    if settings.supertonic:
+        available.update(SUPERTONIC_TTS_ENGINES)
     return tuple(name for name in TTS_CHOICE_ORDER if name in available)
 
 
@@ -120,6 +139,8 @@ def stt_choices(settings: "Settings") -> tuple[str, ...]:
         names.append(QWEN_KO_STT_ENGINE)
     if settings.lfm3_dir:
         names.append(LFM3_STT_ENGINE)
+    if settings.google_stt and settings.stt_engine != GOOGLE_STT_ENGINE:
+        names.append(GOOGLE_STT_ENGINE)
     return tuple(names)
 
 
@@ -135,16 +156,55 @@ def _asr_ko_model_id(stt_engine: str) -> str:
     return QWEN_KO_HF_ID if stt_engine == QWEN_KO_STT_ENGINE else ""
 
 
-def elevenlabs_key_available() -> bool:
-    """키가 있는지만 본다(키 글은 돌려주지 않는다). 환경변수 → 맥 키체인 'elevenlabs-api-key'."""
-    if os.environ.get("ELEVENLABS_API_KEY", "").strip():
+def _key_available(env_name: str, keychain_service: str) -> bool:
+    """키가 있는지만 본다(키 글은 돌려주지 않는다). 환경변수 → 맥 키체인."""
+    if os.environ.get(env_name, "").strip():
         return True
     try:
-        result = subprocess.run(["security", "find-generic-password", "-s", "elevenlabs-api-key"],
+        result = subprocess.run(["security", "find-generic-password", "-s", keychain_service],
                                 capture_output=True, text=True, timeout=5)
     except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0
+
+
+def elevenlabs_key_available() -> bool:
+    return _key_available("ELEVENLABS_API_KEY", "elevenlabs-api-key")
+
+
+def google_tts_key_available() -> bool:
+    return _key_available("GOOGLE_TTS_API_KEY", "google-tts-api-key")
+
+
+def _google_stt(stt_engine: str) -> bool:
+    on = _choice("GOOGLE_STT", "auto", GOOGLE_STT_MODES) == "auto" and _key_available(
+        "GOOGLE_STT_REFRESH_TOKEN", "google-stt-refresh-token"
+    )
+    if stt_engine == GOOGLE_STT_ENGINE and not on:
+        raise ValueError("STT_ENGINE=google-chirp3 이면 구글 로그인(python -m app.google_auth login)이 있어야 합니다.")
+    return on
+
+
+def supertonic_ready() -> bool:
+    import importlib.util
+
+    from app.engines.supertonic import model_ready
+
+    return model_ready() and importlib.util.find_spec("supertonic") is not None
+
+
+def _supertonic(tts_engine: str) -> bool:
+    on = _choice("SUPERTONIC", "auto", SUPERTONIC_MODES) == "auto" and supertonic_ready()
+    if tts_engine in SUPERTONIC_TTS_ENGINES and not on:
+        raise ValueError(f"TTS_ENGINE={tts_engine} 이면 Supertonic 모델(server/.models/supertonic-3)과 패키지가 있어야 합니다.")
+    return on
+
+
+def _google_tts(tts_engine: str) -> bool:
+    on = _choice("GOOGLE_TTS", "auto", GOOGLE_TTS_MODES) == "auto" and google_tts_key_available()
+    if tts_engine in GOOGLE_TTS_ENGINES and not on:
+        raise ValueError(f"TTS_ENGINE={tts_engine} 이면 구글 TTS 키가 있어야 합니다.")
+    return on
 
 
 def _elevenlabs(tts_engine: str) -> bool:
@@ -195,5 +255,8 @@ def load_settings() -> Settings:
         lfm3_dir=_lfm3_dir(tts_engine),
         lfm3_port=_positive_int("LFM3_PORT", 8090),
         elevenlabs=_elevenlabs(tts_engine),
+        google_tts=_google_tts(tts_engine),
+        supertonic=_supertonic(tts_engine),
+        google_stt=_google_stt(stt_engine),
         asr_ko_model_id=_asr_ko_model_id(stt_engine),
     )

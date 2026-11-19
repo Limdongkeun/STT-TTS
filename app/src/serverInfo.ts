@@ -25,6 +25,10 @@ const TTS_BUTTON_LABELS: Record<string, string> = {
   "qwen3-tts-107-h2": "107 H2 목소리",
   "elevenlabs-v4-turbo-female": "ElevenLabs 여자",
   "elevenlabs-v4-turbo-male": "ElevenLabs 남자",
+  "google-chirp3-hd-female": "Google 여자",
+  "google-chirp3-hd-male": "Google 남자",
+  "supertonic-female": "Supertonic 여자",
+  "supertonic-male": "Supertonic 남자",
   "lfm3-tts-female": "LFM3 여자",
   "lfm3-tts-male": "LFM3 남자",
   "qwen3-tts": "맥 Qwen TTS",
@@ -57,6 +61,7 @@ export function sttChoicesOf(health: HealthResponse | null): SttChoice[] {
 const STT_BUTTON_LABELS: Record<string, string> = {
   "qwen3-asr-ko": "서버 Qwen 한국어",
   "lfm3-asr": "서버 LFM3",
+  "google-chirp3": "Google Chirp 3",
   mock: "서버 mock",
 };
 

@@ -4,7 +4,10 @@
 - 학습한 LoRA 는 먼저 `swift export --adapters <체크포인트> --merge_lora true` 로 합친 폴더를 넘긴다.
 - 정답이 사람 확인(verified)된 줄만 따로도 센다. 확인 안 된 줄은 대본 기준이라 입말 차이가 섞인다.
 
+- 2026-11-18~ `--engine google-chirp3` 로 구글 Chirp 3(서버 엔진 그대로, 녹음이 구글로 간다)도 같은 평가 세트로 잰다.
+
 쓰기: cd server && .venv-asr/bin/python -m finetune.evaluate --model .models/qwen3_asr_1.7b_ko --name base
+      cd server && .venv-asr/bin/python -m finetune.evaluate --engine google-chirp3 --name google-chirp3
 """
 
 from __future__ import annotations
@@ -12,12 +15,15 @@ from __future__ import annotations
 import argparse
 import json
 import statistics
+import re
 import sys
+import tempfile
 import time
 from pathlib import Path
+from typing import Callable
 
 from app.test_sheet import char_error_rate
-from finetune.build_dataset import OUT_DIR
+from finetune.build_dataset import OUT_DIR, REPO_DIR
 
 ASR_TEXT_TAG = "<asr_text>"
 
@@ -45,19 +51,53 @@ def summarize(rows: list[dict]) -> dict:
     }
 
 
-def run(model_dir: str, eval_path: Path) -> list[dict]:
+def qwen_transcriber(model_dir: str) -> Callable[[str], str]:
     from qwen_asr import Qwen3ASRModel
 
     from app.device import resolve_device, resolve_dtype
 
     model = Qwen3ASRModel.from_pretrained(model_dir, dtype=resolve_dtype("bfloat16"), device_map=resolve_device("auto"))
+    return lambda audio: model.transcribe(audio=audio, context="", language="Korean")[0].text.strip()
+
+
+APP_HINTS = REPO_DIR / "app" / "src" / "sttModes.ts"
+
+
+def phone_hint_words(path: Path = APP_HINTS) -> tuple[str, ...]:
+    """폰 기본 STT 가 쓰는 힌트 목록(app/src/sttModes.ts CONTEXTUAL_WORDS)을 그대로 읽는다(두 STT 를 같은 힌트로 비교)."""
+    text = path.read_text(encoding="utf-8")
+    start = text.index("CONTEXTUAL_WORDS = [")
+    block = text[start: text.index("];", start)]
+    words = tuple(re.findall(r'"([^"]+)"', block))
+    if not words:
+        raise ValueError(f"힌트 목록을 못 읽었어요: {path}")
+    return words
+
+
+def google_transcriber(hints: tuple[str, ...] = (), boost: float | None = None) -> Callable[[str], str]:
+    """서버와 같게 16kHz 모노로 바꿔 보낸다."""
+    from app.audio import to_wav16k
+    from app.engines.google_stt import GoogleSttEngine
+    from app.settings import GOOGLE_STT_ENGINE
+
+    # 서버와 달리 기본은 힌트 없음(--phone-hints 로 켠다): 힌트 있고 없음을 따로 잴 수 있게
+    engine = GoogleSttEngine(GOOGLE_STT_ENGINE, hints=hints, boost=boost)
+
+    def transcribe(audio: str) -> str:
+        with tempfile.TemporaryDirectory() as job_dir:
+            return engine.transcribe(to_wav16k(Path(audio), Path(job_dir) / "input16k.wav")).text.strip()
+
+    return transcribe
+
+
+def run(transcribe: Callable[[str], str], eval_path: Path) -> list[dict]:
     lines = [json.loads(line) for line in eval_path.read_text(encoding="utf-8").splitlines() if line.strip()]
     # 첫 호출 예열(시간에서 뺀다)
-    model.transcribe(audio=lines[0]["audios"][0], context="", language="Korean")
+    transcribe(lines[0]["audios"][0])
     rows = []
     for line in lines:
         start = time.perf_counter()
-        text = model.transcribe(audio=line["audios"][0], context="", language="Korean")[0].text.strip()
+        text = transcribe(line["audios"][0])
         sec = time.perf_counter() - start
         reference = answer_text(line)
         meta = line.get("meta", {})
@@ -71,14 +111,20 @@ def run(model_dir: str, eval_path: Path) -> list[dict]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="평가 세트로 STT 모델 하나 재기")
-    parser.add_argument("--model", required=True, help="모델 폴더(합친 LoRA 포함)")
+    source = parser.add_mutually_exclusive_group(required=True)
+    source.add_argument("--model", help="Qwen 모델 폴더(합친 LoRA 포함)")
+    source.add_argument("--engine", choices=("google-chirp3",), help="서버 엔진으로 재기(클라우드)")
+    parser.add_argument("--phone-hints", action="store_true", help="구글에 폰 STT 힌트 목록을 넣는다")
+    parser.add_argument("--boost", type=float, default=None, help="힌트 세기(구글, 비우면 기본)")
     parser.add_argument("--name", required=True, help="결과 파일 이름(base, lora-e1 …)")
     parser.add_argument("--eval", type=Path, default=OUT_DIR / "eval.jsonl")
     args = parser.parse_args(argv)
     if not args.name.replace("-", "").replace("_", "").isalnum():
         parser.error("--name 은 글자·숫자·-·_ 만")
-    rows = run(args.model, args.eval)
-    result = {"model": args.model, "summary": summarize(rows), "rows": rows}
+    hints = phone_hint_words() if args.phone_hints else ()
+    transcribe = google_transcriber(hints, args.boost) if args.engine else qwen_transcriber(args.model)
+    rows = run(transcribe, args.eval)
+    result = {"model": args.model or args.engine, "hints": len(hints), "boost": args.boost, "summary": summarize(rows), "rows": rows}
     out = OUT_DIR.parent / "eval" / f"{args.name}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

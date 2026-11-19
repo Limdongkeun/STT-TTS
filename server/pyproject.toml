@@ -15,6 +15,8 @@ dependencies = [
 # → STT 서버는 `uv run --extra asr ...`, TTS 서버는 `uv run --extra tts ...` 로 따로 띄운다.
 asr = ["qwen-asr==0.0.6"]
 tts = ["qwen-tts==0.1.1"]
+# 맥 로컬 TTS Supertonic 3(ONNX, 2026-11-18~). 합친 서버(.venv-asr)에 함께 넣는다: `uv pip install --python .venv-asr/bin/python supertonic==1.3.1`
+supertonic = ["supertonic==1.3.1"]
 
 [dependency-groups]
 dev = [
