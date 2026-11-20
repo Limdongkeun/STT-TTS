@@ -60,6 +60,7 @@ export function sttChoicesOf(health: HealthResponse | null): SttChoice[] {
 
 const STT_BUTTON_LABELS: Record<string, string> = {
   "qwen3-asr-ko": "서버 Qwen 한국어",
+  "qwen3-asr-ko-cloud": "클라우드 Qwen 한국어",
   "lfm3-asr": "서버 LFM3",
   "google-chirp3": "Google Chirp 3",
   mock: "서버 mock",

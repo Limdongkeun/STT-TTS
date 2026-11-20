@@ -1,6 +1,7 @@
 """ElevenLabs TTS(v4 Turbo) — 2026-11-17 사용자 허락: 107 이 자꾸 멈춰서 8002 TTS 고르기에 붙인다(쓴 만큼 계정 크레딧 차감).
 
-키는 환경변수 ELEVENLABS_API_KEY, 없으면 맥 키체인 항목 'elevenlabs-api-key'(사용자가 이름을 알려 줌)에서만 읽는다.
+키는 환경변수 ELEVENLABS_API_KEY_FAMILY, 없으면 맥 키체인 항목 'elevenlabs-api-key-family'에서만 읽는다.
+2026-11-19 사용자 결정: 야구그림일기와 함께 쓰던 키('elevenlabs-api-key')에서 가족비서 전용 키로 나눴다(같은 계정, 키별 사용량·한도).
 키는 로그·응답·파일에 남기지 않는다. 목소리는 2026-11-17 16:10 사용자 결정으로 여자 Anna Kim·남자 Chris(둘 다 계정 내 목소리,
 한국어 서울; Chris 는 계정에 'KKC HQ' 이름). 지수 Turbo 는 뺐다(지수 녹음 재생 엔진 prerecorded 는 그대로).
     POST https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream?output_format=pcm_24000
@@ -23,11 +24,15 @@ API = "https://api.elevenlabs.io/v1/text-to-speech/{voice}/stream?output_format=
 MODEL_ID = "eleven_v4_turbo"
 # 엔진 이름 → (목소리 id, 이름표)
 VOICES = {
-    "elevenlabs-v4-turbo-female": ("uyVNoMrnUku1dZyVEXwD", "ElevenLabs v4 Turbo · Anna Kim(여자)"),  # Anna Kim - Tender, Calm and Clear
-    "elevenlabs-v4-turbo-male": ("PDoCXqBQFGsvfO0hNkEs", "ElevenLabs v4 Turbo · Chris(남자)"),  # Chris - Warm and Clear
+    "elevenlabs-v4-turbo-female": ("uyVNoMrnUku1dZyVEXwD", "ElevenLabs v4 Turbo · Anna Kim(여자) · 차분"),  # Anna Kim - Tender, Calm and Clear
+    "elevenlabs-v4-turbo-male": ("PDoCXqBQFGsvfO0hNkEs", "ElevenLabs v4 Turbo · Chris(남자) · 차분"),  # Chris - Warm and Clear
 }
+# 2026-11-19 사용자가 견본 4가지(지금·앞뒤 이어 주기·차분하게·v3)를 듣고 '차분하게'를 골랐다.
+# 기본값(stability 0.5, speed 1)보다 안정성을 올리고 조금 천천히 읽는다. 이름표 끝 '· 차분'으로 예전 저장본과 나눈다.
+VOICE_SETTINGS = {"stability": 0.65, "similarity_boost": 0.75, "style": 0.0, "use_speaker_boost": True, "speed": 0.95}
 SAMPLE_RATE = 24000
-KEYCHAIN_SERVICE = "elevenlabs-api-key"
+KEY_ENV = "ELEVENLABS_API_KEY_FAMILY"
+KEYCHAIN_SERVICE = "elevenlabs-api-key-family"
 TIMEOUT_SEC = 30
 
 
@@ -37,7 +42,7 @@ class ElevenLabsError(RuntimeError):
 
 def read_api_key(run: Callable[..., subprocess.CompletedProcess] = subprocess.run) -> str:
     """환경변수 → 맥 키체인 순서. 없으면 빈 글(그러면 고르기 목록에 나오지 않는다)."""
-    key = os.environ.get("ELEVENLABS_API_KEY", "").strip()
+    key = os.environ.get(KEY_ENV, "").strip()
     if key:
         return key
     try:
@@ -87,12 +92,12 @@ class ElevenLabsTtsEngine:
             if self._key is None:
                 self._key = self._key_reader()
         if not self._key:
-            raise ElevenLabsError("ElevenLabs 키가 없어요(ELEVENLABS_API_KEY 또는 키체인 elevenlabs-api-key).")
+            raise ElevenLabsError(f"ElevenLabs 키가 없어요({KEY_ENV} 또는 키체인 {KEYCHAIN_SERVICE}).")
         return self._key
 
     def synthesize(self, text: str) -> TtsResult:
         url = API.format(voice=self._voice_id, rate=SAMPLE_RATE)
-        body = json.dumps({"text": text, "model_id": MODEL_ID}).encode("utf-8")
+        body = json.dumps({"text": text, "model_id": MODEL_ID, "voice_settings": VOICE_SETTINGS}).encode("utf-8")
         try:
             pcm = self._post(url, body, self._api_key())
         except urllib.error.HTTPError as exc:

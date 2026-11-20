@@ -16,8 +16,7 @@ import {
   nextConversationStep,
   type TimeoutReason,
   type TimerApi,
-  transcriptText,
-} from "./conversation.ts";
+  transcriptText, effectiveConversationStt, shouldFallBackToPhone } from "./conversation.ts";
 
 /** 손으로 시간을 넘기는 가짜 타이머. */
 function createFakeTimers() {
@@ -202,4 +201,15 @@ test("isSelfEcho: 끼어든 말이 대부분 읽던 답이면 자기 소리", ()
   assert.equal(isSelfEcho("질문에 맞는 시험 답변이", speaking), true);
   assert.equal(isSelfEcho("장보기 목록 뭐 남았어?", speaking), false);
   assert.equal(isSelfEcho("", speaking), false);
+});
+
+test("클라우드 STT 가 꺼졌거나(연결 0) 맥이 못 쓴다고 하면(502~504) 폰 STT 로 돌아간다", () => {
+  for (const status of [0, 502, 503, 504]) assert.equal(shouldFallBackToPhone(status), true);
+  for (const status of [undefined, 400, 401, 404, 422, 500]) assert.equal(shouldFallBackToPhone(status), false);
+});
+
+test("대화 STT: 클라우드를 골라도 맥 서버 목록에 없으면 폰 기본 STT", () => {
+  assert.equal(effectiveConversationStt("cloud", true), "cloud");
+  assert.equal(effectiveConversationStt("cloud", false), "phone");
+  assert.equal(effectiveConversationStt("phone", true), "phone");
 });

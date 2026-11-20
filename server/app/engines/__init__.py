@@ -3,7 +3,7 @@
 from app.engines.base import SttEngine, SttResult, TtsEngine, TtsResult
 
 from app.settings import (
-    ELEVENLABS_TTS_ENGINES, GOOGLE_STT_ENGINE, GOOGLE_TTS_ENGINES, LFM3_STT_ENGINE, SUPERTONIC_TTS_ENGINES, LFM3_TTS_ENGINES, QWEN_KO_STT_ENGINE, TTS_107_ENGINES, Settings,
+    ELEVENLABS_TTS_ENGINES, GOOGLE_STT_ENGINE, GOOGLE_TTS_ENGINES, LFM3_STT_ENGINE, SUPERTONIC_TTS_ENGINES, LFM3_TTS_ENGINES, QWEN_KO_CLOUD_STT_ENGINE, QWEN_KO_STT_ENGINE, TTS_107_ENGINES, Settings,
 )
 
 
@@ -19,9 +19,13 @@ def create_stt_engine(settings: Settings) -> SttEngine:
 
         return Lfm3SttEngine(_lfm3_runtime(settings), settings.speech_language)
     if settings.stt_engine == GOOGLE_STT_ENGINE:
-        from app.engines.google_stt import GoogleSttEngine, load_hints
+        from app.engines.google_stt import DEFAULT_PROMPT, GoogleSttEngine, load_hints
 
-        return GoogleSttEngine(settings.stt_engine, hints=load_hints())
+        return GoogleSttEngine(settings.stt_engine, hints=load_hints(), prompt=DEFAULT_PROMPT)
+    if settings.stt_engine == QWEN_KO_CLOUD_STT_ENGINE:
+        from app.engines.cloud_stt import CloudSttEngine
+
+        return CloudSttEngine(settings.stt_cloud_url)
     if settings.stt_engine == QWEN_KO_STT_ENGINE:
         from app.engines.qwen3_asr import Qwen3AsrEngine
 

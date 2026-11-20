@@ -2,7 +2,8 @@
 
 > 2026-11-18 · STT-TTS(가족비서 음성) 쪽에서 ProjectWatch 앱 작업 세션으로 넘기는 요구사항이다.
 > 구현 방식(화면 구조, DB, 저장소)은 ProjectWatch 레포 관례를 따른다. 이 문서는 **무엇이 필요한지와 넘겨받을 데이터 모양**만 정한다.
-> 함께 넘기는 파일: `recording_items.json`(녹음 문제 889개).
+> 함께 넘기는 파일: `recording_items.json`(녹음 문제 991개, 버전 2026-11-20).
+> 2026-11-20 바뀜: '약한 낱말' 문장 102개(S790~S891, 분류 `약한 낱말`, type `read`)를 끝에 더했다. 앞 번호(S001~S789, P001~P100)는 그대로다. 시험에서 계속 틀린 낱말(하원, 현장학습 동의서, 부르펜 계열, 아내가·아내한테, 콩이, 소윤이, 먹였어 등)이라 **먼저 녹음하도록 앞쪽에 보여 주면 좋다**.
 
 ## 1. 왜 하나
 
@@ -14,7 +15,7 @@
 ## 2. 녹음 문제 (`recording_items.json`)
 
 ```json
-{"version": "2026-11-18", "items": [
+{"version": "2026-11-20", "items": [
   {"id": "S001", "type": "read", "category": "일정", "text": "이번 주말에 우리 가족 뭐 하기로 했지?"},
   {"id": "S189", "type": "short", "category": "짧은 말", "text": "응"},
   {"id": "P001", "type": "situation", "category": "일정", "prompt": "이번 주말에 가족끼리 무슨 약속이 있는지 비서에게 물어보세요."}
@@ -61,7 +62,7 @@
 | `clip_id` | uuid | |
 | `item_id` | `S123` / `P045` | §2의 id |
 | `item_type` | `read` / `short` / `situation` | |
-| `items_version` | `2026-11-18` | |
+| `items_version` | `2026-11-20` (받은 JSON 의 version 그대로) | |
 | `prompt_text` | 보여 준 글 | read·short는 text, situation은 prompt |
 | `transcript` | 최종 정답 글 | 사용자가 확인한 글 |
 | `transcript_source` | `script` / `user_edited` / `phone_stt_confirmed` / `user_typed` | 정답 글이 어떻게 만들어졌나 |

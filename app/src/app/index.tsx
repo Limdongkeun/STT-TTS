@@ -163,7 +163,7 @@ function MainView({ voice }: { voice: ReturnType<typeof useVoice>; focused: bool
             </Section>
           ) : null}
 
-          <Section title="대화 모드" caption="버튼 없이 계속 대화해요. 늘 폰 STT로 빠르게 듣고, 시험표 문장을 순서 없이 말하면 맞는 칸에 적혀요.">
+          <Section title="대화 모드" caption="버튼 없이 계속 대화해요. 클라우드 Qwen(꺼져 있으면 폰 STT)으로 듣고, 시험표 문장을 순서 없이 말하면 맞는 칸에 적혀요. 대화 화면 위에서 STT를 바꿀 수 있어요.">
             <Pressable
               testID="start-conversation"
               accessibilityRole="button"

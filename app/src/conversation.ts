@@ -14,6 +14,21 @@ export const RETRY_DELAY_MS = 1500;
 
 export type TurnOutcome = "answered" | "empty" | "error" | "stopped";
 
+/** 대화 모드에서 듣는 STT(2026-11-20 사용자: 클라우드 Qwen 을 대화에도). phone: 폰 기본 STT(글자가 멈추면 끝) /
+ *  cloud: 소리 크기로 말 끝을 찾아 녹음을 클라우드 Qwen 으로 보낸다(차례 방식, 말하는 동안 글자·미리 답·말로 끼어들기 없음). */
+export type ConversationStt = "phone" | "cloud";
+
+/** 클라우드 STT 를 지금 못 쓴다(꺼짐·연결 실패=0, 맥이 대신 불렀는데 못 씀=502~504) → 이 대화는 폰 기본 STT 로 돌아간다.
+ *  클라우드는 평일 9~18시에만 켜져 있다. 다른 오류(400·422 등)는 보통 오류로 둔다. */
+export function shouldFallBackToPhone(status: number | undefined): boolean {
+  return status === 0 || status === 502 || status === 503 || status === 504;
+}
+
+/** 대화에서 실제로 쓸 STT: 클라우드를 골랐어도 맥 서버 목록에 없으면(열쇠 없음 등) 폰 기본 STT. */
+export function effectiveConversationStt(chosen: ConversationStt, cloudListed: boolean): ConversationStt {
+  return chosen === "cloud" && cloudListed ? "cloud" : "phone";
+}
+
 /** listen: 바로 다시 듣기 / retry: 잠깐 뒤 다시 듣기 / pause: 쉬기(눌러야 다시) / stop: 끝(사용자가 멈춤) */
 export type ConversationStep = { action: "listen" | "retry" | "pause" | "stop"; errors: number };
 

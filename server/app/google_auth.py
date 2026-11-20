@@ -67,8 +67,10 @@ def read_refresh_token(run: Callable[..., subprocess.CompletedProcess] = subproc
     return result.stdout.strip() if result.returncode == 0 else ""
 
 
-def save_refresh_token(token: str, run: Callable[..., subprocess.CompletedProcess] = subprocess.run) -> None:
-    result = run(["security", "add-generic-password", "-U", "-s", KEYCHAIN_SERVICE, "-a", KEYCHAIN_ACCOUNT, "-w", token],
+def save_refresh_token(
+    token: str, run: Callable[..., subprocess.CompletedProcess] = subprocess.run, service: str = KEYCHAIN_SERVICE,
+) -> None:
+    result = run(["security", "add-generic-password", "-U", "-s", service, "-a", KEYCHAIN_ACCOUNT, "-w", token],
                  capture_output=True, text=True, timeout=5)
     if result.returncode != 0:
         raise GoogleAuthError("키체인에 구글 로그인을 저장하지 못했어요.")
@@ -131,8 +133,9 @@ def _pkce_pair() -> tuple[str, str]:
     return verifier, challenge
 
 
-def login() -> None:
-    """맥 브라우저로 구글 로그인 → 키체인에 새로 고침 토큰 저장."""
+def login(service: str = KEYCHAIN_SERVICE) -> None:
+    """맥 브라우저로 구글 로그인 → 키체인(service)에 새로 고침 토큰 저장.
+    2026-11-19: 다른 구글 계정(클라우드 GPU 확인용)은 다른 키체인 이름으로 받아 STT 로그인을 덮어쓰지 않는다."""
     client = client_info()
     verifier, challenge = _pkce_pair()
     state = secrets.token_urlsafe(16)
@@ -177,15 +180,16 @@ def login() -> None:
         raise GoogleAuthError("구글이 새로 고침 토큰을 주지 않았어요.")
     if SCOPE not in str(reply.get("scope", "")):
         raise GoogleAuthError("클라우드 권한(cloud-platform)이 허락되지 않았어요.")
-    save_refresh_token(refresh)
-    print(f"로그인 저장 완료(키체인 {KEYCHAIN_SERVICE}). 프로젝트: {client['project_id']}", flush=True)
+    save_refresh_token(refresh, service=service)
+    print(f"로그인 저장 완료(키체인 {service}). 로그인 앱 프로젝트: {client['project_id']}", flush=True)
 
 
 def main(argv: list[str]) -> int:
     command = argv[0] if argv else "check"
     try:
         if command == "login":
-            login()
+            # login [키체인 이름] — 기본은 STT 로그인(google-stt-refresh-token)
+            login(argv[1] if len(argv) > 1 else KEYCHAIN_SERVICE)
         elif command == "check":
             TokenSource().access_token()
             print("구글 STT 로그인 살아 있어요.")

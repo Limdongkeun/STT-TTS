@@ -92,6 +92,7 @@ test("버튼 이름: LFM3 STT·TTS", () => {
   assert.equal(sttButtonLabel("lfm3-asr"), "서버 LFM3");
   assert.equal(sttButtonLabel("qwen3-asr-ko"), "서버 Qwen 한국어");
   assert.equal(sttButtonLabel("google-chirp3"), "Google Chirp 3");
+  assert.equal(sttButtonLabel("qwen3-asr-ko-cloud"), "클라우드 Qwen 한국어");
   assert.equal(sttButtonLabel("whisper"), "서버 whisper");
   assert.equal(ttsButtonLabel("lfm3-tts-female"), "LFM3 여자");
   assert.equal(ttsButtonLabel("lfm3-tts-male"), "LFM3 남자");

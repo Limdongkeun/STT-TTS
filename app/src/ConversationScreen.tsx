@@ -2,6 +2,7 @@
  *  가족비서가 말하는 중에 말하거나 얼굴을 누르면 답을 멈추고 듣는다(끼어들기, 2026-11-13 사용자 요청).
  *  가운데 얼굴이 지금 상태(준비 중·말하세요·생각 중·말하는 중·쉬는 중)를 보여 주고, 그 아래 작은 시험표 창에서
  *  말할 문장을 보며(다 외울 수 없어서, 사용자 요청), 맨 아래에 말풍선이 쌓인다.
+ *  위쪽 STT 고르기로 폰 기본 STT 와 클라우드 Qwen(차례 방식, 2026-11-20)을 바꾼다.
  *  듣기·답·소리는 VoiceProvider 가 맡고, 이 파일은 보여 주기만 한다. 얼굴 움직임은 AnimatedFace(Reanimated). */
 
 import { memo, useRef, useState, type ComponentRef } from "react";
@@ -9,7 +10,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { AnimatedFace } from "./AnimatedFace";
 import { colors } from "./theme";
-import type { ChatItem, ConversationFace } from "./conversation";
+import type { ChatItem, ConversationFace, ConversationStt } from "./conversation";
 import { sheetPreviewRows, type SheetResult, type TestCase } from "./testSheet";
 
 type Props = {
@@ -21,6 +22,9 @@ type Props = {
   cases: TestCase[];
   results: Record<string, SheetResult>;
   sttLabel: string;
+  /** 대화 STT 고르기(폰 기본 / 클라우드 Qwen, 2026-11-20). 클라우드가 서버 목록에 없으면 폰 하나만 온다. */
+  sttOptions: { mode: ConversationStt; label: string; active: boolean }[];
+  onChooseStt: (mode: ConversationStt) => void;
   ttsLabel: string;
   errorMessage: string;
   onEnd: () => void;
@@ -39,7 +43,7 @@ const FACES: Record<ConversationFace, { emoji: string; label: string }> = {
 };
 
 export function ConversationScreen({
-  face, liveText, chat, cases, results, sttLabel, ttsLabel, errorMessage, onEnd, onResume, onInterrupt,
+  face, liveText, chat, cases, results, sttLabel, sttOptions, onChooseStt, ttsLabel, errorMessage, onEnd, onResume, onInterrupt,
 }: Props) {
   const { emoji, label } = FACES[face];
   // 방금 시험표에 적힌 문장(마지막 내 말풍선의 칸)을 초록색으로 보여 준다.
@@ -48,6 +52,22 @@ export function ConversationScreen({
   return (
     <View style={styles.screen}>
       <Text style={styles.meta}>대화 모드 · STT {sttLabel} · TTS {ttsLabel || "모름"}</Text>
+      {sttOptions.length > 1 ? (
+        <View style={styles.sttRow}>
+          {sttOptions.map((option) => (
+            <Pressable
+              key={option.mode}
+              testID={`conversation-stt-${option.mode}`}
+              accessibilityRole="button"
+              accessibilityState={{ selected: option.active }}
+              onPress={() => onChooseStt(option.mode)}
+              style={[styles.sttButton, option.active && styles.sttButtonActive]}
+            >
+              <Text style={[styles.sttText, option.active && styles.sttTextActive]}>{option.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={label}
@@ -149,6 +169,11 @@ const ChatList = memo(function ChatList({ chat }: { chat: ChatItem[] }) {
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 16, gap: 12, backgroundColor: colors.background },
   meta: { fontSize: 12, color: colors.secondaryLabel, textAlign: "center" },
+  sttRow: { flexDirection: "row", justifyContent: "center", gap: 8 },
+  sttButton: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.border },
+  sttButtonActive: { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+  sttText: { fontSize: 13, color: colors.dark },
+  sttTextActive: { color: colors.accent, fontWeight: "700" },
   faceArea: { alignItems: "center", gap: 6 },
   faceLabel: { fontSize: 20, fontWeight: "700", color: colors.dark },
   faceLabelListening: { color: colors.conversation },

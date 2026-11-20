@@ -126,7 +126,7 @@ def test_normalize_real_answer_shapes(text, expected):
         ("1234개", "천이백삼십사개"),  # 네 자리 수 일부만 고유어로 읽지 않는다
         ("2026-13-40", "이천이십육-십삼-사십"),  # 없는 날짜는 날짜로 읽지 않는다
         ("버전 1.2.3", "버전 일.이.삼"),  # 점이 둘인 글은 소수가 아니다
-        ("크기 3 MB", "크기 삼 MB"),  # 모르는 기호는 그대로
+        ("크기 3 MB", "크기 삼 메가바이트"),  # 11/19부터 MB 는 아는 단위
     ],
 )
 def test_normalize_leaves_ambiguous_shapes(text, expected):
@@ -147,3 +147,58 @@ def test_normalize_leaves_ambiguous_shapes(text, expected):
 )
 def test_day_ending_in_il_is_spaced(text, expected):
     assert normalize_for_speech(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("KTX 예매해 줘", "케이티엑스 예매해 줘"),
+        ("SNS에 올렸어", "에스엔에스에 올렸어"),
+        ("TV 끄라고 해", "티비 끄라고 해"),
+        ("CCTV 확인했어", "씨씨티비 확인했어"),
+        ("NASA 다큐 보자", "나사 다큐 보자"),
+        ("우유 1+1 행사야", "우유 원 플러스 원 행사야"),
+        ("Q&A 시간", "큐앤에이 시간"),
+        ("$5 냈어", "오 달러 냈어"),
+        ("핸드폰 128GB", "핸드폰 백이십팔 기가바이트"),
+        ("오늘 1800kcal 먹었어", "오늘 천팔백 킬로칼로리 먹었어"),
+        ("밖이 3° 래", "밖이 삼 도 래"),
+        ("엄마·아빠 모두", "엄마, 아빠 모두"),
+    ],
+)
+def test_normalize_acronyms_and_symbols(text, expected):
+    assert normalize_for_speech(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("3분의 1만 먹었어요", "삼분의 일만 먹었어요"),
+        ("우편번호는 04001이에요", "우편번호는 공사공공일이에요"),
+        ("비밀번호 4자리", "비밀번호 네 자리"),
+        ("하루 3번 먹여요", "하루 세 번 먹여요"),
+        ("일주일에 2번 가요", "일주일에 두 번 가요"),
+        ("2번씩 먹여요", "두 번씩 먹여요"),
+        ("3번 출구로 나오세요", "삼번 출구로 나오세요"),  # 번호는 한자어 그대로
+        ("기저귀 2팩", "기저귀 두 팩"),
+        ("1컵씩 줘요", "한 컵씩 줘요"),
+    ],
+)
+def test_normalize_fraction_codes_and_counts(text, expected):
+    assert normalize_for_speech(text) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("1천 원", "천 원"),
+        ("전기요금은 4만 1천 원", "전기요금은 사만 천 원"),
+        ("택배비 1천5백 원", "택배비 천오백 원"),
+        ("8만 7천 5백 원", "팔만 칠천 오백 원"),
+        ("3천 원", "삼천 원"),
+    ],
+)
+def test_thousands_are_read_without_il(text, expected):
+    # 2026-11-19 사용자 청취: '일천 원'이 어색 → '천 원'
+    assert normalize_for_speech(text) == expected
+

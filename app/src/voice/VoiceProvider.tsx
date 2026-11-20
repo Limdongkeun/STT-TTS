@@ -7,6 +7,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { Alert, AppState, Platform } from "react-native";
 
 import {
+  ApiError,
   getHealth,
   NoRecordingError,
   postAsk,
@@ -23,9 +24,11 @@ import {
 import { fetchSequentially, shouldSplitSpeech, SpeechCancelledError, speechPieces } from "../speechChunks";
 import { createPrefetcher } from "../prefetch";
 import {
-  addChat, CONVERSATION_SILENCE_MS, conversationFace, isBargeIn, isSelfEcho, nextConversationStep,
-  RETRY_DELAY_MS, type ChatItem, type TurnOutcome,
+  addChat, CONVERSATION_SILENCE_MS, conversationFace, effectiveConversationStt, isBargeIn, isSelfEcho,
+  nextConversationStep, RETRY_DELAY_MS, shouldFallBackToPhone, type ChatItem, type ConversationStt, type TurnOutcome,
 } from "../conversation";
+import { CLOUD_STT_ENGINE } from "../cloudStt";
+import { useAutoServerRecorder, type AutoRecording } from "../useAutoServerRecorder";
 import { STT_MODE_LABELS, type SttMode } from "../sttModes";
 import { usePhoneStt, type PhoneTurn } from "../usePhoneStt";
 import { useServerRecorder } from "../useServerRecorder";
@@ -44,8 +47,11 @@ type Conversation = {
 };
 /** 끼어든 말이 자기 답 소리였을 때 보여 주는 글(2026-11-16: 자기 답을 듣고 같은 답을 되풀이했다). */
 const SELF_ECHO_NOTICE = "제 목소리를 들은 것 같아 넘겼어요. 말하세요.";
-/** 말로 끼어들기는 iOS 만(자기 소리 빼기). 안드로이드는 얼굴을 눌러 끊는다. */
+/** 말로 끼어들기는 iOS 만(자기 소리 빼기). 안드로이드는 얼굴을 눌러 끊는다. 클라우드 STT 대화는 답을 읽는 동안 녹음을 쉬어
+ *  얼굴 누르기로만 끊는다. */
 const VOICE_BARGE_IN = Platform.OS === "ios";
+/** 클라우드 STT 가 꺼져 있어 폰 STT 로 돌아갈 때 보여 주는 글. */
+const CLOUD_FALLBACK_NOTICE = "클라우드 STT가 꺼져 있어(평일 9~18시만 켜짐) 폰 기본 STT로 바꿨어요. 다시 말해 주세요.";
 
 type Timings = { sttMs?: number; askMs?: number; ttsMs?: number; totalMs?: number };
 
@@ -80,6 +86,8 @@ function useVoiceController() {
   const [timings, setTimings] = useState<Timings>({});
   const [errorMessage, setErrorMessage] = useState("");
   const [silenceMs, setSilenceMs] = useState(CONVERSATION_SILENCE_MS);
+  // 대화 모드 STT(2026-11-20 사용자: 클라우드 Qwen 으로 대화). 클라우드가 목록에 없거나 꺼져 있으면 폰 기본 STT.
+  const [conversationSttChoice, setConversationSttChoice] = useState<ConversationStt>("cloud");
   // 대화 화면이 열려 있는지. 열려 있는 동안은 '대화 끝내기'를 누를 때까지 듣기·답하기를 이어 간다(2026-11-13).
   const [conversationActive, setConversationActive] = useState(false);
   // 오류가 연달아 나서 쉬는 중(얼굴을 누르면 다시 듣는다).
@@ -123,6 +131,16 @@ function useVoiceController() {
   const sttChoices = sttChoicesOf(sttServerHealth);
   // 서버에 보낼 STT: 고른 것이 목록에 있을 때만(예전 서버·목록에 없으면 서버 기본)
   const serverSttEngine = serverStt && sttChoices.some((choice) => choice.engine === serverStt) ? serverStt : undefined;
+  const cloudSttListed = sttChoices.some((choice) => choice.engine === CLOUD_STT_ENGINE);
+  const conversationStt = effectiveConversationStt(conversationSttChoice, cloudSttListed);
+  const conversationSttRef = useRef<ConversationStt>(conversationStt);
+  conversationSttRef.current = conversationStt;
+  // 대화 시험표에 적을 STT 이름
+  const conversationSttLabel = conversationStt === "cloud"
+    ? sttLabelFor("server", sttServerHealth, CLOUD_STT_ENGINE)
+    : PHONE_STT_LABEL;
+  const conversationSttLabelRef = useRef(conversationSttLabel);
+  conversationSttLabelRef.current = conversationSttLabel;
   useEffect(() => {
     let cancelled = false;
     getHealth("stt").then(
@@ -292,7 +310,7 @@ function useVoiceController() {
         let recorded = false;
         if (fromVoice && conversation) {
           const matched = recordMatchedTurnRef.current(
-            text, answer.answerText, PHONE_STT_LABEL, phoneTurn, answer.correctedText ?? "", turnTtsLabel,
+            text, answer.answerText, conversationSttLabelRef.current, phoneTurn, answer.correctedText ?? "", turnTtsLabel,
           );
           recorded = matched !== null;
           setNotice(matched ? `시험표 ${matched.id} 칸에 적었어요.` : "시험표에 없는 말이라 시험표에는 적지 않았어요.");
@@ -354,7 +372,7 @@ function useVoiceController() {
         if (wasStopped()) return "stopped";
         const ttsMs = Date.now() - ttsStarted;
         // 대화 화면(iOS)은 답을 읽는 동안에도 듣는다(끼어들기): 녹음을 켠 채 스피커로 낸다.
-        const bargeIn = conversation !== null && VOICE_BARGE_IN;
+        const bargeIn = conversation !== null && VOICE_BARGE_IN && conversationSttRef.current === "phone";
         await setAudioModeAsync({ allowsRecording: bargeIn, playsInSilentMode: true });
         // 폰 음성인식이 막 끝나 오디오 세션이 녹음용으로 남아 있을 수 있어, 재생용으로 다시 켠다.
         await setIsAudioActiveAsync(true);
@@ -516,7 +534,49 @@ function useVoiceController() {
     },
   });
 
-  /** 대화에서 다음 말을 듣는다. 대화는 빠르게 답하려고 늘 폰 STT 로 듣는다(글자가 멈추면 턴이 끝난다, 2026-11-16). */
+  /** 클라우드 STT 대화: 소리 크기로 말 끝을 찾은 녹음을 클라우드 Qwen 으로 받아 적고 답한다(2026-11-20 차례 방식).
+   *  클라우드가 꺼져 있으면 이 대화는 폰 기본 STT 로 바꾸고 다시 듣는다. */
+  const onCloudFinished = async (recording: AutoRecording) => {
+    const conversation = conversationRef.current;
+    if (!conversation) return;
+    setStage("transcribing");
+    const sttStarted = Date.now();
+    let text: string;
+    try {
+      text = (await postStt(recording.uri, CLOUD_STT_ENGINE)).text.trim();
+    } catch (error) {
+      if (conversationRef.current !== conversation) return;
+      if (error instanceof ApiError && shouldFallBackToPhone(error.status)) {
+        setConversationSttChoice("phone");
+        conversationSttRef.current = "phone";
+        setNotice(CLOUD_FALLBACK_NOTICE);
+        continueConversation(conversation, "empty");
+        return;
+      }
+      fail(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    if (conversationRef.current !== conversation) return;
+    const persist = testSheet.saveAudio;
+    const turn: PhoneTurn = {
+      speechEndedAt: recording.speechEndedAt,
+      audioUri: persist && recording.isWav ? recording.uri : null,
+      audioRequested: persist,
+    };
+    const outcome = await answerAndSpeak(text, recording.speechEndedAt, Date.now() - sttStarted, true, turn);
+    if (outcome === "empty") continueConversation(conversation, "empty");
+  };
+  const autoRecorder = useAutoServerRecorder({
+    silenceMs,
+    onFinished: (recording) => void onCloudFinished(recording),
+    onNoSpeech: () => {
+      const conversation = conversationRef.current;
+      if (conversation) continueConversation(conversation, "empty");
+    },
+    onError: fail,
+  });
+
+  /** 대화에서 다음 말을 듣는다. 폰 STT(글자가 멈추면 턴이 끝난다, 2026-11-16) 또는 클라우드 STT(소리 크기로 끝, 2026-11-20). */
   const listenAgain = useCallback(async (conversation: Conversation) => {
     if (conversationRef.current !== conversation) return;
     prefetcher.reset();
@@ -529,12 +589,12 @@ function useVoiceController() {
         if (conversationRef.current !== conversation) return;
       }
       setStage("listening");
-      const started = await startPhone();
+      const started = conversationSttRef.current === "cloud" ? await autoRecorder.start() : await startPhone();
       if (!started && conversationRef.current === conversation) fail("듣기를 시작하지 못했어요.");
     } catch (error) {
       if (conversationRef.current === conversation) fail(error instanceof Error ? error.message : String(error));
     }
-  }, [cancelPhone, fail, prefetcher, startPhone]);
+  }, [autoRecorder, cancelPhone, fail, prefetcher, startPhone]);
   listenAgainRef.current = listenAgain;
 
   /** 답을 읽기 직전: 폰 STT 를 끼어들기 대기로 켠다. */
@@ -677,9 +737,10 @@ function useVoiceController() {
     askContext.current = undefined;
     finishConversation();
     cancelPhone();
+    autoRecorder.cancel();
     prefetcher.reset();
     stopSpeech();
-  }, [cancelPhone, finishConversation, prefetcher, stopSpeech]);
+  }, [autoRecorder, cancelPhone, finishConversation, prefetcher, stopSpeech]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -747,7 +808,8 @@ function useVoiceController() {
   };
 
   const isBusy = stage !== "idle" && stage !== "listening";
-  const liveText = (sttMode === "phone" || conversationActive) && stage === "listening" ? liveTranscript : "";
+  const liveText = (conversationActive ? conversationStt === "phone" : sttMode === "phone") && stage === "listening"
+    ? liveTranscript : "";
   // STT 버튼: 폰 기본 STT + 서버 STT 고르기 목록(예전 서버는 '서버 Qwen3-ASR' 하나).
   const activeServerStt = serverSttEngine ?? sttChoices[0]?.engine;
   const sttButtons: { key: string; mode: SttMode; engine?: string; label: string; active: boolean }[] = [
@@ -760,7 +822,24 @@ function useVoiceController() {
       : [{ key: "server", mode: "server" as const, label: STT_MODE_LABELS.server, active: sttMode === "server" }]),
   ];
 
-  const face = conversationFace(stage, phoneReady, conversationPaused);
+  const face = conversationFace(stage, conversationStt === "cloud" ? autoRecorder.ready : phoneReady, conversationPaused);
+
+  /** 대화 STT 를 바꾼다. 듣는 중이면 지금 듣기를 버리고 새 STT 로 다시 듣는다(답하는 중이면 다음 턴부터). */
+  const chooseConversationStt = async (mode: ConversationStt) => {
+    setConversationSttChoice(mode);
+    conversationSttRef.current = effectiveConversationStt(mode, cloudSttListed);
+    const conversation = conversationRef.current;
+    if (!conversation || stage !== "listening" || conversation.bargeIn !== "off") return;
+    autoRecorder.cancel();
+    await cancelPhone();
+    if (conversationRef.current === conversation) void listenAgain(conversation);
+  };
+  const conversationSttOptions: { mode: ConversationStt; label: string; active: boolean }[] = [
+    { mode: "phone", label: STT_MODE_LABELS.phone, active: conversationStt === "phone" },
+    ...(cloudSttListed
+      ? [{ mode: "cloud" as const, label: sttButtonLabel(CLOUD_STT_ENGINE), active: conversationStt === "cloud" }]
+      : []),
+  ];
   /** 대화 화면에서 얼굴을 눌러 답을 멈춘다(말하는 중일 때). */
   const interruptByTap = () => {
     const conversation = conversationRef.current;
@@ -779,6 +858,7 @@ function useVoiceController() {
     testSheet, chooseTestCase, readingOwner, readingIndex, playReadings, stopSpeech,
     // 대화 모드
     conversationActive, startConversation, stopConversation, resumeConversation, interruptByTap, face, chat,
+    conversationSttLabel, conversationSttOptions, chooseConversationStt,
   };
 }
 

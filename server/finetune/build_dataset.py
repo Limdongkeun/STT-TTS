@@ -83,6 +83,11 @@ def load_prompts(path: Path = PROMPTS_PATH) -> list[dict]:
 SHORT_CATEGORIES = ("짧은 말", "짧은 대답")
 
 
+# 녹음 문제 목록 버전. 문장을 더하면 올린다(이미 받은 녹음은 그때 버전·id 로 남는다).
+# 2026-11-20: '약한 낱말' S790~ 추가(사용자 결정). 기존 id 는 그대로.
+ITEMS_VERSION = "2026-11-20"
+
+
 def recording_items(sentences_path: Path = SENTENCES_PATH, prompts_path: Path = PROMPTS_PATH) -> list[dict]:
     """앱 '녹음 모으기'에 넘길 문제 목록(2026-11-18, ProjectWatch 앱 연결용).
     읽기 문장 id 는 S + train_sentences 순서(1부터, 녹음 파일 <번호>_<사람>.wav 의 번호와 같다), 상황 문제는 P + 순서."""
@@ -285,7 +290,7 @@ def main(argv: list[str] | None = None) -> int:
     elif args.command == "items":
         items = recording_items()
         args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps({"version": "2026-11-18", "items": items}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+        args.out.write_text(json.dumps({"version": ITEMS_VERSION, "items": items}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         kinds = {kind: sum(item["type"] == kind for item in items) for kind in ("read", "short", "situation")}
         print(f"문제 {len(items)}개 {kinds} → {args.out}")
     elif args.command == "train":

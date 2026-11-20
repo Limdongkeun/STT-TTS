@@ -74,14 +74,15 @@ def phone_hint_words(path: Path = APP_HINTS) -> tuple[str, ...]:
     return words
 
 
-def google_transcriber(hints: tuple[str, ...] = (), boost: float | None = None) -> Callable[[str], str]:
+# 받아 적는 꼴 지시문은 서버와 같은 것을 쓴다(app/engines/google_stt.py DEFAULT_PROMPT)
+def google_transcriber(hints: tuple[str, ...] = (), boost: float | None = None, prompt: str = "") -> Callable[[str], str]:
     """서버와 같게 16kHz 모노로 바꿔 보낸다."""
     from app.audio import to_wav16k
     from app.engines.google_stt import GoogleSttEngine
     from app.settings import GOOGLE_STT_ENGINE
 
     # 서버와 달리 기본은 힌트 없음(--phone-hints 로 켠다): 힌트 있고 없음을 따로 잴 수 있게
-    engine = GoogleSttEngine(GOOGLE_STT_ENGINE, hints=hints, boost=boost)
+    engine = GoogleSttEngine(GOOGLE_STT_ENGINE, hints=hints, boost=boost, prompt=prompt)
 
     def transcribe(audio: str) -> str:
         with tempfile.TemporaryDirectory() as job_dir:
@@ -116,15 +117,19 @@ def main(argv: list[str] | None = None) -> int:
     source.add_argument("--engine", choices=("google-chirp3",), help="서버 엔진으로 재기(클라우드)")
     parser.add_argument("--phone-hints", action="store_true", help="구글에 폰 STT 힌트 목록을 넣는다")
     parser.add_argument("--boost", type=float, default=None, help="힌트 세기(구글, 비우면 기본)")
+    parser.add_argument("--prompt", action="store_true", help="구글 Chirp 3 에 서버와 같은 받아 적는 꼴 지시문을 넣는다")
     parser.add_argument("--name", required=True, help="결과 파일 이름(base, lora-e1 …)")
     parser.add_argument("--eval", type=Path, default=OUT_DIR / "eval.jsonl")
     args = parser.parse_args(argv)
     if not args.name.replace("-", "").replace("_", "").isalnum():
         parser.error("--name 은 글자·숫자·-·_ 만")
     hints = phone_hint_words() if args.phone_hints else ()
-    transcribe = google_transcriber(hints, args.boost) if args.engine else qwen_transcriber(args.model)
+    from app.engines.google_stt import DEFAULT_PROMPT
+
+    prompt = DEFAULT_PROMPT if args.prompt else ""
+    transcribe = google_transcriber(hints, args.boost, prompt) if args.engine else qwen_transcriber(args.model)
     rows = run(transcribe, args.eval)
-    result = {"model": args.model or args.engine, "hints": len(hints), "boost": args.boost, "summary": summarize(rows), "rows": rows}
+    result = {"model": args.model or args.engine, "hints": len(hints), "boost": args.boost, "prompt": prompt, "summary": summarize(rows), "rows": rows}
     out = OUT_DIR.parent / "eval" / f"{args.name}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(result, ensure_ascii=False, indent=1), encoding="utf-8")

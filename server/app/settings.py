@@ -25,12 +25,19 @@ GOOGLE_STT_ENGINE = "google-chirp3"
 GOOGLE_STT_MODES = ("auto", "off")
 QWEN_KO_DEFAULT_PATH = Path(__file__).resolve().parents[1] / ".models" / "qwen3_asr_1.7b_ko"
 QWEN_KO_HF_ID = "TeamUNIVA/qwen3_asr_1.7b_ko"
+# 한국어판을 돌리는 방식. transformers(기본, 맥) / vllm(NVIDIA GPU 전용, 클라우드 L4. 2026-11-20 사용자 결정)
+ASR_BACKENDS = ("transformers", "vllm")
+# 구글 클라우드 L4 에 올린 같은 한국어판(2026-11-20 사용자 결정: 앱에서 맥 Qwen 과 나란히 비교).
+# 맥 서버가 녹음을 클라우드 /stt 로 넘긴다. auto(기본): 열쇠(STT_CLOUD_KEY 또는 맥 키체인 'familybot-stt-api-key')가 있으면 목록에 넣는다 / off: 뺀다
+QWEN_KO_CLOUD_STT_ENGINE = "qwen3-asr-ko-cloud"
+STT_CLOUD_MODES = ("auto", "off")
+STT_CLOUD_DEFAULT_URL = "https://34-50-48-66.sslip.io"
 # 2026-11-17 사용자: 원래 Qwen3-ASR-1.7B(qwen3-asr)는 한국어판이 메인이 되어 필요 없다고 지움(선택지·모델 파일). 엔진 코드는 한국어판이 쓰고, 원래 모델 전용 힌트 42개(STT_HINTS)·ASR_MODEL_ID 도 지움.
-STT_ENGINES = ("mock", QWEN_KO_STT_ENGINE, GOOGLE_STT_ENGINE)
+STT_ENGINES = ("mock", QWEN_KO_STT_ENGINE, GOOGLE_STT_ENGINE, QWEN_KO_CLOUD_STT_ENGINE)
 # ElevenLabs v4 Turbo(2026-11-17 사용자 허락: 107 이 자꾸 멈춰 8002 에 붙임, 쓴 만큼 크레딧 차감).
 # 2026-11-17 16:10 사용자: Turbo 목소리를 여자 Anna Kim·남자 Chris 둘로(지수 Turbo 는 뺌, 지수 녹음 재생은 그대로).
 ELEVENLABS_TTS_ENGINES = ("elevenlabs-v4-turbo-female", "elevenlabs-v4-turbo-male")
-# auto(기본): 키(ELEVENLABS_API_KEY 또는 맥 키체인 'elevenlabs-api-key')가 있으면 고르기 목록에 넣는다 / off: 뺀다
+# auto(기본): 가족비서 전용 키(ELEVENLABS_API_KEY_FAMILY 또는 맥 키체인 'elevenlabs-api-key-family', 11/19~)가 있으면 고르기 목록에 넣는다 / off: 뺀다
 ELEVENLABS_MODES = ("auto", "off")
 # 구글 Chirp 3 HD(2026-11-18~). auto(기본): 키(GOOGLE_TTS_API_KEY 또는 맥 키체인 'google-tts-api-key')가 있으면 목록에 넣는다 / off: 뺀다
 GOOGLE_TTS_ENGINES = ("google-chirp3-hd-female", "google-chirp3-hd-male")
@@ -103,6 +110,10 @@ class Settings:
     google_stt: bool = False
     # Qwen3-ASR 한국어판 모델(맥 폴더 또는 Hugging Face 이름). 비우면 고르기 목록에 없다.
     asr_ko_model_id: str = ""
+    # 한국어판을 돌리는 방식(ASR_BACKENDS)
+    asr_backend: str = "transformers"
+    # 클라우드 Qwen 주소(열쇠가 없거나 off 면 빈 글 → 고르기 목록에 없다)
+    stt_cloud_url: str = ""
 
 
 def lfm3_files_ready(directory: Path) -> bool:
@@ -141,6 +152,8 @@ def stt_choices(settings: "Settings") -> tuple[str, ...]:
         names.append(LFM3_STT_ENGINE)
     if settings.google_stt and settings.stt_engine != GOOGLE_STT_ENGINE:
         names.append(GOOGLE_STT_ENGINE)
+    if settings.stt_cloud_url and settings.stt_engine != QWEN_KO_CLOUD_STT_ENGINE:
+        names.append(QWEN_KO_CLOUD_STT_ENGINE)
     return tuple(names)
 
 
@@ -169,7 +182,7 @@ def _key_available(env_name: str, keychain_service: str) -> bool:
 
 
 def elevenlabs_key_available() -> bool:
-    return _key_available("ELEVENLABS_API_KEY", "elevenlabs-api-key")
+    return _key_available("ELEVENLABS_API_KEY_FAMILY", "elevenlabs-api-key-family")
 
 
 def google_tts_key_available() -> bool:
@@ -183,6 +196,16 @@ def _google_stt(stt_engine: str) -> bool:
     if stt_engine == GOOGLE_STT_ENGINE and not on:
         raise ValueError("STT_ENGINE=google-chirp3 이면 구글 로그인(python -m app.google_auth login)이 있어야 합니다.")
     return on
+
+
+def _stt_cloud_url(stt_engine: str) -> str:
+    on = _choice("STT_CLOUD", "auto", STT_CLOUD_MODES) == "auto" and _key_available("STT_CLOUD_KEY", "familybot-stt-api-key")
+    url = os.environ.get("STT_CLOUD_URL", "").strip().rstrip("/") or STT_CLOUD_DEFAULT_URL
+    if not url.startswith("https://"):
+        raise ValueError(f"STT_CLOUD_URL={url!r} 는 https:// 로 시작해야 합니다(열쇠를 보내므로).")
+    if stt_engine == QWEN_KO_CLOUD_STT_ENGINE and not on:
+        raise ValueError("STT_ENGINE=qwen3-asr-ko-cloud 이면 클라우드 STT 열쇠가 있어야 합니다.")
+    return url if on else ""
 
 
 def supertonic_ready() -> bool:
@@ -259,4 +282,6 @@ def load_settings() -> Settings:
         supertonic=_supertonic(tts_engine),
         google_stt=_google_stt(stt_engine),
         asr_ko_model_id=_asr_ko_model_id(stt_engine),
+        asr_backend=_choice("ASR_BACKEND", "transformers", ASR_BACKENDS),
+        stt_cloud_url=_stt_cloud_url(stt_engine),
     )

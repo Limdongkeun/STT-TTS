@@ -6,13 +6,19 @@ import type { ReadingMarks, ReadingSample } from "./numberReading";
 import { DEFAULT_SPEAKER, type Speaker } from "./speaker";
 import type { Attempt, SheetResult, TestCase } from "./testSheet";
 import { readUploadResult } from "./uploadResult";
+import { asCloudReply, directCloudTarget } from "./cloudStt";
 import { audioFileName, audioMimeType, joinUrl, normalizeBaseUrl } from "./url";
 
 const REQUEST_TIMEOUT_MS = 120_000;
+// 클라우드 STT 를 바로 부를 때. 꺼져 있으면(평일 18시 뒤·주말) 연결이 오래 매달려 있어 짧게 끊고 폰 STT 로 돌아간다.
+const CLOUD_STT_TIMEOUT_MS = 15_000;
 const HEALTH_TIMEOUT_MS = 5_000;
 
 export const sttServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_STT_SERVER_URL);
 export const ttsServerUrl = normalizeBaseUrl(process.env.EXPO_PUBLIC_TTS_SERVER_URL);
+// 클라우드 Qwen 바로 부르기(cloudStt.ts). 둘 다 있어야 쓴다.
+const sttCloudUrl = process.env.EXPO_PUBLIC_STT_CLOUD_URL;
+const sttCloudKey = process.env.EXPO_PUBLIC_STT_CLOUD_KEY;
 
 export type SttResponse = { text: string; language: string | null; engine: string; elapsedMs: number };
 /** 서버가 들고 다니라고 준 대화 상태. last_topic: 바로 앞 턴에 답한 주제(예: "shopping"). */
@@ -76,6 +82,7 @@ async function request<T>(url: string, init: RequestInit, timeoutMs: number = RE
  * 전역 fetch(Expo)는 {uri,name,type} 파일을 못 보내서 XMLHttpRequest 를 쓴다(uploadResult.ts 참고). */
 function uploadAudio<T>(
   url: string, method: "POST" | "PUT", recordingUri: string, fields: Record<string, string> = {},
+  headers: Record<string, string> = {}, timeoutMs = REQUEST_TIMEOUT_MS,
 ): Promise<T> {
   const name = audioFileName(recordingUri);
   const file: ReactNativeFile = { uri: recordingUri, name, type: audioMimeType(name) };
@@ -86,7 +93,8 @@ function uploadAudio<T>(
   return new Promise<T>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open(method, url);
-    xhr.timeout = REQUEST_TIMEOUT_MS;
+    for (const [key, value] of Object.entries(headers)) xhr.setRequestHeader(key, value);
+    xhr.timeout = timeoutMs;
     xhr.onload = () => {
       const result = readUploadResult(xhr.status, xhr.responseText);
       if (result.ok) resolve(result.body as T);
@@ -97,7 +105,8 @@ function uploadAudio<T>(
       const result = readUploadResult(0, "");
       reject(new ApiError(result.ok ? "" : result.message, 0));
     };
-    xhr.ontimeout = () => reject(new Error(`서버가 ${REQUEST_TIMEOUT_MS / 1000}초 안에 답하지 않았어요.`));
+    // 시간 초과도 연결 실패(status 0)로 본다(대화 모드가 폰 STT 로 돌아갈 수 있게).
+    xhr.ontimeout = () => reject(new ApiError(`서버가 ${timeoutMs / 1000}초 안에 답하지 않았어요.`, 0));
     xhr.send(form);
   });
 }
@@ -112,8 +121,16 @@ export async function getHealth(target: "tts" | "stt" = "tts"): Promise<HealthRe
   return body;
 }
 
-/** engine: 고른 서버 STT(/health 의 sttChoices 안). 없으면 서버 기본. */
-export function postStt(recordingUri: string, engine?: string): Promise<SttResponse> {
+/** engine: 고른 서버 STT(/health 의 sttChoices 안). 없으면 서버 기본.
+ *  클라우드 Qwen 이고 주소·열쇠가 있으면 맥을 거치지 않고 클라우드로 바로 보낸다. */
+export async function postStt(recordingUri: string, engine?: string): Promise<SttResponse> {
+  const direct = directCloudTarget(engine, sttCloudUrl, sttCloudKey);
+  if (direct) {
+    const reply = await uploadAudio<SttResponse>(
+      direct.url, "POST", recordingUri, direct.fields, direct.headers, CLOUD_STT_TIMEOUT_MS,
+    );
+    return asCloudReply(reply);
+  }
   const baseUrl = requireUrl(sttServerUrl, "STT 서버");
   return uploadAudio<SttResponse>(joinUrl(baseUrl, "/stt"), "POST", recordingUri, engine ? { engine } : {});
 }

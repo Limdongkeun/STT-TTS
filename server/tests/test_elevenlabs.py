@@ -26,7 +26,10 @@ def test_engine_sends_turbo_model_and_wraps_pcm_as_wav():
     result = engine.synthesize("네, 적어 뒀어요.")
     url, body, key = calls[0]
     assert "/v1/text-to-speech/voice1/stream?output_format=pcm_24000" in url
-    assert body == {"text": "네, 적어 뒀어요.", "model_id": "eleven_v4_turbo"} and key == "k"
+    assert body["text"] == "네, 적어 뒀어요." and body["model_id"] == "eleven_v4_turbo" and key == "k"
+    # 11/19 사용자가 고른 '차분하게' 설정
+    assert body["voice_settings"] == {"stability": 0.65, "similarity_boost": 0.75, "style": 0.0,
+                                      "use_speaker_boost": True, "speed": 0.95}
     with wave.open(io.BytesIO(result.wav_bytes)) as reader:
         assert (reader.getframerate(), reader.getnframes()) == (24000, 24000)
     assert result.duration_sec == 1.0
@@ -46,9 +49,9 @@ def test_engine_errors_become_elevenlabs_error():
 
 
 def test_key_reader_prefers_env_then_keychain(monkeypatch):
-    monkeypatch.setenv("ELEVENLABS_API_KEY", " envkey ")
+    monkeypatch.setenv("ELEVENLABS_API_KEY_FAMILY", " envkey ")
     assert read_api_key(run=lambda *a, **k: pytest.fail("키체인을 보면 안 됨")) == "envkey"
-    monkeypatch.delenv("ELEVENLABS_API_KEY")
+    monkeypatch.delenv("ELEVENLABS_API_KEY_FAMILY")
     found = lambda *a, **k: subprocess.CompletedProcess(a, 0, stdout="chainkey\n", stderr="")
     assert read_api_key(run=found) == "chainkey"
     missing = lambda *a, **k: subprocess.CompletedProcess(a, 44, stdout="", stderr="")
@@ -62,7 +65,7 @@ def test_choice_only_when_enabled(monkeypatch):
     monkeypatch.setenv("ELEVENLABS", "off")
     assert load_settings().elevenlabs is False
     monkeypatch.setenv("ELEVENLABS", "auto")
-    monkeypatch.setenv("ELEVENLABS_API_KEY", "k")
+    monkeypatch.setenv("ELEVENLABS_API_KEY_FAMILY", "k")
     assert load_settings().elevenlabs is True
 
 
@@ -73,8 +76,8 @@ def test_api_reads_spoken_and_reports_failures(monkeypatch):
                         lambda self, text: elevenlabs.TtsResult(elevenlabs.pcm_to_wav(b"\x01\x00" * 2400), 24000, 0.1))
     client = TestClient(create_app(make_settings(elevenlabs=True, answer_provider="family-demo", tts_engine="prerecorded")))
     labels = {c["engine"]: c["label"] for c in client.get("/health").json()["ttsChoices"]}
-    assert labels["elevenlabs-v4-turbo-female"] == "ElevenLabs v4 Turbo · Anna Kim(여자) · 입말"
-    assert labels["elevenlabs-v4-turbo-male"] == "ElevenLabs v4 Turbo · Chris(남자) · 입말"
+    assert labels["elevenlabs-v4-turbo-female"] == "ElevenLabs v4 Turbo · Anna Kim(여자) · 차분 · 입말"
+    assert labels["elevenlabs-v4-turbo-male"] == "ElevenLabs v4 Turbo · Chris(남자) · 차분 · 입말"
     answer = client.post("/ask", json={"text": "가스비 얼마 내야 돼?", "ttsEngine": "elevenlabs-v4-turbo-male"}).json()
     assert "사만 이천" in answer["speechText"]
     assert client.post("/tts", json={"text": answer["speechText"], "engine": "elevenlabs-v4-turbo-male"}).status_code == 200
@@ -98,3 +101,18 @@ def test_each_voice_uses_its_own_voice_id():
     assert "uyVNoMrnUku1dZyVEXwD" in urls[0] and "PDoCXqBQFGsvfO0hNkEs" in urls[1]
     with pytest.raises(ValueError):
         ElevenLabsTtsEngine("elevenlabs-v4-turbo")
+
+
+def test_reads_only_the_family_key_not_the_shared_one(monkeypatch):
+    # 11/19: 야구그림일기와 같이 쓰던 키(ELEVENLABS_API_KEY · 키체인 elevenlabs-api-key)는 읽지 않는다
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "shared")
+    monkeypatch.delenv("ELEVENLABS_API_KEY_FAMILY", raising=False)
+    asked = []
+
+    def run(cmd, **kwargs):
+        asked.append(cmd)
+        return subprocess.CompletedProcess(cmd, 44, stdout="", stderr="")
+
+    assert read_api_key(run=run) == ""
+    assert asked and asked[0][asked[0].index("-s") + 1] == "elevenlabs-api-key-family"
+

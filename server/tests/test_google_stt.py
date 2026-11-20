@@ -133,7 +133,7 @@ def test_api_lists_google_and_reports_failures(monkeypatch):
     monkeypatch.setattr("app.main.to_wav16k", lambda source, target: source)
     client = TestClient(create_app(make_settings(google_stt=True)))
     labels = {c["engine"]: c["label"] for c in client.get("/health").json()["sttChoices"]}
-    assert labels["google-chirp3"] == "Google Chirp 3 (us) · 힌트"
+    assert labels["google-chirp3"] == "Google Chirp 3 (us) · 힌트 · 지시문"
     files = {"audio": ("a.wav", b"RIFFfake", "audio/wav")}
     reply = client.post("/stt", files=files, data={"engine": "google-chirp3"})
     assert reply.status_code == 200 and reply.json()["text"] == "가스비 얼마야?" and reply.json()["engine"] == "google-chirp3"
@@ -178,7 +178,8 @@ def test_server_engine_uses_the_shared_hint_file(tmp_path):
     from app.engines.google_stt import load_hints
 
     engine = create_stt_engine(make_settings(stt_engine="google-chirp3", google_stt=True))
-    assert engine._hints == load_hints() and "아내" in engine._hints and engine.label.endswith("· 힌트")
+    assert engine._hints == load_hints() and "아내" in engine._hints and engine.label.endswith("· 힌트 · 지시문")
+    assert "반말" in engine._prompt
     messy = tmp_path / "h.json"
     messy.write_text(json.dumps({"words": [" 아내 ", "", "아내", "가스비"]}))
     assert load_hints(messy) == ("아내", "가스비")
@@ -186,3 +187,13 @@ def test_server_engine_uses_the_shared_hint_file(tmp_path):
     empty.write_text(json.dumps({"words": []}))
     with pytest.raises(ValueError):
         load_hints(empty)
+
+
+def test_prompt_goes_into_features_custom_prompt_config(tmp_path):
+    wav = tmp_path / "a.wav"
+    wav.write_bytes(b"RIFFfake")
+    bodies = []
+    GoogleSttEngine("google-chirp3", tokens=tokens(), post=lambda u, b, h: bodies.append(json.loads(b)) or b"{}",
+                    prompt="말한 그대로 적어").transcribe(wav)
+    assert bodies[0]["config"]["features"] == {"customPromptConfig": {"customPrompt": "말한 그대로 적어"}}
+

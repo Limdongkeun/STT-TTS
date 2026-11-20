@@ -1,5 +1,5 @@
 {
- "version": "2026-11-18",
+ "version": "2026-11-20",
  "items": [
   {
    "id": "S001",
@@ -4734,6 +4734,618 @@
    "type": "short",
    "category": "짧은 대답",
    "text": "괜찮아"
+  },
+  {
+   "id": "S790",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "오늘 하원은 누가 가기로 했어?"
+  },
+  {
+   "id": "S791",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원 시간이 4시 반으로 바뀌었대"
+  },
+  {
+   "id": "S792",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "내일 하원은 할머니가 해 주신대"
+  },
+  {
+   "id": "S793",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원할 때 우산 꼭 챙겨 가"
+  },
+  {
+   "id": "S794",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "금요일 하원은 내가 갈게"
+  },
+  {
+   "id": "S795",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원 차량이 10분 늦는대"
+  },
+  {
+   "id": "S796",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "어린이집 하원 끝나고 놀이터 가자"
+  },
+  {
+   "id": "S797",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원하고 바로 병원 들러야 돼"
+  },
+  {
+   "id": "S798",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "이번 주 하원 당번 정리해 줘"
+  },
+  {
+   "id": "S799",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원 시간 맞춰서 알림 보내줘"
+  },
+  {
+   "id": "S800",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "다음 주부터 하원 담당을 아빠로 정해줘"
+  },
+  {
+   "id": "S801",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "하원 늦을 것 같다고 선생님께 말해줘"
+  },
+  {
+   "id": "S802",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "현장학습 날짜가 언제였지?"
+  },
+  {
+   "id": "S803",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "현장학습 동의서 오늘까지 내야 돼"
+  },
+  {
+   "id": "S804",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "동의서에 서명해서 가방에 넣어 놨어"
+  },
+  {
+   "id": "S805",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "현장학습 갈 때 도시락 싸야 해?"
+  },
+  {
+   "id": "S806",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "현장학습 비용 2만 원 보냈어"
+  },
+  {
+   "id": "S807",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "동의서 아직 안 냈으면 알려줘"
+  },
+  {
+   "id": "S808",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "다음 주 현장학습은 박물관으로 간대"
+  },
+  {
+   "id": "S809",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "담임 선생님께 동의서 직접 드렸어"
+  },
+  {
+   "id": "S810",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "동의서 사진 찍어서 보내 달래"
+  },
+  {
+   "id": "S811",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "현장학습 준비물 목록 보여줘"
+  },
+  {
+   "id": "S812",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "해열제 먹인 시간 기록해줘"
+  },
+  {
+   "id": "S813",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "부르펜 계열 말고 다른 해열제로 줘야 돼"
+  },
+  {
+   "id": "S814",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "부르펜은 6시간 지나야 또 먹일 수 있어"
+  },
+  {
+   "id": "S815",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "타이레놀 계열이랑 부르펜 계열 번갈아 먹였어"
+  },
+  {
+   "id": "S816",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "해열제 시럽 5밀리 먹였어"
+  },
+  {
+   "id": "S817",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아까 부르펜 먹였는데 열이 안 내려"
+  },
+  {
+   "id": "S818",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "해열제 계열 다른 걸로 바꿔야 할까?"
+  },
+  {
+   "id": "S819",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "부르펜 몇 시에 먹였는지 알려줘"
+  },
+  {
+   "id": "S820",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "밤에 해열제 한 번 더 먹여도 돼?"
+  },
+  {
+   "id": "S821",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "부르펜 시럽 거의 다 떨어졌어"
+  },
+  {
+   "id": "S822",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "전기요금은 아내가 냈어"
+  },
+  {
+   "id": "S823",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "우유는 아내가 사 왔어"
+  },
+  {
+   "id": "S824",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "설거지는 아내가 했대"
+  },
+  {
+   "id": "S825",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내가 벌써 냈다고 체크해줘"
+  },
+  {
+   "id": "S826",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "수도요금 아내가 냈는지 확인해줘"
+  },
+  {
+   "id": "S827",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "이번 달 학원비는 아내가 냈어"
+  },
+  {
+   "id": "S828",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내가 약 받아 왔어"
+  },
+  {
+   "id": "S829",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내가 아까 처리했어"
+  },
+  {
+   "id": "S830",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "분리수거는 아내가 하기로 했어"
+  },
+  {
+   "id": "S831",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내가 장 봐 왔대"
+  },
+  {
+   "id": "S832",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 장보기 목록 보내줘"
+  },
+  {
+   "id": "S833",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 온 메시지 읽어줘"
+  },
+  {
+   "id": "S834",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 퇴근하고 전화 달라고 해줘"
+  },
+  {
+   "id": "S835",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 우산 챙기라고 말해줘"
+  },
+  {
+   "id": "S836",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 오늘 늦는다고 전해줘"
+  },
+  {
+   "id": "S837",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 남긴 메모 보여줘"
+  },
+  {
+   "id": "S838",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아내한테 이번 주 일정 공유해줘"
+  },
+  {
+   "id": "S839",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 광견병 주사도 맞혀야 해"
+  },
+  {
+   "id": "S840",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 산책 시간 알려줘"
+  },
+  {
+   "id": "S841",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 사료 다 떨어져 간다"
+  },
+  {
+   "id": "S842",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 미용 예약 토요일로 잡아줘"
+  },
+  {
+   "id": "S843",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 예방접종 확인서 어디 뒀어?"
+  },
+  {
+   "id": "S844",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 발톱 깎은 지 얼마나 됐어?"
+  },
+  {
+   "id": "S845",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 동물병원 다음 예약 언제야?"
+  },
+  {
+   "id": "S846",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이가 밥을 잘 안 먹어"
+  },
+  {
+   "id": "S847",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 심장사상충 약 먹였어"
+  },
+  {
+   "id": "S848",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "콩이 목욕은 일요일에 하자"
+  },
+  {
+   "id": "S849",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 숙제 다 했대"
+  },
+  {
+   "id": "S850",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 영어 학원 차량 몇 시에 와?"
+  },
+  {
+   "id": "S851",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 준비물 챙겼어?"
+  },
+  {
+   "id": "S852",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 학교 상담 날짜 알려줘"
+  },
+  {
+   "id": "S853",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 내일 체육복 입고 가야 돼"
+  },
+  {
+   "id": "S854",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 친구 생일 파티 토요일이래"
+  },
+  {
+   "id": "S855",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 키 잰 거 기록해줘"
+  },
+  {
+   "id": "S856",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "소윤이 방과 후 수업 신청했어"
+  },
+  {
+   "id": "S857",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아까 감기약 먹였어"
+  },
+  {
+   "id": "S858",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "점심 먹고 약 먹였어"
+  },
+  {
+   "id": "S859",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "약 먹였는지 안 먹였는지 헷갈려"
+  },
+  {
+   "id": "S860",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아침 약은 내가 먹였어"
+  },
+  {
+   "id": "S861",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "비타민은 아직 안 먹였어"
+  },
+  {
+   "id": "S862",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "밤에 먹여야 하는 약 있어?"
+  },
+  {
+   "id": "S863",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "유산균 먹여야 하는 시간 알려줘"
+  },
+  {
+   "id": "S864",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "기침약은 하루 3번 먹여야 돼"
+  },
+  {
+   "id": "S865",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "심장사상충 약은 매달 1일에 먹여"
+  },
+  {
+   "id": "S866",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "심장사상충 예방약 새로 사야 돼"
+  },
+  {
+   "id": "S867",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "심장사상충 검사 받으러 가야 해"
+  },
+  {
+   "id": "S868",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "심장사상충 약 먹인 날 기록해줘"
+  },
+  {
+   "id": "S869",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "심장사상충 약 남은 거 몇 개야?"
+  },
+  {
+   "id": "S870",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "이번 달 생활비 벌써 반 넘게 썼어"
+  },
+  {
+   "id": "S871",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "생활비 통장에 얼마 남았어?"
+  },
+  {
+   "id": "S872",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "생활비에서 외식비 따로 빼 줘"
+  },
+  {
+   "id": "S873",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "지난달 생활비랑 비교해줘"
+  },
+  {
+   "id": "S874",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "생활비 예산 150만 원으로 잡아줘"
+  },
+  {
+   "id": "S875",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "생활비 많이 쓴 날 알려줘"
+  },
+  {
+   "id": "S876",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "친정 용돈 보내는 날이 언제지?"
+  },
+  {
+   "id": "S877",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "친정 용돈 이번 달은 20만 원만 보내"
+  },
+  {
+   "id": "S878",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "친정에 보낼 선물 뭐가 좋을까?"
+  },
+  {
+   "id": "S879",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "친정 용돈 보냈다고 기록해줘"
+  },
+  {
+   "id": "S880",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "시어머니 생신 선물 주문했어?"
+  },
+  {
+   "id": "S881",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "시어머니 생신 저녁 예약해줘"
+  },
+  {
+   "id": "S882",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "시어머니께 안부 전화 드려야 해"
+  },
+  {
+   "id": "S883",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "시어머니 생신 날짜 다시 알려줘"
+  },
+  {
+   "id": "S884",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "혈압약 처방전 받아 왔어"
+  },
+  {
+   "id": "S885",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "아버지 혈압약 떨어지기 전에 알려줘"
+  },
+  {
+   "id": "S886",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "혈압약 아침에 드셨는지 확인해줘"
+  },
+  {
+   "id": "S887",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "혈압약 이번엔 석 달 치 받아 왔어"
+  },
+  {
+   "id": "S888",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "장보기 목록에 두부 넣어줘"
+  },
+  {
+   "id": "S889",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "장보기 목록 다 산 걸로 지워줘"
+  },
+  {
+   "id": "S890",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "장보기 목록에 뭐 남았는지 읽어줘"
+  },
+  {
+   "id": "S891",
+   "type": "read",
+   "category": "약한 낱말",
+   "text": "장보기는 내일 아침에 할게"
   },
   {
    "id": "P001",

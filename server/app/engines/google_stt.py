@@ -28,6 +28,14 @@ MODEL = "chirp_3"
 LANGUAGE_CODE = "ko-KR"
 LABEL = "Google Chirp 3 (us)"
 HINT_LABEL = "Google Chirp 3 (us) · 힌트"
+# 받아 적는 꼴 지시문(custom prompt, 구글 미리보기 기능). 2026-11-19 평가 76개: 힌트만 0.132 → 힌트+지시문 0.121.
+# 반말 끝을 높임말로 바꾸는 버릇('차례야'→'차례예요')과 숫자 꼴('84,000원')을 고친다. 사용자 결정으로 서버 기본.
+DEFAULT_PROMPT = (
+    "Transcribe exactly what is said, word for word, in Korean. "
+    "Keep every sentence ending exactly as spoken: never turn casual endings (반말) such as '뭐야', '냈어', '차례야', '언제야' "
+    "into polite ones such as '뭐예요', '냈어요', '차례예요'. Do not add or drop words. "
+    "Write money with Korean units like '8만 4천 원', times like '2시 30분', dates like '12월 3일', counts like '30분', '1시간'."
+)
 TIMEOUT_SEC = 60
 # Recognize(한 번에 보내기)는 1분 안쪽 소리용. base64 로 늘어나도 요청 한도(10MB) 안에 들게 막는다.
 MAX_AUDIO_BYTES = 7 * 1024 * 1024
@@ -70,11 +78,14 @@ class GoogleSttEngine:
         post: Callable[[str, bytes, dict], bytes] = _post,
         hints: tuple[str, ...] = (),
         boost: float | None = None,
+        prompt: str = "",
     ) -> None:
         self.name = name
         self._hints = hints
         self._boost = boost
-        self.label = HINT_LABEL if hints else LABEL
+        # 받아 적는 꼴 지시문(chirp_3 custom prompt, 미리보기 기능). 위치는 config.features.customPromptConfig.customPrompt
+        self._prompt = prompt
+        self.label = (HINT_LABEL if hints else LABEL) + (" · 지시문" if prompt else "")
         self._tokens = tokens or TokenSource()
         self._post = post
 
@@ -83,6 +94,8 @@ class GoogleSttEngine:
         if self._hints:
             phrases = [{"value": hint} if self._boost is None else {"value": hint, "boost": self._boost} for hint in self._hints]
             config["adaptation"] = {"phraseSets": [{"inlinePhraseSet": {"phrases": phrases}}]}
+        if self._prompt:
+            config["features"] = {"customPromptConfig": {"customPrompt": self._prompt}}
         return config
 
     def transcribe(self, wav_path: Path) -> SttResult:

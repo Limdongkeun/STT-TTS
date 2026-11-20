@@ -7,7 +7,6 @@ import { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { PHONE_STT_LABEL } from "../serverInfo";
 import { ConversationScreen } from "../ConversationScreen";
 import { colors } from "../theme";
 import { useVoice } from "../voice/VoiceProvider";
@@ -15,7 +14,7 @@ import { useVoice } from "../voice/VoiceProvider";
 export default function ConversationRoute() {
   const {
     conversationActive, stopConversation, resumeConversation, interruptByTap, face, liveText, chat, testSheet,
-    activeTts, errorMessage,
+    activeTts, errorMessage, conversationSttLabel, conversationSttOptions, chooseConversationStt,
   } = useVoice();
   const stopRef = useRef(stopConversation);
   stopRef.current = stopConversation;
@@ -40,7 +39,9 @@ export default function ConversationRoute() {
         chat={chat}
         cases={testSheet.cases}
         results={testSheet.results}
-        sttLabel={PHONE_STT_LABEL}
+        sttLabel={conversationSttLabel}
+        sttOptions={conversationSttOptions}
+        onChooseStt={(mode) => void chooseConversationStt(mode)}
         ttsLabel={activeTts.label}
         errorMessage={errorMessage}
         onEnd={stopConversation}
