@@ -65,7 +65,20 @@ def test_health(client):
 def test_health_names_real_models_without_loading_them():
     settings = make_settings(stt_engine="qwen3-asr-ko", tts_engine="qwen3-tts", asr_ko_model_id="/models/ko")
     body = TestClient(create_app(settings)).get("/health").json()
-    assert (body["sttModel"], body["ttsModel"]) == ("TeamUNIVA/qwen3_asr_1.7b_ko", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+    assert (body["sttModel"], body["ttsModel"]) == ("ko", "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice")
+
+
+def test_health_shows_the_stt_model_actually_loaded():
+    """학습 모델 폴더로 띄우면 그 폴더 이름을, Hugging Face 이름이면 그대로, 다른 STT 면 빈 글."""
+    def stt_model(**kwargs):
+        return TestClient(create_app(make_settings(**kwargs))).get("/health").json()["sttModel"]
+
+    tuned = "/home/teddy/stt/.models/qwen3_asr_1.7b_ko_ft1120"
+    assert stt_model(stt_engine="qwen3-asr-ko", asr_ko_model_id=tuned) == "qwen3_asr_1.7b_ko_ft1120"
+    assert stt_model(stt_engine="qwen3-asr-ko", asr_ko_model_id=tuned + "/") == "qwen3_asr_1.7b_ko_ft1120"
+    assert stt_model(stt_engine="qwen3-asr-ko", asr_ko_model_id="TeamUNIVA/qwen3_asr_1.7b_ko") == "TeamUNIVA/qwen3_asr_1.7b_ko"
+    assert stt_model(stt_engine="qwen3-asr-ko", asr_ko_model_id="") == "TeamUNIVA/qwen3_asr_1.7b_ko"
+    assert stt_model(stt_engine="mock", asr_ko_model_id=tuned) == ""
 
 
 def test_health_shows_family_demo_provider():

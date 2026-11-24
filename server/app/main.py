@@ -229,12 +229,21 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             return settings.tts_model_id
         return getattr(tts_engine, "label", "")
 
+    def stt_model_label() -> str:
+        """실제로 읽는 STT 모델. 로컬 폴더(학습 모델 등)는 폴더 이름만 — 서버 경로를 밖에 내보이지 않는다."""
+        if settings.stt_engine != QWEN_KO_STT_ENGINE:
+            return ""
+        model_id = settings.asr_ko_model_id or QWEN_KO_HF_ID
+        if model_id.startswith(("/", ".", "~")):
+            return Path(model_id.rstrip("/")).name
+        return model_id
+
     @app.get("/health")
     def health() -> dict[str, object]:
         return {
             "status": "ok",
             "sttEngine": stt_engine.name,
-            "sttModel": QWEN_KO_HF_ID if settings.stt_engine == QWEN_KO_STT_ENGINE else "",
+            "sttModel": stt_model_label(),
             "ttsEngine": tts_engine.name,
             "ttsModel": tts_model_label(),
             "answerProvider": answer_provider.name,
