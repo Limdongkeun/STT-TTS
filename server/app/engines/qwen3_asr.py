@@ -32,6 +32,9 @@ class Qwen3AsrEngine:
         self._settings = settings
         self._model = None
         self._lock = threading.Lock()
+        # 받아 적기는 한 번에 하나씩(2026-11-20: vLLM 동기 LLM 을 여러 요청 스레드가 함께 부르면 일부 요청이 끝없이 멈췄다.
+        # 바깥 주소로 3개를 동시에 보내 2개가 30초 넘게 멈춤을 확인). 한 문장 0.2초라 줄 서도 짧다.
+        self._run_lock = threading.Lock()
 
     def _load(self):
         with self._lock:
@@ -57,5 +60,6 @@ class Qwen3AsrEngine:
 
     def transcribe(self, wav_path: Path) -> SttResult:
         model = self._load()
-        first = model.transcribe(audio=str(wav_path), language=self._settings.speech_language)[0]
+        with self._run_lock:
+            first = model.transcribe(audio=str(wav_path), language=self._settings.speech_language)[0]
         return SttResult(text=first.text.strip(), language=getattr(first, "language", None))

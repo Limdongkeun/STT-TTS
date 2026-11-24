@@ -9,7 +9,7 @@
 |---|---|
 | 서버 | `familybot-stt-l4` · 서울 `asia-northeast3-b`(11/20 a구역 스팟 부족으로 옮김) · `g2-standard-4`(4코어·16GB) + NVIDIA L4 24GB · **스팟**(회수되면 정지로 남음) |
 | 디스크 | 100GB pd-balanced · 이미지 `pytorch-2-9-cu129-ubuntu-2204-nvidia-580`(드라이버 580, CUDA) |
-| 자동 켜고 끄기 | 일정 `weekday-9-18-kst`: 평일 9시 켜짐 / 18시 꺼짐(Asia/Seoul) |
+| 자동 켜고 끄기 | 11/20부터 요청할 때만 켬. 두 서버 모두 일정 `stop-18-23-kst`(매일 18시·23시 끄기). (처음엔 `weekday-9-18-kst` 평일 9시 켜짐/18시 꺼짐) |
 | STT | `~/stt`(우리 `server/app` 그대로) + 모델 `~/stt/.models/qwen3_asr_1.7b_ko`(4.4GB). systemd `familybot-stt`가 `run.sh`로 `127.0.0.1:8002`에 띄운다. 11/20부터 `venv-vllm`(qwen-asr[vllm] 0.0.6, vLLM 0.14.0, torch 2.9.1 cu128) + `ASR_BACKEND=vllm`. 옛 방식 `venv`(transformers)도 남겨 둠. `familybot-stt-warmup`이 켤 때 한 번 불러 모델을 미리 읽힌다 |
 | 바깥 주소 | `https://34-50-48-66.sslip.io/stt`·`/health`만(Caddy, 인증서 자동). 머리 `X-Stt-Key` 필요(없거나 틀리면 401, 다른 주소 404). 열쇠는 맥 키체인 `familybot-stt-api-key`, 서버 `/etc/caddy/stt.env`(root:caddy 640). Caddy 접속 기록은 끔(열쇠가 기록에 남지 않게) |
 | 감시 | Cloud Scheduler(서울) `familybot-stt-keepalive`: 평일 9~17시 10분마다 start(꺼져 있으면 켬, 9시 켜기 실패도 다시 시도) / `familybot-stt-night-stop`: 매일 23시 stop. 서비스 계정 `familybot-vm-scheduler`(이 서버에만 instanceAdmin) |
@@ -33,6 +33,30 @@
 - 맥 서버 STT 고르기에 `qwen3-asr-ko-cloud`(클라우드 Qwen 한국어) 추가: 맥 8012 임시 서버로 끝까지 확인(0.40~0.51초).
 
 - 11/20 12:15 사용자 요청으로 끔: 서버 정지 + 감시 작업 멈춤(`familybot-stt-keepalive` PAUSED). 월요일 9시 일정은 그대로라 그때 켜지지만, 다시 켤 때 감시 작업도 다시 켜야(resume) 낮에 회수돼도 다시 켜진다.
+
+## 11/20 오후: 일반 L4 예비 서버
+
+- 15:45 다시 켜려 했으나 b구역도 스팟 L4 부족. 사용자 결정: 스팟은 두고, **스팟이 안 될 때만 쓰는 일반(on-demand) L4 서버**를 하나 더 둔다.
+- 스팟 서버를 일반으로 바꾸기는 구글이 막음(`For preemptible, only allowed provisioning_model value is SPOT`) → 스냅샷 `familybot-stt-snap-1120b`로 새로 만듦.
+- 예비 서버 `familybot-stt-l4-std`: 서울 b구역, g2-standard-4 + L4, STANDARD(회수 없음, automaticRestart), 일정 `stop-18-23-kst`(매일 18시·23시 끄기만, 켜기는 손으로). 조직 정책에 이 서버도 외부 IP 허용.
+- 고정 IP 34.50.48.66 은 **켜져 있는 쪽에 붙인다**(한 번에 하나만). 지금은 예비 서버에 붙어 있고 스팟 서버에는 없다 → 스팟을 다시 쓰려면 IP를 스팟으로 옮겨야 한다(18시 이후 자동으로 옮기는 예약은 아직 없음).
+- GPU 할당량이 1개라 두 서버가 동시에 켜지지 않는다(돈도 하나만).
+- 예산 알림을 월 25만 원으로 올림(`familybot-monthly-250k`).
+- **vLLM 동시 요청 멈춤 고침:** 바깥 주소로 3개를 동시에 보내면 2개가 30초 넘게 멈췄다(첫 부팅 때도 같은 증상). 동기 vLLM 을 여러 요청 스레드가 함께 불러서다 → `Qwen3AsrEngine` 이 받아 적기를 한 번에 하나씩 하도록 잠금(`_run_lock`). 고친 뒤 동시 5개 0.6~1.3초, 3개 0.4~0.7초 모두 성공. **예비 서버에만 올림 — 스팟 서버 디스크는 다음에 켤 때 같은 파일을 올려야 한다.**
+- 일반 L4 비용: 시간당 약 1,220원(평일 9~18시면 월 약 24만 원).
+- 16:10 사용자 결정(**요청할 때만 켜기**): 스팟 서버의 평일 9시 자동 켜기 일정(`weekday-9-18-kst`)을 떼고, 두 서버 모두 `stop-18-23-kst`(매일 18시·23시 끄기만)를 단다. 감시 작업 `familybot-stt-keepalive`는 멈춤. 켜 달라고 하면: 스팟 먼저 켜 보고(IP를 스팟으로 옮기고, 스팟 디스크에 `qwen3_asr.py` 잠금 수정 올리기), 자리가 없으면 예비 일반 L4를 켠다.
+
+## 11/20 첫 실제 녹음 학습 (시험 학습)
+
+- 와치 '음성 모으기' 녹음 80개(6.5분, 5명)를 keep=1 로 받음(서버에 남김). 맥 검사로 26개 걸림(앞 잘림 의심 다수 — 와치 앱 녹음 앞 여유가 아직 0초인 것들), 제외 목록 1개 → 학습 53개(약 4분).
+- 예비 일반 L4에서 ms-swift 4.6.1(`venv-swift`) LoRA: r16, lr 1e-4, 2 epoch, 14걸음, 54초, 메모리 4.7GB. 실행 파일 `~/ft/train.sh`, 결과 `~/ft/run/`.
+- 평가 76개(같은 L4, transformers): 학습 전 **0.1468** → 1 epoch 0.1477 → **2 epoch 0.1396**(나아짐 6·나빠짐 1·같음 69). 나아짐: C2 '보여'→'뭐야'(3번), D7 '사업비'→'생활비', D15 '남편의'→'남편이', C5 숫자 꼴. 나빠짐: D8 '팔만 사천 원'→'84000원'(숫자 꼴). C3 그대로.
+- 판단 기준(CER 낮아짐·C3 안 나빠짐)을 넘어 **예비 서버 STT 를 학습 모델로 바꿈**: `~/stt/.models/qwen3_asr_1.7b_ko_ft1120`, `run.sh` 에 `ASR_KO_MODEL_ID`(원래 것은 `run.sh.base`). vLLM 으로 0.24초 확인.
+- 학습 정답에 물음표가 없어 학습 모델은 문장 끝 물음표를 안 붙인다(CER 에는 영향 없음, 화면 글만 다름).
+- 주의: 데이터가 4분뿐이라 효과가 작고 흔들릴 수 있다. 녹음이 쌓이면 다시 학습한다. 서버의 녹음은 아직 안 지웠다(--final 안 함).
+- `run_stt_train.sh` 의 마지막 체크포인트 고르기(`sort -t- -k2 -n`)가 폴더 이름의 날짜 때문에 틀린 것(checkpoint-7)을 골랐다 → 이번엔 checkpoint-14 를 따로 합쳐 잼. 스크립트 고칠 것.
+- **스팟 서버 디스크는 아직 원래 모델·옛 코드다.** 스팟을 켜면 학습 모델 폴더, `run.sh`, `qwen3_asr.py` 잠금 수정을 옮겨야 한다.
+- 16:25 두 서버 모두 끔(감시 작업도 멈춤).
 
 ## 비용(서울, 원화 가격표 기준)
 

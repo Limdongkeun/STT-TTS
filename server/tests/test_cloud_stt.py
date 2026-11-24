@@ -151,3 +151,31 @@ def test_backend_setting(monkeypatch):
     monkeypatch.setenv("ASR_BACKEND", "tensorrt")
     with pytest.raises(ValueError):
         load_settings()
+
+
+def test_transcribe_runs_one_at_a_time(tmp_path):
+    """vLLM 은 여러 스레드가 함께 부르면 멈춘다 → 받아 적기는 한 번에 하나씩(2026-11-20)."""
+    import threading
+    import time as _time
+
+    state = {"now": 0, "max": 0}
+    guard = threading.Lock()
+
+    class SlowModel:
+        def transcribe(self, **kwargs):
+            with guard:
+                state["now"] += 1
+                state["max"] = max(state["max"], state["now"])
+            _time.sleep(0.02)
+            with guard:
+                state["now"] -= 1
+            return [SttResult(text="응", language="Korean")]
+
+    engine = create_stt_engine(make_settings(stt_engine="qwen3-asr-ko", asr_ko_model_id="/m", asr_backend="vllm"))
+    engine._model = SlowModel()
+    threads = [threading.Thread(target=engine.transcribe, args=(tmp_path / "a.wav",)) for _ in range(5)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    assert state["max"] == 1
