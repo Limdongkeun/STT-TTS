@@ -224,15 +224,15 @@ def load_collect_excludes(path: Path = COLLECT_EXCLUDE_PATH) -> set[tuple[str, s
     return excludes
 
 
-def build_collect(folders: list[Path], out_dir: Path = OUT_DIR, exclude_path: Path = COLLECT_EXCLUDE_PATH) -> tuple[list[dict], list[str]]:
-    """와치 음성 모으기 zip 을 푼 폴더들(manifest.jsonl) → 학습 줄. 정답은 manifest 의 transcript.
+def collect_decisions(folders: list[Path], exclude_path: Path = COLLECT_EXCLUDE_PATH) -> list[tuple[dict, str, Path]]:
+    """녹음마다 (manifest 줄, 뺀 이유 — 학습에 쓰면 빈 글, 소리 경로). build_collect 와 어드민 요약이 같은 판정을 쓴다.
     빼는 것: 제외 목록, 같은 녹음(clip_id) 두 번째, 정답이 시험표 문장과 거의 같은 것(평가가 부풀지 않게),
     맥 STT 검사(verify.json)에서 정답과 크게 달랐던 것."""
     from finetune.verify_collect import flagged_clip_ids
 
     excludes = load_collect_excludes(exclude_path)
     tests = [case["say"] for case in TEST_CASES]
-    rows, skipped, seen = [], [], set()
+    decisions, seen = [], set()
     for folder in folders:
         flagged = flagged_clip_ids(folder)
         for line in (folder / "manifest.jsonl").read_text(encoding="utf-8").splitlines():
@@ -256,11 +256,20 @@ def build_collect(folders: list[Path], out_dir: Path = OUT_DIR, exclude_path: Pa
                 reason = "소리 파일 없음"
             elif hit := near_test_sentence(text, tests):
                 reason = f"시험표와 비슷함({hit})"
-            if reason:
-                skipped.append(f"{clip.get('item_id')} {clip.get('speaker_code')} {clip_id[:8]}: {reason}")
-                continue
-            seen.add(clip_id)
-            rows.append(swift_row(str(audio), text))
+            if not reason:
+                seen.add(clip_id)
+            decisions.append((clip, reason, audio))
+    return decisions
+
+
+def build_collect(folders: list[Path], out_dir: Path = OUT_DIR, exclude_path: Path = COLLECT_EXCLUDE_PATH) -> tuple[list[dict], list[str]]:
+    """와치 음성 모으기 zip 을 푼 폴더들(manifest.jsonl) → 학습 줄. 정답은 manifest 의 transcript."""
+    rows, skipped = [], []
+    for clip, reason, audio in collect_decisions(folders, exclude_path):
+        if reason:
+            skipped.append(f"{clip.get('item_id')} {clip.get('speaker_code')} {str(clip.get('clip_id', ''))[:8]}: {reason}")
+        else:
+            rows.append(swift_row(str(audio), str(clip.get("transcript", "")).strip()))
     if rows:
         write_jsonl(out_dir / "train.jsonl", rows)
     return rows, skipped

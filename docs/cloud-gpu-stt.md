@@ -67,6 +67,12 @@
 - **스팟 서버 디스크는 아직 원래 모델·옛 코드다.** 스팟을 켜면 학습 모델 폴더, `run.sh`, `qwen3_asr.py` 잠금 수정을 옮겨야 한다.
 - 16:25 두 서버 모두 끔(감시 작업도 멈춤).
 
+## 학습 기록 내보내기(새 앱 어드민, 11/24)
+
+- 학습 한 번의 재료는 맥 `server/.train/stt-ko/runs/<id>/`: `run.json`(언제·어디서·데이터 묶음·평가 파일·배포), ms-swift `trainer_state.json`·`args.json`·`logging.jsonl`, `eval/*.json`. 11/20 1차는 클라우드 `~/ft/`, `~/stt/.train/stt-ko/eval/`에서 받아 옴.
+- `cd server && .venv/bin/python -m finetune.export_admin all` → `secretary-ai-test/out/stt/runs.jsonl`(학습 한 번에 한 줄)·`data/<묶음>.json`. 어드민은 `npm run admin:sync`로 사내 서버에 올린다. 소리·정답 글·사람 이름은 넣지 않는다.
+- 다음 학습부터: 학습이 끝나면 `runs/<id>/`에 같은 재료를 모으고 `run.json`을 쓴 뒤 내보낸다(학습 스크립트에 붙이는 건 체크포인트 고르기 버그와 함께 고칠 때).
+
 ## 비용(서울, 원화 가격표 기준)
 
 | 구성 | 시간당 |

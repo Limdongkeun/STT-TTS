@@ -102,6 +102,8 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-25 10:01 | Codex | STT 학습 기록·녹음 묶음 어드민 내보내기와 문서 커밋 | 서버 pytest 566개 통과 |
+| 2026-11-24 18:10 | Claude | 새 앱 어드민 STT 탭용 내보내기(새 앱 세션 요청, 사용자 '양쪽 다 진행'): `finetune/export_admin.py` → `secretary-ai-test/out/stt/runs.jsonl`·`data/<묶음>.json`(약속한 칸 이름, 소리·정답 글·이름 없음, 시험표 예시에서 소윤·콩이 든 문장 뺌). 묶음 판정은 `build_dataset.collect_decisions` 하나로. 11/20 1차 기록 재료(ms-swift 로그·설정·평가 json)를 클라우드에서 `.train/stt-ko/runs/20261120-ft1120/`로 받아 옴 | server 566 passed. 1차: 80→걸림 26·제외 1→53, 54초, CER 0.1468→0.1396(6·1·69) |
 | 2026-11-24 15:50 | Claude | `/health` sttModel 이 실제 읽은 STT 모델을 보이게(학습 모델 폴더면 폴더 이름, 서버 경로는 숨김). 클라우드는 학습 모델로 돌고 있음을 SSH로 확인. 서버에 올리기는 다음에 켤 때(사용자 결정) | server 558 passed, app 108 |
 | 2026-11-24 13:35 | Claude | 클라우드 STT 켜기(새 앱 세션 요청 → 사용자 '스팟 먼저'): b구역 스팟·일반 모두 자리 없음 → 사용자 'a구역 복사': 스냅샷 `familybot-stt-snap-1124`로 a구역에 `familybot-stt-l4-std` 새로 만들고 고정 IP 옮김. 18시 자동 꺼짐. 새 앱 세션(secretary-ai-test, herdr 13번)은 이 세션 복사본으로 띄움 | /health 200(열쇠 없으면 401), /stt wav·m4a 맞음, 왕복 0.3~0.5초(첫 1~2번 느림) |
 | 2026-11-24 09:45 | Claude | 커밋 3843655(사용자 '커밋하고 이전 계획'): vLLM 받아 적기 잠금·동시 요청 테스트·클라우드 문서. 새 앱(`secretary-ai-test`, Expo 58·TS 서버 5190, 음성 없음, 설계 18 소리용 답) 확인하고 이전 계획 초안을 사용자에게 보냄 | server 557·app 108 통과. 푸시 안 함 |
