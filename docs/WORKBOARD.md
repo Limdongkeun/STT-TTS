@@ -19,6 +19,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 ## 다음 할 일
 
+- [ ] **STT 다음 계획(사용자 11/26 10:08 정함, 계획만. 시작은 사용자가 따로 말함)**: ① 평가 기준 다지기: 일반 76개 정답을 사람이 확인(`server/.train/stt-ko/data/eval_check.csv` 고칠 칸, 지금 0개 채움, 녹음 3회분은 맥에 있음) → 듣기 편한 화면(클립 재생 + 대본·인식 + 고칠 칸) → 고친 정답으로 eval.jsonl 다시 만들고 어드민 `evals.verified`에 내보냄. 새 평가셋은 학습에 안 쓴 사람의 와치 녹음으로(지금 받은 녹음 100개의 SPK01·03·04·05·06은 모두 학습에 씀 → 새 사람 녹음 필요, 양은 시작할 때 계산), speakerSplit 기록. ② 일반 음성 안 나빠지게: 방언(3차) 또는 감정(4차) 모델에서 출발, 와치 실제 녹음 비중↑, 일상 대화(AI-Hub 자유대화 등) 조금, lr↓. 목표 일반 76 ≤ 13.96%(1차) 유지 + 방언 개선, 전라·제주 더. ③ 다화자는 전체(2.14TB) 대신 화자 50~100명 × 50문장 표본, GCP VM에서 바로 받아 16k FLAC, AI-Hub 이용 조건(반출·클라우드 보관) 확인. ④ 학습마다 `finetune.export_experiment`로 어드민 runs.jsonl(동기화는 새 앱 세션). 클라우드 켜기·비용은 그때 사용자 확인
 - [ ] **STT 추가 학습 — 팀원 실제 녹음으로(다음 주 연결, 사용자 11/18)**: 기계 목소리 1차(11/17)는 실패해 지움. 다음 주에 팀원이 앱 '녹음 모으기' 화면으로 문장(학습 문장 684개 등, 시험표 문장 빼고)을 읽어 서버로 올리고, 모아서 Qwen 한국어판을 최대한 학습한다(맥은 멈추니 107 GPU, 올리기 전에 물어봄). 챙길 것: 녹음한 사람마다 동의(학습용·보관 곳·지울 때), 올리는 곳은 회사 밖에서도 되는 서버(107 또는 ProjectWatch 파일함), 파일 이름 `<문장 번호>_<사람>.wav`(build_dataset train 이 짝지음), 다르게 읽었을 때 고칠 칸. 첫 목표 약 10명 × 150문장(≈1.5시간). [계획](stt-finetune-plan.md)
 - [ ] **(다음 주) 다른 프로젝트로 이식** (11/19 사용자): TTS는 ElevenLabs 가족비서 키(키체인 `elevenlabs-api-key-family`)를 그 서버 환경변수로 + 읽기 규칙(`app/normalize.py`)·목소리 id·'차분하게' 설정·소리용 글 규칙(`docs/speech-text-handoff.md`)을 같이 옮김. STT는 맥에서만 도니, 추천은 107 GPU로 Qwen 한국어판 STT 서비스 이전(올리기 전 확인), 시험용으로만 맥 터널. Chirp 3는 서버용 인증(서비스 계정)이 조직 정책에 막혀 있음. 이식 가이드 문서는 '나중에'
 - [ ] **(나중에) ElevenLabs Agents로 대화 모드 검토** (11/19 사용자 '나중에'): 서버가 API 키로 임시 열쇠를 받아 줌(`GET /v1/convai/conversation/get-signed-url?agent_id=`·`/v1/convai/conversation/token?agent_id=`) → 클라이언트(`@elevenlabs/client`, 앱은 `@elevenlabs/react-native` + LiveKit, 개발 빌드 필요) → `onMessage`·`onModeChange` 처리. 우리 답 로직은 custom LLM(OpenAI 형식 `/v1/chat/completions` SSE)으로 붙이는데 ElevenLabs가 8002에 들어올 바깥 주소가 필요. 한국어·분당 요금·끼어들기는 확인 전. 추천 1단계: 8002 임시 열쇠 + 브라우저 시험 페이지
@@ -93,7 +94,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 항목 | 결과 | 확인 |
 |---|---|---|
-| server pytest | 556개 통과 | 2026-11-20 Claude |
+| server pytest | 574개 통과 | 2026-11-26 Claude |
 | 말바꿈 기준선 (C·D 128문장) | 109/128 | 2026-11-10 Claude |
 | app `npm test` / `npm run typecheck` / Maestro(시뮬레이터) | 108개 통과 / 통과 / home·conversation 통과 | 2026-11-20 Claude(Maestro는 11-17) |
 | app 린트 | ESLint 설정 없음, 못 돌림 | 2026-11-04 Claude |
@@ -102,6 +103,7 @@ iPhone 14 Pro에서 [폰 STT 대화 모드](../.scratch/conversation-mode/spec.m
 
 | 날짜 시각 | 누가 | 한 일 | 검증 |
 |---|---|---|---|
+| 2026-11-26 10:05 | Claude | 어드민 STT 실험 반영(사용자 '계속', 새 앱 세션 부탁): a구역 일반 L4 약 15분 켜서 실험 1~3 결과 JSON 12개·평가 목록·학습 기록을 `server/.train/stt-ko/experiments/2026-11-25/`로 받고 `/health` 고친 `main.py` 올린 뒤 끔(3대 모두 꺼짐). `evaluate.py` 결과 줄에 발화 id(음성 이름), `export_admin` 비교를 발화 id로(겹침·빠짐이면 세지 않음), 새 `finetune/export_experiment.py` + 실험 설명 `finetune/experiments/2026-11-25-{aihub,dialect,emotion}.json` → 새 앱 `out/stt/runs.jsonl`에 3줄(evals·data.sources) | server pytest 574 passed. 옛 ft1120 줄은 다시 만들어도 같음. 수치는 인수인계 문서와 같음(다화자 3·9·64 등). 커밋 안 함 |
 | 2026-11-25 10:01 | Codex | STT 학습 기록·녹음 묶음 어드민 내보내기와 문서 커밋 | 서버 pytest 566개 통과 |
 | 2026-11-24 18:10 | Claude | 새 앱 어드민 STT 탭용 내보내기(새 앱 세션 요청, 사용자 '양쪽 다 진행'): `finetune/export_admin.py` → `secretary-ai-test/out/stt/runs.jsonl`·`data/<묶음>.json`(약속한 칸 이름, 소리·정답 글·이름 없음, 시험표 예시에서 소윤·콩이 든 문장 뺌). 묶음 판정은 `build_dataset.collect_decisions` 하나로. 11/20 1차 기록 재료(ms-swift 로그·설정·평가 json)를 클라우드에서 `.train/stt-ko/runs/20261120-ft1120/`로 받아 옴 | server 566 passed. 1차: 80→걸림 26·제외 1→53, 54초, CER 0.1468→0.1396(6·1·69) |
 | 2026-11-24 15:50 | Claude | `/health` sttModel 이 실제 읽은 STT 모델을 보이게(학습 모델 폴더면 폴더 이름, 서버 경로는 숨김). 클라우드는 학습 모델로 돌고 있음을 SSH로 확인. 서버에 올리기는 다음에 켤 때(사용자 결정) | server 558 passed, app 108 |

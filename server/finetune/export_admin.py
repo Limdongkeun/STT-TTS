@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from finetune.build_dataset import COLLECT_EXCLUDE_PATH, OUT_DIR, collect_decisions
+from finetune.evaluate import answer_text, utterance_id
 from finetune.verify_collect import DEFAULT_THRESHOLD, MIN_LEAD_MS, SITUATION_THRESHOLD, VERIFY_FILE
 
 KST = timezone(timedelta(hours=9))
@@ -99,8 +100,48 @@ def collect_summary(folder: Path, exclude_path: Path = COLLECT_EXCLUDE_PATH) -> 
     return summary
 
 
-def _rows(path: Path) -> dict[tuple[str, str], dict]:
-    return {(r.get("run", ""), r["case"]): r for r in json.loads(path.read_text(encoding="utf-8"))["rows"]}
+def utterance_keys(rows: list[dict], lines: list[dict] | None = None) -> list[str]:
+    """결과 줄마다 발화 이름. 결과에 id 가 있으면 그것, 평가 목록을 주면 같은 순서의 음성 이름(정답 글이 같아야 함),
+    둘 다 없으면 옛 방식 run/case. 겹치는지는 rows_by_id 가 본다."""
+    if rows and all(r.get("id") for r in rows):
+        return [str(r["id"]) for r in rows]
+    if lines is not None:
+        if len(lines) != len(rows):
+            raise ValueError(f"결과 {len(rows)}줄과 평가 목록 {len(lines)}줄 수가 달라요")
+        for index, (row, line) in enumerate(zip(rows, lines)):
+            if row.get("reference") != answer_text(line):
+                raise ValueError(f"{index}번째 결과의 정답 글이 평가 목록과 달라요(순서가 어긋남)")
+        return [utterance_id(line) for line in lines]
+    return [f"{r.get('run', '')}/{r['case']}" for r in rows]
+
+
+def load_rows(path: Path) -> list[dict]:
+    return json.loads(path.read_text(encoding="utf-8"))["rows"]
+
+
+def rows_by_id(rows: list[dict], lines: list[dict] | None = None) -> dict[str, dict] | None:
+    """발화 이름 → 결과 줄. 이름이 겹치면 None(비교하면 덮어써진다)."""
+    keys = utterance_keys(rows, lines)
+    return dict(zip(keys, rows)) if len(set(keys)) == len(keys) else None
+
+
+def compare_rows(before: dict[str, dict] | None, after: dict[str, dict] | None) -> Counter | None:
+    """같은 발화마다 CER 이 나아짐·나빠짐·같음. 이름이 겹치거나 두 쪽 발화가 다르면 None(세지 않음)."""
+    if before is None or after is None or before.keys() != after.keys():
+        return None
+    counts = Counter({"better": 0, "worse": 0, "same": 0})
+    for key in after:
+        counts[change(before[key], after[key])] += 1
+    return counts
+
+
+def change(before: dict, after: dict) -> str:
+    """발화 하나의 CER 변화. 받아 적지 못한 줄(cer None)은 1로 친다."""
+    def cer(row: dict) -> float:
+        return 1.0 if row["cer"] is None else row["cer"]
+
+    delta = cer(after) - cer(before)
+    return "better" if delta < -1e-9 else "worse" if delta > 1e-9 else "same"
 
 
 def _cer(path: Path) -> float | None:
@@ -108,30 +149,51 @@ def _cer(path: Path) -> float | None:
 
 
 def compare_eval(base: Path, final: Path) -> dict:
-    """같은 녹음(run, case)마다 CER 이 나아짐·나빠짐·같음. 예시는 이름이 없는 시험표 문장만."""
-    before, after = _rows(base), _rows(final)
-    counts, examples = Counter(), []
-    for key in sorted(after.keys() & before.keys()):
-        delta = after[key]["cer"] - before[key]["cer"]
-        kind = "better" if delta < -1e-9 else "worse" if delta > 1e-9 else "same"
-        counts[kind] += 1
+    """같은 발화마다 CER 이 나아짐·나빠짐·같음. 예시는 이름이 없는 시험표 문장만.
+    발화 이름이 겹치거나 두 결과의 발화가 다르면 세지 않는다(None)."""
+    before, after = rows_by_id(load_rows(base)), rows_by_id(load_rows(final))
+    counts = compare_rows(before, after)
+    if counts is None:
+        return {"better": None, "worse": None, "same": None, "examples": []}
+    examples = []
+    for key in sorted(after):
         texts = (before[key]["text"], after[key]["text"], after[key].get("reference", ""))
-        if kind != "same" and not any(word in text for word in HIDE_WORDS for text in texts):
-            examples.append({"case": key[1], "before": texts[0], "after": texts[1]})
+        if change(before[key], after[key]) != "same" and not any(word in text for word in HIDE_WORDS for text in texts):
+            examples.append({"case": after[key]["case"], "before": texts[0], "after": texts[1]})
     return {"better": counts["better"], "worse": counts["worse"], "same": counts["same"], "examples": examples}
+
+
+def trainer_state(state_path: Path, logging_path: Path | None = None) -> dict:
+    """체크포인트의 trainer_state. ms-swift logging.jsonl 의 마지막 요약 줄이 있으면 그걸 쓴다
+    (체크포인트 상태에 없는 학습 시간·최대 메모리가 있다)."""
+    state = json.loads(state_path.read_text(encoding="utf-8"))
+    if logging_path is not None:
+        lines = [json.loads(l) for l in logging_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+        state = next((l for l in reversed(lines) if "log_history" in l), state)
+    return state
+
+
+def train_fields(state: dict, args: dict) -> dict:
+    """학습 설정·시간·메모리·손실 곡선(runs.jsonl 의 config·durationSec·peakMemGb·loss)."""
+    history = state.get("log_history", [])
+    summary_row = next((h for h in history if "train_runtime" in h), {})
+    return {
+        "config": {
+            "rank": args.get("lora_rank"), "alpha": args.get("lora_alpha"), "lr": args.get("learning_rate"),
+            "epochs": args.get("num_train_epochs"), "steps": state.get("global_step"),
+            "batch": args.get("per_device_train_batch_size"), "gradAccum": args.get("gradient_accumulation_steps"),
+        },
+        "durationSec": summary_row.get("train_runtime"),
+        "peakMemGb": round(state["memory"], 2) if state.get("memory") is not None else None,
+        "loss": [{"step": h["step"], "loss": round(h["loss"], 4)} for h in history if "loss" in h],
+    }
 
 
 def run_record(run_dir: Path, collect_dir: Path = COLLECT_DIR, exclude_path: Path = COLLECT_EXCLUDE_PATH) -> dict:
     """runs/<id>/ 의 재료 → runs.jsonl 한 줄."""
     meta = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
-    state = json.loads((run_dir / meta["trainerState"]).read_text(encoding="utf-8"))
-    if meta.get("logging"):
-        # ms-swift logging.jsonl 의 마지막 요약 줄에는 체크포인트 상태에 없는 학습 시간·최대 메모리가 있다
-        lines = [json.loads(l) for l in (run_dir / meta["logging"]).read_text(encoding="utf-8").splitlines() if l.strip()]
-        state = next((l for l in reversed(lines) if "log_history" in l), state)
+    state = trainer_state(run_dir / meta["trainerState"], run_dir / meta["logging"] if meta.get("logging") else None)
     args = json.loads((run_dir / meta["args"]).read_text(encoding="utf-8"))
-    history = state.get("log_history", [])
-    summary_row = next((h for h in history if "train_runtime" in h), {})
     data = [collect_summary(collect_dir / name, exclude_path) for name in meta.get("dataVersions", [])]
     evaluation = meta["eval"]
     checkpoints = [
@@ -150,14 +212,7 @@ def run_record(run_dir: Path, collect_dir: Path = COLLECT_DIR, exclude_path: Pat
             "trainSec": round(sum(d["trainSec"] for d in data), 1),
             "speakers": len({code for d in data for code in d["speakers"]["byCode"]}),
         },
-        "config": {
-            "rank": args.get("lora_rank"), "alpha": args.get("lora_alpha"), "lr": args.get("learning_rate"),
-            "epochs": args.get("num_train_epochs"), "steps": state.get("global_step"),
-            "batch": args.get("per_device_train_batch_size"), "gradAccum": args.get("gradient_accumulation_steps"),
-        },
-        "durationSec": summary_row.get("train_runtime"),
-        "peakMemGb": round(state["memory"], 2) if state.get("memory") is not None else None,
-        "loss": [{"step": h["step"], "loss": round(h["loss"], 4)} for h in history if "loss" in h],
+        **train_fields(state, args),
         "eval": {
             "set": evaluation.get("set"), "base": _cer(run_dir / evaluation["base"]),
             "checkpoints": checkpoints,

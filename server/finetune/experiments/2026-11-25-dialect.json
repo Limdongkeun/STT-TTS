@@ -1,0 +1,130 @@
+{
+  "material": "2026-11-25",
+  "where": {
+    "host": "familybot-stt-l4-std (GCP g2-standard-4 + L4)",
+    "zone": "asia-northeast3-a"
+  },
+  "deployed": null,
+  "dataVersion": "stt-collect-20261120-160855-keep",
+  "id": "2026-11-25-dialect",
+  "base": "qwen3_asr_1.7b_ko_ft1120",
+  "output": "dialect-20261125",
+  "run": "ft-dialect-sample/run/v0-20261125-055828",
+  "checkpoint": "checkpoint-70",
+  "trainList": "ft-dialect-sample/train.jsonl",
+  "sources": [
+    {
+      "name": "aihub-dialect-sample",
+      "origin": "AI-Hub 방언 발화 샘플(강원·경상·전라·제주·충청)",
+      "location": "/home/teddy/ft-dialect-sample, 평가 /home/teddy/ft-dialect-eval100",
+      "conversion": "발화 start/end로 잘라 16 kHz mono, 1~15초, 정답 dialect_form, 지역별 무작위(학습 시드 42, 평가 시드 61)",
+      "train": 500,
+      "eval": 500,
+      "speakerSplit": "원본 녹음 파일로 학습·평가를 나눔. 화자 ID가 녹음 안 번호라 녹음 사이 화자 겹침은 확인 못 함. 평가는 지역마다 녹음 1개",
+      "verified": 0
+    },
+    {
+      "name": "watch-recordings-20261120",
+      "origin": "와치 음성 모으기(팀원 실제 녹음, 11/20 받은 묶음)",
+      "location": "/home/teddy/ft/train",
+      "conversion": "앱 녹음 그대로(맥에서 16 kHz mono)",
+      "train": 53,
+      "eval": 0,
+      "speakerSplit": "평가 76개와 문장이 다름(시험표 문장은 학습에서 뺌), 같은 사람일 수 있음",
+      "verified": 0
+    },
+    {
+      "name": "device-test-76",
+      "origin": "시험표 C·D 76문장 폰 녹음(정답은 대본)",
+      "location": "/home/teddy/ft/eval",
+      "conversion": "16 kHz mono",
+      "train": 0,
+      "eval": 76,
+      "speakerSplit": "학습 녹음과 다른 문장, 같은 사람일 수 있음",
+      "verified": 0
+    }
+  ],
+  "evals": [
+    {
+      "id": "dialect-500",
+      "label": "방언 5지역 500(지역당 녹음 1개에서 100)",
+      "list": "ft-dialect-eval100/eval.jsonl",
+      "groups": {
+        "0": "강원",
+        "1": "경상",
+        "2": "전라",
+        "3": "제주",
+        "4": "충청"
+      },
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/dialect-current-500.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/dialect-new-500.json"
+        }
+      ],
+      "compare": {
+        "from": "qwen3_asr_1.7b_ko_ft1120",
+        "to": "dialect-20261125"
+      },
+      "notes": "AI-Hub 전사를 정답으로 씀(직접 듣고 확인 안 함). 지역당 녹음 1개라 지역 전체로 일반화하지 않음"
+    },
+    {
+      "id": "device-test-76",
+      "label": "일반 음성 76(시험표, 대본 정답)",
+      "list": "ft/eval.jsonl",
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/aihub-current.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/dialect-general.json"
+        }
+      ],
+      "compare": {
+        "from": "qwen3_asr_1.7b_ko_ft1120",
+        "to": "dialect-20261125"
+      },
+      "notes": "정답은 시험표 대본이라 실제로 말한 글과 다를 수 있음"
+    },
+    {
+      "id": "dialect-100-pre",
+      "label": "방언 예비 100(지역당 20, 첫 확인용)",
+      "list": "ft-dialect-sample/eval.jsonl",
+      "groups": {
+        "0": "강원",
+        "1": "경상",
+        "2": "전라",
+        "3": "제주",
+        "4": "충청"
+      },
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/dialect-current.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/dialect-new.json"
+        }
+      ],
+      "compare": {
+        "from": "qwen3_asr_1.7b_ko_ft1120",
+        "to": "dialect-20261125"
+      },
+      "notes": "예비 평가. 최종 비교는 방언 500"
+    }
+  ],
+  "notes": "실험 2. ft1120에서 따로 시작. 방언 500 평균 14.08% → 13.14%, 전라·일반 음성은 나빠짐. 배포 안 함. 다음 실험의 출발 후보"
+}

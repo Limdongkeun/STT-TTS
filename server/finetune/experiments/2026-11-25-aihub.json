@@ -1,0 +1,72 @@
+{
+  "material": "2026-11-25",
+  "where": {
+    "host": "familybot-stt-l4-std (GCP g2-standard-4 + L4)",
+    "zone": "asia-northeast3-a"
+  },
+  "deployed": null,
+  "dataVersion": "stt-collect-20261120-160855-keep",
+  "id": "2026-11-25-aihub",
+  "base": "qwen3_asr_1.7b_ko_ft1120",
+  "output": "aihub-20261125",
+  "run": "ft-aihub-sample/run/v0-20261125-052419",
+  "checkpoint": "checkpoint-229",
+  "trainList": "ft-aihub-sample/train.jsonl",
+  "sources": [
+    {
+      "name": "aihub-multispeaker-sample",
+      "origin": "AI-Hub 다화자 음성합성 샘플(서울 화자 1명 낭독)",
+      "location": "/home/teddy/ft-aihub-sample",
+      "conversion": "원본 48 kHz mono WAV 그대로, 정답 OrgLabelText",
+      "train": 1772,
+      "eval": 0,
+      "speakerSplit": "이 출처로 평가하지 않음",
+      "verified": 0
+    },
+    {
+      "name": "watch-recordings-20261120",
+      "origin": "와치 음성 모으기(팀원 실제 녹음, 11/20 받은 묶음)",
+      "location": "/home/teddy/ft/train",
+      "conversion": "앱 녹음 그대로(맥에서 16 kHz mono)",
+      "train": 53,
+      "eval": 0,
+      "speakerSplit": "평가 76개와 문장이 다름(시험표 문장은 학습에서 뺌), 같은 사람일 수 있음",
+      "verified": 0
+    },
+    {
+      "name": "device-test-76",
+      "origin": "시험표 C·D 76문장 폰 녹음(정답은 대본)",
+      "location": "/home/teddy/ft/eval",
+      "conversion": "16 kHz mono",
+      "train": 0,
+      "eval": 76,
+      "speakerSplit": "학습 녹음과 다른 문장, 같은 사람일 수 있음",
+      "verified": 0
+    }
+  ],
+  "evals": [
+    {
+      "id": "device-test-76",
+      "label": "일반 음성 76(시험표, 대본 정답)",
+      "list": "ft/eval.jsonl",
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/aihub-current.json"
+        },
+        {
+          "name": "aihub-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/aihub-new.json"
+        }
+      ],
+      "compare": {
+        "from": "qwen3_asr_1.7b_ko_ft1120",
+        "to": "aihub-20261125"
+      },
+      "notes": "정답은 시험표 대본이라 실제로 말한 글과 다를 수 있음"
+    }
+  ],
+  "notes": "실험 1. 한 화자 낭독 1,772개를 더했더니 일반 음성이 나빠짐(13.96% → 15.02%). 배포 안 함"
+}

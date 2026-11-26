@@ -46,6 +46,15 @@
 - 일반 L4 비용: 시간당 약 1,220원(평일 9~18시면 월 약 24만 원).
 - 16:10 사용자 결정(**요청할 때만 켜기**): 스팟 서버의 평일 9시 자동 켜기 일정(`weekday-9-18-kst`)을 떼고, 두 서버 모두 `stop-18-23-kst`(매일 18시·23시 끄기만)를 단다. 감시 작업 `familybot-stt-keepalive`는 멈춤. 켜 달라고 하면: 스팟 먼저 켜 보고(IP를 스팟으로 옮기고, 스팟 디스크에 `qwen3_asr.py` 잠금 수정 올리기), 자리가 없으면 예비 일반 L4를 켠다.
 
+## 11/26 실험 결과 받기
+
+- 09:37~09:52 a구역 `familybot-stt-l4-std`를 켜서 실험 1~3(다화자·방언·감정, 11/25)의 결과 JSON·평가 목록·학습 기록·실행 스크립트·로그를 맥 `server/.train/stt-ko/experiments/2026-11-25/`(git 제외)로 받음. 클라우드 홈 아래 경로 그대로.
+- 켠 김에 `/health` 표시를 고친 `app/main.py`를 올림(옛 것은 `main.py.bak-1126`). 이제 `sttModel`이 `qwen3_asr_1.7b_ko_ft1120`로 나옴. 다른 앱 코드는 맥과 같음(체크섬 비교).
+- 받은 뒤 끔. 서버 3대 모두 꺼짐.
+- 어드민 내보내기: `cd server && .venv/bin/python -m finetune.export_experiment finetune/experiments/2026-11-25-*.json`(같은 id는 바꿔 씀).
+- 11:25 디스크 정리(사용자 '지울 것만 지움', LiveKit·통화 봇 자리): a구역 서버 89GB → 60GB(37GB 남음). 지움: pip 캐시 8.1GB, 병합 모델 5개(`ft/run/merged`(11/20 잘못 고른 checkpoint-7), `ft/run/merged14`(서비스 모델과 체크섬 같은 중복), `ft-aihub-sample/merged`, `ft-dialect-sample/merged`, `ft-emotion-sample/merged`), `ft-aihub-sample/audio`(맥 `secretary-ai-test/out/stt/experiments/2026-11-25/archives/`에 있음), apt 캐시. 남김: `.models/qwen3_asr_1.7b_ko_ft1120`(서비스)·`qwen3_asr_1.7b_ko`(원본), venv·venv-vllm·venv-swift, 세 실험 LoRA 체크포인트·설정·로그·목록, 방언·감정 음성과 방언 평가 500. 방언 모델 다시 만들기: ft1120 + `ft-dialect-sample/run/v0-20261125-055828/checkpoint-70`를 `swift export --merge_lora`. 감정은 그 방언 병합본 + `ft-emotion-sample/run/v0-20261125-073135/checkpoint-95`(방언 먼저). 스팟·b구역 서버 디스크는 손대지 않음.
+- 11:24 원본 모델 `.models/qwen3_asr_1.7b_ko`(4.4GB)도 지움(사용자 '지워버리자') → 56GB(42GB 남음). 서비스는 ft1120만 씀(`/health` 확인). `run.sh.base`(원본으로 되돌리는 옛 설정)는 이제 없는 폴더를 가리킨다. 원본이 필요하면 `TeamUNIVA/qwen3_asr_1.7b_ko`를 다시 받는다.
+
 ## 11/24 a구역으로 옮김
 
 - 13:25 새 앱(secretary-ai-test) 시험용으로 켜 달라는 요청(사용자 확인 '스팟 먼저'). b구역은 **스팟도 일반 L4도 자리 없음**(`ZONE_RESOURCE_POOL_EXHAUSTED`, 일반은 STOCKOUT).

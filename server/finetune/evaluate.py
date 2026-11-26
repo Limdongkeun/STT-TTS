@@ -34,6 +34,12 @@ def answer_text(row: dict) -> str:
     return content.split(ASR_TEXT_TAG, 1)[-1].strip()
 
 
+def utterance_id(line: dict) -> str:
+    """평가 줄 하나의 고유 이름: meta.id, 없으면 음성 파일 이름. (run, case)는 방언 평가처럼 겹칠 수 있다."""
+    meta = line.get("meta") or {}
+    return str(meta.get("id") or Path(line["audios"][0]).name)
+
+
 def summarize(rows: list[dict]) -> dict:
     """줄마다 {cer, sec, verified} → 평균 CER(전체·확인된 것)·중앙 시간."""
     def mean_cer(items: list[dict]) -> float | None:
@@ -103,7 +109,7 @@ def run(transcribe: Callable[[str], str], eval_path: Path) -> list[dict]:
         reference = answer_text(line)
         meta = line.get("meta", {})
         rows.append({
-            "case": meta.get("case", ""), "run": meta.get("run", ""), "verified": bool(meta.get("verified")),
+            "id": utterance_id(line), "case": meta.get("case", ""), "run": meta.get("run", ""), "verified": bool(meta.get("verified")),
             "reference": reference, "text": text, "cer": char_error_rate(reference, text), "sec": round(sec, 3),
         })
         print(rows[-1]["case"], rows[-1]["cer"], text, flush=True)

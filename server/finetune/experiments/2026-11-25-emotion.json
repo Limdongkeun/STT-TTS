@@ -1,0 +1,148 @@
+{
+  "material": "2026-11-25",
+  "where": {
+    "host": "familybot-stt-l4-std (GCP g2-standard-4 + L4)",
+    "zone": "asia-northeast3-a"
+  },
+  "deployed": null,
+  "dataVersion": "stt-collect-20261120-160855-keep",
+  "id": "2026-11-25-emotion",
+  "base": "dialect-20261125",
+  "output": "emotion-20261125",
+  "run": "ft-emotion-sample/run/v0-20261125-073135",
+  "checkpoint": "checkpoint-95",
+  "trainList": "ft-emotion-sample/train.jsonl",
+  "sources": [
+    {
+      "name": "aihub-emotion-sample",
+      "origin": "AI-Hub 감정 발화 샘플(서울 여성 1명, 불안)",
+      "location": "/home/teddy/ft-emotion-sample",
+      "conversion": "16 kHz mono, 같은 전사 하나만, 정답 RefinedLabelText 우선 없으면 OrgLabelText, 학습 200·평가 200(시드 20261125)",
+      "train": 200,
+      "eval": 200,
+      "speakerSplit": "학습과 평가가 같은 화자(새 화자 일반화 시험 아님)",
+      "verified": 0
+    },
+    {
+      "name": "aihub-dialect-sample",
+      "origin": "AI-Hub 방언 발화 샘플(강원·경상·전라·제주·충청)",
+      "location": "/home/teddy/ft-dialect-sample",
+      "conversion": "발화 start/end로 잘라 16 kHz mono, 1~15초, 정답 dialect_form, 지역별 무작위(학습 시드 42, 평가 시드 61)",
+      "train": 500,
+      "eval": 0,
+      "speakerSplit": "실험 2와 같은 학습분. 방언 평가 500은 이 실험에서도 같은 것을 씀",
+      "verified": 0
+    },
+    {
+      "name": "watch-recordings-20261120",
+      "origin": "와치 음성 모으기(팀원 실제 녹음, 11/20 받은 묶음)",
+      "location": "/home/teddy/ft/train",
+      "conversion": "앱 녹음 그대로(맥에서 16 kHz mono)",
+      "train": 53,
+      "eval": 0,
+      "speakerSplit": "평가 76개와 문장이 다름(시험표 문장은 학습에서 뺌), 같은 사람일 수 있음",
+      "verified": 0
+    },
+    {
+      "name": "device-test-76",
+      "origin": "시험표 C·D 76문장 폰 녹음(정답은 대본)",
+      "location": "/home/teddy/ft/eval",
+      "conversion": "16 kHz mono",
+      "train": 0,
+      "eval": 76,
+      "speakerSplit": "학습 녹음과 다른 문장, 같은 사람일 수 있음",
+      "verified": 0
+    }
+  ],
+  "evals": [
+    {
+      "id": "emotion-200",
+      "label": "감정(불안) 200, 학습과 같은 화자",
+      "list": "ft-emotion-sample/eval.jsonl",
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/emotion-current.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "start",
+          "result": "stt/.train/stt-ko/eval/emotion-dialect.json"
+        },
+        {
+          "name": "emotion-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/emotion-new.json"
+        }
+      ],
+      "compare": {
+        "from": "dialect-20261125",
+        "to": "emotion-20261125"
+      },
+      "notes": "같은 화자의 새 문장이라 감정·화자 일반화 근거가 아님. AI-Hub 전사 미확인"
+    },
+    {
+      "id": "dialect-500",
+      "label": "방언 5지역 500(지역당 녹음 1개에서 100)",
+      "list": "ft-dialect-eval100/eval.jsonl",
+      "groups": {
+        "0": "강원",
+        "1": "경상",
+        "2": "전라",
+        "3": "제주",
+        "4": "충청"
+      },
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/dialect-current-500.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "start",
+          "result": "stt/.train/stt-ko/eval/dialect-new-500.json"
+        },
+        {
+          "name": "emotion-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/emotion-dialect500.json"
+        }
+      ],
+      "compare": {
+        "from": "dialect-20261125",
+        "to": "emotion-20261125"
+      },
+      "notes": "AI-Hub 전사를 정답으로 씀(직접 듣고 확인 안 함). 지역당 녹음 1개라 지역 전체로 일반화하지 않음"
+    },
+    {
+      "id": "device-test-76",
+      "label": "일반 음성 76(시험표, 대본 정답)",
+      "list": "ft/eval.jsonl",
+      "models": [
+        {
+          "name": "qwen3_asr_1.7b_ko_ft1120",
+          "role": "service",
+          "result": "stt/.train/stt-ko/eval/aihub-current.json"
+        },
+        {
+          "name": "dialect-20261125",
+          "role": "start",
+          "result": "stt/.train/stt-ko/eval/dialect-general.json"
+        },
+        {
+          "name": "emotion-20261125",
+          "role": "new",
+          "result": "stt/.train/stt-ko/eval/emotion-general.json"
+        }
+      ],
+      "compare": {
+        "from": "dialect-20261125",
+        "to": "emotion-20261125"
+      },
+      "notes": "정답은 시험표 대본이라 실제로 말한 글과 다를 수 있음"
+    }
+  ],
+  "notes": "실험 3. 방언 모델에서 출발해 감정 200 + 방언 500 + 와치 53을 섞어 학습. 배포 안 함"
+}
